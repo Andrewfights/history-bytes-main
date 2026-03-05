@@ -73,7 +73,7 @@ export function ThisDayCard({ onNavigateToArc }: ThisDayCardProps) {
           <Calendar size={14} className="text-muted-foreground" />
           <span className="text-xs text-muted-foreground">{dateDisplay}</span>
           {hasMultiple && (
-            <span className="text-[10px] text-muted-foreground/70">
+            <span className="text-xs text-muted-foreground/70">
               {currentIndex + 1} of {events.length}
             </span>
           )}
@@ -98,7 +98,7 @@ export function ThisDayCard({ onNavigateToArc }: ThisDayCardProps) {
             </h3>
 
             {/* Category tag */}
-            <span className={`text-[10px] uppercase tracking-wider font-medium ${categoryColors[currentEvent.category]}`}>
+            <span className={`text-xs uppercase tracking-wider font-medium ${categoryColors[currentEvent.category]}`}>
               {currentEvent.category}
             </span>
 

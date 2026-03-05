@@ -93,6 +93,9 @@ interface AppContextType {
   // Lucky node navigation
   pendingLuckyNode: PendingLuckyNode | null;
   setPendingLuckyNode: (node: PendingLuckyNode | null) => void;
+  // Pearl Harbor journey entry
+  pendingPearlHarbor: boolean;
+  setPendingPearlHarbor: (pending: boolean) => void;
   // Hydration state
   isHydrated: boolean;
   // Authentication
@@ -157,6 +160,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   // Lucky node navigation
   const [pendingLuckyNode, setPendingLuckyNode] = useState<PendingLuckyNode | null>(null);
+  // Pearl Harbor journey entry
+  const [pendingPearlHarbor, setPendingPearlHarbor] = useState<boolean>(false);
 
   // Badge system state
   const [earnedBadges, setEarnedBadges] = useState<EarnedBadge[]>([]);
@@ -946,6 +951,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       hasViewedChapterIntro,
       pendingLuckyNode,
       setPendingLuckyNode,
+      pendingPearlHarbor,
+      setPendingPearlHarbor,
       isHydrated,
       isAuthenticated,
       userEmail,

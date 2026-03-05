@@ -48,6 +48,8 @@ export function JourneyTab() {
     saveJourneyViewState,
     pendingLuckyNode,
     setPendingLuckyNode,
+    pendingPearlHarbor,
+    setPendingPearlHarbor,
     isFunnelMode,
     funnelState,
     markWW2IntroViewed,
@@ -175,6 +177,23 @@ export function JourneyTab() {
       setPendingLuckyNode(null);
     }
   }, [pendingLuckyNode]);
+
+  // Check for pending Pearl Harbor entry (from HomeTab JourneyCard)
+  useEffect(() => {
+    if (pendingPearlHarbor) {
+      // Clear flag first
+      setPendingPearlHarbor(false);
+
+      // If user has selected a host, go directly to journey
+      if (hasSelectedHost && selectedHostId) {
+        updateLastVisit();
+        setView('pearl-harbor-journey');
+      } else {
+        // New user - show host selection
+        setShowWW2HostSelection(true);
+      }
+    }
+  }, [pendingPearlHarbor, hasSelectedHost, selectedHostId]);
 
   // Restore view state on mount
   useEffect(() => {

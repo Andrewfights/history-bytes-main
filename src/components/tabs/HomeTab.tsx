@@ -11,6 +11,8 @@ import { LuckyResultModal } from '@/components/shared/LuckyResultModal';
 import { ThisDayCard } from '@/components/home/ThisDayCard';
 import { GuideSection } from '@/components/home/GuideSection';
 import { GuideChatModal } from '@/components/home/GuideChatModal';
+import { JourneyCard } from '@/components/home/JourneyCard';
+import { JourneyResumeBanner } from '@/components/home/JourneyResumeBanner';
 import { RandomResult } from '@/lib/randomizer';
 import { Progress } from '@/components/ui/progress';
 
@@ -23,7 +25,13 @@ interface HomeTabProps {
 
 export function HomeTab({ onStartSession, onPlayDaily, onSelectTopic }: HomeTabProps) {
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
-  const { user, setActiveTab, setPendingLuckyNode, selectedGuideId } = useApp();
+  const { user, setActiveTab, setPendingLuckyNode, setPendingPearlHarbor, selectedGuideId } = useApp();
+
+  // Handler to enter Pearl Harbor journey
+  const handleEnterJourney = () => {
+    setPendingPearlHarbor(true);
+    setActiveTab('journey');
+  };
 
   // Lucky dice state
   const [luckyResult, setLuckyResult] = useState<RandomResult | null>(null);
@@ -69,6 +77,9 @@ export function HomeTab({ onStartSession, onPlayDaily, onSelectTopic }: HomeTabP
 
   return (
     <div className="px-4 py-6 space-y-5 pb-24">
+      {/* Journey Resume Banner - Only shows when in progress */}
+      <JourneyResumeBanner onResume={handleEnterJourney} />
+
       {/* Guide Section - At the Top */}
       {selectedGuideId && (
         <motion.div
@@ -109,9 +120,9 @@ export function HomeTab({ onStartSession, onPlayDaily, onSelectTopic }: HomeTabP
         <div className="archival-card relative text-center py-4 px-2">
           <Trophy size={18} className="text-primary mx-auto mb-2" />
           <p className="text-base font-bold leading-none">
-            143<sup className="text-[9px] text-muted-foreground ml-0.5">rd</sup>
+            143<sup className="text-xs text-muted-foreground ml-0.5">rd</sup>
           </p>
-          <p className="text-[9px] text-muted-foreground uppercase tracking-[0.15em] mt-1.5">Globally</p>
+          <p className="text-xs text-muted-foreground uppercase tracking-[0.1em] mt-1.5">Globally</p>
         </div>
         <div className="archival-card relative text-center py-4 px-2 col-span-1">
           <GraduationCap size={18} className="text-secondary mx-auto mb-2" />
@@ -124,7 +135,7 @@ export function HomeTab({ onStartSession, onPlayDaily, onSelectTopic }: HomeTabP
                 <div className="h-1 rounded-full bg-border overflow-hidden">
                   <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${pct}%` }} />
                 </div>
-                <p className="text-[8px] text-muted-foreground mt-1 leading-none">
+                <p className="text-xs text-muted-foreground mt-1 leading-none">
                   {next ? `→ ${next}` : 'Max Rank'}
                 </p>
               </div>
@@ -134,10 +145,20 @@ export function HomeTab({ onStartSession, onPlayDaily, onSelectTopic }: HomeTabP
         <div className="archival-card relative text-center py-4 px-2">
           <Sparkles size={18} className="text-secondary mx-auto mb-2" />
           <p className="text-base font-bold leading-none">{user.xp.toLocaleString()}</p>
-          <p className="text-[9px] text-muted-foreground uppercase tracking-[0.15em] mt-1.5">Experience</p>
+          <p className="text-xs text-muted-foreground uppercase tracking-[0.1em] mt-1.5">Experience</p>
         </div>
       </motion.div>
 
+      {/* Featured Journey */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.12, duration: 0.4 }}
+        className="space-y-2.5"
+      >
+        <h2 className="section-plaque">Featured Journey</h2>
+        <JourneyCard onEnterJourney={handleEnterJourney} />
+      </motion.div>
 
       <OrnamentalDivider variant="laurel" />
 
