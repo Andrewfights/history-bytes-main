@@ -1,0 +1,24 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Images folder - readable by all, writable by all (for development)
+    // TODO: Restrict writes to authenticated users in production
+    match /images/{allPaths=**} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Videos folder - readable by all, writable by all (for development)
+    match /videos/{allPaths=**} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Audio folder - readable by all, writable by all (for development)
+    match /audio/{allPaths=**} {
+      allow read: if true;
+      allow write: if true;
+    }
+  }
+}
