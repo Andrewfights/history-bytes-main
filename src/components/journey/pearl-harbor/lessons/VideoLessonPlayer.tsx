@@ -16,6 +16,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Play, Pause, SkipForward, CheckCircle2, X, MapPin } from 'lucide-react';
 import { WW2Host } from '@/types';
 import { usePearlHarborProgress } from '../hooks/usePearlHarborProgress';
+import { LeaveConfirmDialog } from '@/components/shared/LeaveConfirmDialog';
 
 interface VideoLessonPlayerProps {
   host: WW2Host;
@@ -78,6 +79,7 @@ export function VideoLessonPlayer({ host, onComplete, onSkip, onBack }: VideoLes
   const [score, setScore] = useState(0);
   const [skippedScreens, setSkippedScreens] = useState<Set<Screen>>(new Set());
   const [isRestoringCheckpoint, setIsRestoringCheckpoint] = useState(true);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const videoRef = useRef<HTMLDivElement>(null);
 
   // Checkpoint system
@@ -209,7 +211,7 @@ export function VideoLessonPlayer({ host, onComplete, onSkip, onBack }: VideoLes
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-950 to-black flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
-        <button onClick={onBack} className="p-2 -ml-2 text-white/60 hover:text-white">
+        <button onClick={() => setShowLeaveConfirm(true)} className="p-2 -ml-2 text-white/60 hover:text-white">
           <ArrowLeft size={24} />
         </button>
         <div className="text-center">
@@ -873,6 +875,22 @@ export function VideoLessonPlayer({ host, onComplete, onSkip, onBack }: VideoLes
           )}
         </AnimatePresence>
       </div>
+
+      {/* Leave Confirmation Dialog */}
+      <LeaveConfirmDialog
+        isOpen={showLeaveConfirm}
+        onConfirm={() => {
+          // Save checkpoint before leaving so user can resume
+          const screenIndex = SCREENS.indexOf(screen);
+          saveCheckpoint(LESSON_ID, screen, screenIndex, {
+            viewedTestimonies: viewedHotspots,
+            quizScore: score,
+            skippedScreens: Array.from(skippedScreens),
+          });
+          onBack();
+        }}
+        onCancel={() => setShowLeaveConfirm(false)}
+      />
     </div>
   );
 }

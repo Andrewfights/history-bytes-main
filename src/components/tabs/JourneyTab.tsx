@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, Trophy, Flame, TrendingUp, Clock, Lock, Globe, Map } from 'lucide-react';
+import { ChevronRight, Trophy, Flame, TrendingUp, Clock, Lock, Globe, Map, ArrowRight } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { arcs, getArcById } from '@/data/journeyData';
 
@@ -513,6 +513,57 @@ export function JourneyTab() {
             exit={{ opacity: 0, x: -20 }}
             className="px-4 py-6"
           >
+            {/* WW2/PEARL HARBOR HERO - Primary CTA */}
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-6"
+            >
+              <button
+                onClick={() => {
+                  trackArcVisit(WW2_ARC_ID);
+                  setSelectedArcId(WW2_ARC_ID);
+                  if (hasSelectedHost && selectedHostId) {
+                    setView('pearl-harbor-journey');
+                  } else {
+                    setShowWW2HostSelection(true);
+                  }
+                }}
+                className="w-full relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-900/80 via-red-900/60 to-slate-900 border border-amber-500/30 p-5 text-left group"
+              >
+                {/* Background glow effect */}
+                <div className="absolute inset-0 bg-gradient-to-r from-amber-500/10 to-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                <div className="relative z-10">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-3xl">🪖</span>
+                    <span className="text-xs font-bold uppercase tracking-wider text-amber-400">Featured Journey</span>
+                  </div>
+
+                  <h2 className="font-editorial text-2xl font-bold text-white mb-1">
+                    Pearl Harbor
+                  </h2>
+                  <p className="text-white/70 text-sm mb-4">
+                    December 7, 1941 — Experience the day that changed history
+                  </p>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3 text-xs text-white/60">
+                      <span>7 Lessons</span>
+                      <span>•</span>
+                      <span>~45 min</span>
+                      <span>•</span>
+                      <span className="text-amber-400">+280 XP</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-amber-400 font-bold text-sm group-hover:translate-x-1 transition-transform">
+                      Start Journey
+                      <ArrowRight size={16} />
+                    </div>
+                  </div>
+                </div>
+              </button>
+            </motion.div>
+
             {/* Progress Overview Section */}
             <ProgressOverview user={user} completedNodesCount={completedJourneyNodes.length} />
 

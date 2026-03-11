@@ -16,6 +16,7 @@ import { ArrowLeft, SkipForward, Radio, AlertTriangle, Phone, Clock, CheckCircle
 import { WW2Host } from '@/types';
 import { useSoundEffects, useAmbientSound } from '@/hooks/useAudio';
 import { usePearlHarborProgress, LessonCheckpoint } from '../hooks/usePearlHarborProgress';
+import { LeaveConfirmDialog } from '@/components/shared/LeaveConfirmDialog';
 
 interface RadarBranchingLessonProps {
   host: WW2Host;
@@ -106,6 +107,7 @@ export function RadarBranchingLesson({ host, onComplete, onSkip, onBack }: Radar
   const [decisionTimer, setDecisionTimer] = useState(30); // 30 second countdown for decision
   const [showTimerWarning, setShowTimerWarning] = useState(false);
   const [isRestoringCheckpoint, setIsRestoringCheckpoint] = useState(true);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const radarRef = useRef<HTMLDivElement>(null);
 
   // Checkpoint system
@@ -293,7 +295,7 @@ export function RadarBranchingLesson({ host, onComplete, onSkip, onBack }: Radar
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
         <div className="flex items-center gap-2">
-          <button onClick={onBack} className="p-2 -ml-2 text-white/60 hover:text-white">
+          <button onClick={() => setShowLeaveConfirm(true)} className="p-2 -ml-2 text-white/60 hover:text-white">
             <ArrowLeft size={24} />
           </button>
           <button
@@ -901,6 +903,22 @@ export function RadarBranchingLesson({ host, onComplete, onSkip, onBack }: Radar
           )}
         </AnimatePresence>
       </div>
+
+      {/* Leave Confirmation Dialog */}
+      <LeaveConfirmDialog
+        isOpen={showLeaveConfirm}
+        onConfirm={() => {
+          // Save checkpoint before leaving so user can resume
+          const screenIndex = SCREENS.indexOf(screen);
+          saveCheckpoint(LESSON_ID, screen, screenIndex, {
+            detectedBlips,
+            selectedDecision: selectedDecision || undefined,
+            skippedScreens: Array.from(skippedScreens),
+          });
+          onBack();
+        }}
+        onCancel={() => setShowLeaveConfirm(false)}
+      />
     </div>
   );
 }

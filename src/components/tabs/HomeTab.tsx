@@ -80,12 +80,22 @@ export function HomeTab({ onStartSession, onPlayDaily, onSelectTopic }: HomeTabP
       {/* Journey Resume Banner - Only shows when in progress */}
       <JourneyResumeBanner onResume={handleEnterJourney} />
 
-      {/* Guide Section - At the Top */}
+      {/* FEATURED: Pearl Harbor Journey - TOP OF PAGE */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="space-y-2"
+      >
+        <JourneyCard onEnterJourney={handleEnterJourney} />
+      </motion.div>
+
+      {/* Guide Section */}
       {selectedGuideId && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
+          transition={{ duration: 0.3, delay: 0.1 }}
         >
           <GuideSection
             onOpenChat={() => setShowChatModal(true)}
@@ -96,71 +106,7 @@ export function HomeTab({ onStartSession, onPlayDaily, onSelectTopic }: HomeTabP
         </motion.div>
       )}
 
-      {/* Hero Carousel */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: selectedGuideId ? 0.1 : 0 }}
-      >
-        <HeroCarousel
-          onContinueJourney={() => setActiveTab('explore')}
-          onPlayDaily={onPlayDaily}
-        />
-      </motion.div>
-
       <OrnamentalDivider variant="compass" />
-
-      {/* Prestigious Stats */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1, duration: 0.4 }}
-        className="grid grid-cols-3 gap-2.5"
-      >
-        <div className="archival-card relative text-center py-4 px-2">
-          <Trophy size={18} className="text-primary mx-auto mb-2" />
-          <p className="text-base font-bold leading-none">
-            143<sup className="text-xs text-muted-foreground ml-0.5">rd</sup>
-          </p>
-          <p className="text-xs text-muted-foreground uppercase tracking-[0.1em] mt-1.5">Globally</p>
-        </div>
-        <div className="archival-card relative text-center py-4 px-2 col-span-1">
-          <GraduationCap size={18} className="text-secondary mx-auto mb-2" />
-          <p className="text-sm font-bold leading-none">{getRank(user.xp)}</p>
-          {(() => {
-            const { next, threshold, current } = getNextRankXP(user.xp);
-            const pct = next ? Math.round(((user.xp - current) / (threshold - current)) * 100) : 100;
-            return (
-              <div className="mt-1.5">
-                <div className="h-1 rounded-full bg-border overflow-hidden">
-                  <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${pct}%` }} />
-                </div>
-                <p className="text-xs text-muted-foreground mt-1 leading-none">
-                  {next ? `→ ${next}` : 'Max Rank'}
-                </p>
-              </div>
-            );
-          })()}
-        </div>
-        <div className="archival-card relative text-center py-4 px-2">
-          <Sparkles size={18} className="text-secondary mx-auto mb-2" />
-          <p className="text-base font-bold leading-none">{user.xp.toLocaleString()}</p>
-          <p className="text-xs text-muted-foreground uppercase tracking-[0.1em] mt-1.5">Experience</p>
-        </div>
-      </motion.div>
-
-      {/* Featured Journey */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.12, duration: 0.4 }}
-        className="space-y-2.5"
-      >
-        <h2 className="section-plaque">Featured Journey</h2>
-        <JourneyCard onEnterJourney={handleEnterJourney} />
-      </motion.div>
-
-      <OrnamentalDivider variant="laurel" />
 
       {/* Daily Challenge & Lucky Dice Row */}
       <motion.div

@@ -34,7 +34,7 @@ export function GuideSection({
     return () => clearInterval(interval);
   }, [guide?.catchphrases?.length]);
 
-  if (!guide) {
+  if (!guide || !guide.name) {
     return null;
   }
 

@@ -15,6 +15,7 @@ import { ArrowLeft, Construction, RotateCcw, Play } from 'lucide-react';
 import { WW2Host } from '@/types';
 import { getLessonById } from '@/data/pearlHarborLessons';
 import { usePearlHarborProgress } from './hooks/usePearlHarborProgress';
+import { useApp } from '@/context/AppContext';
 import { VideoLessonPlayer } from './lessons/VideoLessonPlayer';
 import { RadarBranchingLesson } from './lessons/RadarBranchingLesson';
 import { TestimoniesLesson } from './lessons/TestimoniesLesson';
@@ -37,6 +38,8 @@ export function PearlHarborLessonPlayer({
   onBack,
 }: PearlHarborLessonPlayerProps) {
   const { completeActivity, unlockLesson, hasResumableCheckpoint, clearCheckpoint, checkpoint } = usePearlHarborProgress();
+  // Sync with main app context for XP and journey progress
+  const { addXP, markJourneyNodeComplete } = useApp();
   const [showResumePrompt, setShowResumePrompt] = useState(() => hasResumableCheckpoint(lessonId));
   const [shouldResumeFromCheckpoint, setShouldResumeFromCheckpoint] = useState(true);
   const lesson = getLessonById(lessonId);
@@ -127,12 +130,18 @@ export function PearlHarborLessonPlayer({
   // Called when user fully completes the lesson (earns XP)
   const handleLessonComplete = (xp: number) => {
     completeActivity(lessonId);
+    // Sync with main app context
+    addXP(xp);
+    markJourneyNodeComplete(`pearl-harbor-${lessonId}`);
     onComplete();
   };
 
   // Called when user skips the lesson (can proceed but no XP)
   const handleLessonSkip = () => {
     unlockLesson(lessonId);
+    // Track in main context as unlocked (not completed - no XP)
+    // Using a different prefix to distinguish skipped vs completed
+    markJourneyNodeComplete(`pearl-harbor-${lessonId}-unlocked`);
     onComplete();
   };
 

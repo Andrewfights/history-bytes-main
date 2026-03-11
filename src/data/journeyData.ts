@@ -3183,8 +3183,7 @@ const americanRevChapter1: JourneyChapter = {
 // ============================================================
 
 export const arcs: Arc[] = [
-  // All Arcs with Content
-  frenchRevolutionArc,
+  // WW2 FIRST - Primary focus for users
   {
     id: 'world-war-2',
     title: 'World War II',
@@ -3195,6 +3194,8 @@ export const arcs: Arc[] = [
     badge: '🎖️',
     totalXP: 1530,
   },
+  // Other Arcs
+  frenchRevolutionArc,
   {
     id: 'ancient-rome',
     title: 'Ancient Rome',
