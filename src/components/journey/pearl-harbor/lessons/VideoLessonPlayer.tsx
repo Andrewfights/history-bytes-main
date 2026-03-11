@@ -15,6 +15,7 @@ import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Play, Pause, SkipForward, CheckCircle2, X, MapPin } from 'lucide-react';
 import { WW2Host } from '@/types';
+import { usePearlHarborProgress } from '../hooks/usePearlHarborProgress';
 
 interface VideoLessonPlayerProps {
   host: WW2Host;
@@ -24,6 +25,9 @@ interface VideoLessonPlayerProps {
 }
 
 type Screen = 'title' | 'video' | 'recap' | 'quiz-date' | 'quiz-map' | 'quiz-duration' | 'completion';
+
+const LESSON_ID = 'ph-lesson-1';
+const SCREENS: Screen[] = ['title', 'video', 'recap', 'quiz-date', 'quiz-map', 'quiz-duration', 'completion'];
 
 // Lesson content data
 const LESSON_DATA = {
@@ -73,7 +77,44 @@ export function VideoLessonPlayer({ host, onComplete, onSkip, onBack }: VideoLes
   const [isAnswerCorrect, setIsAnswerCorrect] = useState<boolean | null>(null);
   const [score, setScore] = useState(0);
   const [skippedScreens, setSkippedScreens] = useState<Set<Screen>>(new Set());
+  const [isRestoringCheckpoint, setIsRestoringCheckpoint] = useState(true);
   const videoRef = useRef<HTMLDivElement>(null);
+
+  // Checkpoint system
+  const { saveCheckpoint, clearCheckpoint, getCheckpointForLesson } = usePearlHarborProgress();
+
+  // Restore from checkpoint on mount
+  useEffect(() => {
+    const checkpoint = getCheckpointForLesson(LESSON_ID);
+    if (checkpoint) {
+      console.log('[Video Lesson] Restoring from checkpoint:', checkpoint.screen);
+      setScreen(checkpoint.screen as Screen);
+      // Restore lesson-specific state
+      if (checkpoint.state.viewedTestimonies) {
+        setViewedHotspots(checkpoint.state.viewedTestimonies);
+      }
+      if (checkpoint.state.quizScore !== undefined) {
+        setScore(checkpoint.state.quizScore);
+      }
+      if (checkpoint.state.skippedScreens) {
+        setSkippedScreens(new Set(checkpoint.state.skippedScreens as Screen[]));
+      }
+    }
+    setIsRestoringCheckpoint(false);
+  }, []);
+
+  // Save checkpoint on screen change
+  useEffect(() => {
+    if (isRestoringCheckpoint) return;
+    if (screen === 'completion') return;
+
+    const screenIndex = SCREENS.indexOf(screen);
+    saveCheckpoint(LESSON_ID, screen, screenIndex, {
+      viewedTestimonies: viewedHotspots, // Reusing this field for hotspots
+      quizScore: score,
+      skippedScreens: Array.from(skippedScreens),
+    });
+  }, [screen, viewedHotspots, score, skippedScreens, isRestoringCheckpoint, saveCheckpoint]);
 
   // Simulate video progress
   useEffect(() => {
@@ -145,10 +186,14 @@ export function VideoLessonPlayer({ host, onComplete, onSkip, onBack }: VideoLes
 
   // Skip all remaining screens and unlock (but don't complete) the lesson
   const handleSkipLesson = () => {
+    clearCheckpoint();
     onSkip();
   };
 
   const handleComplete = () => {
+    // Clear checkpoint when lesson is complete
+    clearCheckpoint();
+
     // Check if any screens were skipped - if so, only unlock, don't complete
     if (skippedScreens.size > 0) {
       onSkip();

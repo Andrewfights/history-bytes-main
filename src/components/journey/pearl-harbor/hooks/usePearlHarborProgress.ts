@@ -1,5 +1,6 @@
 /**
  * usePearlHarborProgress - Track progress through Pearl Harbor module
+ * Now includes checkpoint saves for mid-lesson resume
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -8,6 +9,37 @@ import { INITIAL_MASTERY_BUCKETS, getActivityById } from '@/data/pearlHarborData
 import { getLessonById, PEARL_HARBOR_LESSONS } from '@/data/pearlHarborLessons';
 
 const PROGRESS_KEY = 'hb_pearl_harbor_progress';
+const CHECKPOINT_KEY = 'hb_pearl_harbor_checkpoint';
+
+// Checkpoint data for resuming mid-lesson
+export interface LessonCheckpoint {
+  lessonId: string;
+  screen: string; // Current screen name (e.g., 'intro', 'radar', 'decision', 'quiz')
+  screenIndex: number; // Numeric index for ordered screens
+  timestamp: number;
+  // Lesson-specific state
+  state: {
+    // Radar lesson
+    detectedBlips?: string[];
+    selectedDecision?: string;
+    // Quiz state
+    selectedAnswers?: Record<number, number>;
+    quizScore?: number;
+    // Testimonies
+    currentTestimony?: number;
+    viewedTestimonies?: string[];
+    // Radio headline
+    taggedFacts?: string[];
+    headlineWords?: string[];
+    // Battleship row
+    identifiedShips?: string[];
+    // Memorial
+    visitedLocations?: string[];
+    // Generic
+    earnedXP?: number;
+    skippedScreens?: string[];
+  };
+}
 
 const DEFAULT_PROGRESS: PearlHarborProgress = {
   completedActivities: [],
@@ -21,11 +53,13 @@ const DEFAULT_PROGRESS: PearlHarborProgress = {
 
 export function usePearlHarborProgress() {
   const [progress, setProgress] = useState<PearlHarborProgress>(DEFAULT_PROGRESS);
+  const [checkpoint, setCheckpoint] = useState<LessonCheckpoint | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load progress on mount
+  // Load progress and checkpoint on mount
   useEffect(() => {
     try {
+      // Load main progress
       const stored = localStorage.getItem(PROGRESS_KEY);
       if (stored) {
         const parsed = JSON.parse(stored) as PearlHarborProgress;
@@ -38,6 +72,20 @@ export function usePearlHarborProgress() {
         // Ensure unlockedLessons exists (for backwards compatibility)
         const unlockedLessons = parsed.unlockedLessons || [];
         setProgress({ ...parsed, masteryBuckets: mergedBuckets, unlockedLessons });
+      }
+
+      // Load checkpoint if exists
+      const storedCheckpoint = localStorage.getItem(CHECKPOINT_KEY);
+      if (storedCheckpoint) {
+        const parsedCheckpoint = JSON.parse(storedCheckpoint) as LessonCheckpoint;
+        // Only restore checkpoints less than 24 hours old
+        const isRecent = Date.now() - parsedCheckpoint.timestamp < 24 * 60 * 60 * 1000;
+        if (isRecent) {
+          setCheckpoint(parsedCheckpoint);
+        } else {
+          // Clear stale checkpoint
+          localStorage.removeItem(CHECKPOINT_KEY);
+        }
       }
     } catch (error) {
       console.error('Failed to load Pearl Harbor progress:', error);
@@ -55,6 +103,52 @@ export function usePearlHarborProgress() {
       console.error('Failed to save Pearl Harbor progress:', error);
     }
   }, []);
+
+  // Save a checkpoint (mid-lesson state)
+  const saveCheckpoint = useCallback((lessonId: string, screen: string, screenIndex: number, state: LessonCheckpoint['state'] = {}) => {
+    const newCheckpoint: LessonCheckpoint = {
+      lessonId,
+      screen,
+      screenIndex,
+      timestamp: Date.now(),
+      state,
+    };
+    setCheckpoint(newCheckpoint);
+    try {
+      localStorage.setItem(CHECKPOINT_KEY, JSON.stringify(newCheckpoint));
+      console.log('[Checkpoint] Saved:', screen, 'for lesson', lessonId);
+    } catch (error) {
+      console.error('Failed to save checkpoint:', error);
+    }
+  }, []);
+
+  // Clear checkpoint (when lesson completes or user explicitly exits)
+  const clearCheckpoint = useCallback(() => {
+    setCheckpoint(null);
+    try {
+      localStorage.removeItem(CHECKPOINT_KEY);
+      console.log('[Checkpoint] Cleared');
+    } catch (error) {
+      console.error('Failed to clear checkpoint:', error);
+    }
+  }, []);
+
+  // Get checkpoint for a specific lesson (returns null if no checkpoint or different lesson)
+  const getCheckpointForLesson = useCallback((lessonId: string): LessonCheckpoint | null => {
+    if (checkpoint && checkpoint.lessonId === lessonId) {
+      return checkpoint;
+    }
+    return null;
+  }, [checkpoint]);
+
+  // Check if there's a resumable checkpoint
+  const hasResumableCheckpoint = useCallback((lessonId?: string): boolean => {
+    if (!checkpoint) return false;
+    if (lessonId) {
+      return checkpoint.lessonId === lessonId;
+    }
+    return true;
+  }, [checkpoint]);
 
   // Complete an activity or lesson
   const completeActivity = useCallback((activityId: string) => {
@@ -201,5 +295,11 @@ export function usePearlHarborProgress() {
     totalXP: progress.totalXP,
     unlockedLessons: progress.unlockedLessons,
     hasBattleshipRowBadge: progress.hasBattleshipRowBadge,
+    // Checkpoint functions
+    checkpoint,
+    saveCheckpoint,
+    clearCheckpoint,
+    getCheckpointForLesson,
+    hasResumableCheckpoint,
   };
 }

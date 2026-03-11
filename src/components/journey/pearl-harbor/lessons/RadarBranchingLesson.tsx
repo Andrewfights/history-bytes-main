@@ -15,6 +15,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, SkipForward, Radio, AlertTriangle, Phone, Clock, CheckCircle2, Volume2, VolumeX } from 'lucide-react';
 import { WW2Host } from '@/types';
 import { useSoundEffects, useAmbientSound } from '@/hooks/useAudio';
+import { usePearlHarborProgress, LessonCheckpoint } from '../hooks/usePearlHarborProgress';
 
 interface RadarBranchingLessonProps {
   host: WW2Host;
@@ -24,6 +25,9 @@ interface RadarBranchingLessonProps {
 }
 
 type Screen = 'intro' | 'radar' | 'detection' | 'decision' | 'outcome' | 'quiz' | 'completion';
+
+const LESSON_ID = 'ph-lesson-2';
+const SCREENS: Screen[] = ['intro', 'radar', 'detection', 'decision', 'outcome', 'quiz', 'completion'];
 
 // Lesson content
 const LESSON_DATA = {
@@ -101,7 +105,11 @@ export function RadarBranchingLesson({ host, onComplete, onSkip, onBack }: Radar
   const [blipOpacity, setBlipOpacity] = useState<Record<string, number>>({});
   const [decisionTimer, setDecisionTimer] = useState(30); // 30 second countdown for decision
   const [showTimerWarning, setShowTimerWarning] = useState(false);
+  const [isRestoringCheckpoint, setIsRestoringCheckpoint] = useState(true);
   const radarRef = useRef<HTMLDivElement>(null);
+
+  // Checkpoint system
+  const { saveCheckpoint, clearCheckpoint, getCheckpointForLesson } = usePearlHarborProgress();
 
   // Audio hooks
   const { play: playSfx, isMuted, toggleMute } = useSoundEffects();
@@ -111,6 +119,39 @@ export function RadarBranchingLesson({ host, onComplete, onSkip, onBack }: Radar
   const playBlipSound = useCallback(() => {
     playSfx('blipDetect', 0.6);
   }, [playSfx]);
+
+  // Restore from checkpoint on mount
+  useEffect(() => {
+    const checkpoint = getCheckpointForLesson(LESSON_ID);
+    if (checkpoint) {
+      console.log('[Radar Lesson] Restoring from checkpoint:', checkpoint.screen);
+      setScreen(checkpoint.screen as Screen);
+      // Restore lesson-specific state
+      if (checkpoint.state.detectedBlips) {
+        setDetectedBlips(checkpoint.state.detectedBlips);
+      }
+      if (checkpoint.state.selectedDecision) {
+        setSelectedDecision(checkpoint.state.selectedDecision);
+      }
+      if (checkpoint.state.skippedScreens) {
+        setSkippedScreens(new Set(checkpoint.state.skippedScreens as Screen[]));
+      }
+    }
+    setIsRestoringCheckpoint(false);
+  }, []);
+
+  // Save checkpoint on screen change
+  useEffect(() => {
+    if (isRestoringCheckpoint) return; // Don't save while restoring
+    if (screen === 'completion') return; // Don't checkpoint on completion
+
+    const screenIndex = SCREENS.indexOf(screen);
+    saveCheckpoint(LESSON_ID, screen, screenIndex, {
+      detectedBlips,
+      selectedDecision: selectedDecision || undefined,
+      skippedScreens: Array.from(skippedScreens),
+    });
+  }, [screen, detectedBlips, selectedDecision, skippedScreens, isRestoringCheckpoint, saveCheckpoint]);
 
   // Start ambient sound on radar/decision screens, stop on others
   useEffect(() => {
@@ -231,6 +272,9 @@ export function RadarBranchingLesson({ host, onComplete, onSkip, onBack }: Radar
   };
 
   const handleComplete = () => {
+    // Clear checkpoint when lesson is complete
+    clearCheckpoint();
+
     if (skippedScreens.size > 0 || isAnswerCorrect === false) {
       onSkip();
     } else {
@@ -240,6 +284,7 @@ export function RadarBranchingLesson({ host, onComplete, onSkip, onBack }: Radar
   };
 
   const handleSkipLesson = () => {
+    clearCheckpoint();
     onSkip();
   };
 

@@ -5,10 +5,13 @@
  * Handles two completion states:
  * - Complete: User finished all screens and earned XP
  * - Skip: User skipped ahead, lesson is unlocked but not completed
+ *
+ * Now includes checkpoint resume functionality
  */
 
-import { motion } from 'framer-motion';
-import { ArrowLeft, Construction } from 'lucide-react';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowLeft, Construction, RotateCcw, Play } from 'lucide-react';
 import { WW2Host } from '@/types';
 import { getLessonById } from '@/data/pearlHarborLessons';
 import { usePearlHarborProgress } from './hooks/usePearlHarborProgress';
@@ -33,13 +36,90 @@ export function PearlHarborLessonPlayer({
   onComplete,
   onBack,
 }: PearlHarborLessonPlayerProps) {
-  const { completeActivity, unlockLesson } = usePearlHarborProgress();
+  const { completeActivity, unlockLesson, hasResumableCheckpoint, clearCheckpoint, checkpoint } = usePearlHarborProgress();
+  const [showResumePrompt, setShowResumePrompt] = useState(() => hasResumableCheckpoint(lessonId));
+  const [shouldResumeFromCheckpoint, setShouldResumeFromCheckpoint] = useState(true);
   const lesson = getLessonById(lessonId);
 
   if (!lesson) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <p className="text-white/60">Lesson not found</p>
+      </div>
+    );
+  }
+
+  // Handle resume choice
+  const handleResume = () => {
+    setShouldResumeFromCheckpoint(true);
+    setShowResumePrompt(false);
+  };
+
+  const handleStartOver = () => {
+    clearCheckpoint();
+    setShouldResumeFromCheckpoint(false);
+    setShowResumePrompt(false);
+  };
+
+  // Show resume prompt if there's a checkpoint for this lesson
+  if (showResumePrompt && checkpoint?.lessonId === lessonId) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-950 to-black flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+          <button onClick={onBack} className="p-2 -ml-2 text-white/60 hover:text-white">
+            <ArrowLeft size={24} />
+          </button>
+          <div className="text-center">
+            <h1 className="font-editorial text-lg font-bold text-white">{lesson.title}</h1>
+          </div>
+          <div className="w-10" />
+        </div>
+
+        {/* Resume Prompt */}
+        <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            className="w-20 h-20 rounded-full bg-amber-500/20 flex items-center justify-center mb-6"
+          >
+            <RotateCcw size={40} className="text-amber-400" />
+          </motion.div>
+
+          <h2 className="font-editorial text-2xl font-bold text-white mb-2">
+            Resume Lesson?
+          </h2>
+
+          <p className="text-white/60 mb-2">
+            You left off at: <span className="text-amber-400 font-medium capitalize">{checkpoint.screen}</span>
+          </p>
+
+          <p className="text-white/40 text-sm mb-8">
+            Pick up where you left off, or start fresh.
+          </p>
+
+          <div className="flex flex-col gap-3 w-full max-w-xs">
+            <motion.button
+              onClick={handleResume}
+              className="flex items-center justify-center gap-2 px-8 py-4 rounded-full bg-amber-500 text-black font-bold"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Play size={20} />
+              Resume
+            </motion.button>
+
+            <motion.button
+              onClick={handleStartOver}
+              className="flex items-center justify-center gap-2 px-8 py-4 rounded-full bg-white/10 border border-white/20 text-white font-bold"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <RotateCcw size={20} />
+              Start Over
+            </motion.button>
+          </div>
+        </div>
       </div>
     );
   }
