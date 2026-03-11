@@ -10,10 +10,11 @@
  * 6. Reflection Quiz - MCQ about what happened and why
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, SkipForward, Radio, AlertTriangle, Phone, Clock, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, SkipForward, Radio, AlertTriangle, Phone, Clock, CheckCircle2, Volume2, VolumeX } from 'lucide-react';
 import { WW2Host } from '@/types';
+import { useSoundEffects, useAmbientSound } from '@/hooks/useAudio';
 
 interface RadarBranchingLessonProps {
   host: WW2Host;
@@ -98,7 +99,56 @@ export function RadarBranchingLesson({ host, onComplete, onSkip, onBack }: Radar
   const [isAnswerCorrect, setIsAnswerCorrect] = useState<boolean | null>(null);
   const [skippedScreens, setSkippedScreens] = useState<Set<Screen>>(new Set());
   const [blipOpacity, setBlipOpacity] = useState<Record<string, number>>({});
+  const [decisionTimer, setDecisionTimer] = useState(30); // 30 second countdown for decision
+  const [showTimerWarning, setShowTimerWarning] = useState(false);
   const radarRef = useRef<HTMLDivElement>(null);
+
+  // Audio hooks
+  const { play: playSfx, isMuted, toggleMute } = useSoundEffects();
+  const { fadeIn: startAmbient, fadeOut: stopAmbient } = useAmbientSound('tensionLoop', { volume: 0.2 });
+
+  // Play blip detection sound when new blip detected
+  const playBlipSound = useCallback(() => {
+    playSfx('blipDetect', 0.6);
+  }, [playSfx]);
+
+  // Start ambient sound on radar/decision screens, stop on others
+  useEffect(() => {
+    if (screen === 'radar' || screen === 'decision') {
+      startAmbient();
+    } else {
+      stopAmbient();
+    }
+    return () => stopAmbient();
+  }, [screen, startAmbient, stopAmbient]);
+
+  // Decision timer countdown
+  useEffect(() => {
+    if (screen !== 'decision' || selectedDecision !== null) return;
+
+    const timer = setInterval(() => {
+      setDecisionTimer(prev => {
+        if (prev <= 1) {
+          // Time's up - auto-select the historical choice
+          clearInterval(timer);
+          handleDecision('assume');
+          return 0;
+        }
+        // Warning at 10 seconds
+        if (prev === 10) {
+          setShowTimerWarning(true);
+          playSfx('timerWarning', 0.5);
+        }
+        // Tick sound in last 5 seconds
+        if (prev <= 5) {
+          playSfx('tick', 0.3);
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [screen, selectedDecision, playSfx]);
 
   // Radar sweep animation - 6 second rotation for educational clarity
   useEffect(() => {
@@ -120,9 +170,12 @@ export function RadarBranchingLesson({ host, onComplete, onSkip, onBack }: Radar
             }));
             // Auto-detect after a moment
             setTimeout(() => {
-              setDetectedBlips(prev =>
-                prev.includes(blip.id) ? prev : [...prev, blip.id]
-              );
+              setDetectedBlips(prev => {
+                if (prev.includes(blip.id)) return prev;
+                // Play blip detection sound
+                playBlipSound();
+                return [...prev, blip.id];
+              });
             }, 500);
           }
         });
@@ -166,18 +219,22 @@ export function RadarBranchingLesson({ host, onComplete, onSkip, onBack }: Radar
 
   const handleDecision = (decisionId: string) => {
     setSelectedDecision(decisionId);
+    playSfx('select', 0.5);
     setTimeout(() => nextScreen(), 500);
   };
 
   const handleQuizAnswer = (index: number) => {
     setSelectedAnswer(index);
-    setIsAnswerCorrect(index === LESSON_DATA.quiz.correctIndex);
+    const correct = index === LESSON_DATA.quiz.correctIndex;
+    setIsAnswerCorrect(correct);
+    playSfx(correct ? 'correct' : 'incorrect', 0.6);
   };
 
   const handleComplete = () => {
     if (skippedScreens.size > 0 || isAnswerCorrect === false) {
       onSkip();
     } else {
+      playSfx('complete', 0.7);
       onComplete(LESSON_DATA.xpReward);
     }
   };
@@ -190,9 +247,18 @@ export function RadarBranchingLesson({ host, onComplete, onSkip, onBack }: Radar
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-950 to-black flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
-        <button onClick={onBack} className="p-2 -ml-2 text-white/60 hover:text-white">
-          <ArrowLeft size={24} />
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={onBack} className="p-2 -ml-2 text-white/60 hover:text-white">
+            <ArrowLeft size={24} />
+          </button>
+          <button
+            onClick={toggleMute}
+            className="p-2 text-white/60 hover:text-white"
+            title={isMuted ? 'Unmute' : 'Mute'}
+          >
+            {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+          </button>
+        </div>
         <div className="text-center">
           <h1 className="font-editorial text-lg font-bold text-white">Lesson 2</h1>
           <p className="text-xs text-amber-400">{LESSON_DATA.title}</p>
@@ -488,6 +554,33 @@ export function RadarBranchingLesson({ host, onComplete, onSkip, onBack }: Radar
               exit={{ opacity: 0 }}
               className="flex-1 flex flex-col px-6 py-8"
             >
+              {/* Timer Bar */}
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-white/60 text-xs">Time to decide</span>
+                  <span className={`text-sm font-bold ${decisionTimer <= 10 ? 'text-red-400' : 'text-amber-400'}`}>
+                    {decisionTimer}s
+                  </span>
+                </div>
+                <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                  <motion.div
+                    className={`h-full rounded-full ${decisionTimer <= 10 ? 'bg-red-500' : 'bg-amber-500'}`}
+                    initial={{ width: '100%' }}
+                    animate={{ width: `${(decisionTimer / 30) * 100}%` }}
+                    transition={{ duration: 0.3 }}
+                  />
+                </div>
+                {showTimerWarning && (
+                  <motion.p
+                    initial={{ opacity: 0, y: -5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-red-400 text-xs mt-1 text-center"
+                  >
+                    They're closing in fast!
+                  </motion.p>
+                )}
+              </div>
+
               <div className="flex items-center gap-3 mb-6">
                 <Phone size={24} className="text-amber-400" />
                 <div>

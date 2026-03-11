@@ -3,7 +3,10 @@
  * Uses Gemini 2.5 Flash Image for high-quality, cinematic historical imagery
  */
 
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+import { getApiKey } from './apiKeys';
+
+// Get API key from user storage or env var
+const getGeminiApiKey = () => getApiKey('gemini');
 
 // Latest image generation model
 const IMAGE_MODEL = 'gemini-2.0-flash-exp-image-generation';
@@ -40,8 +43,10 @@ museum-quality historical accuracy in costumes and settings
  * Generate an image using Gemini's image generation capability
  */
 export async function generateImage(options: GenerateImageOptions): Promise<GeneratedImage | null> {
-  if (!GEMINI_API_KEY) {
-    console.error('Gemini API key not configured');
+  const apiKey = getGeminiApiKey();
+
+  if (!apiKey) {
+    console.error('Gemini API key not configured. Add your key in Profile Settings.');
     return null;
   }
 
@@ -53,7 +58,7 @@ export async function generateImage(options: GenerateImageOptions): Promise<Gene
 
   try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${IMAGE_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${IMAGE_MODEL}:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: {
@@ -108,10 +113,13 @@ export async function generateImage(options: GenerateImageOptions): Promise<Gene
  * Fallback image generation using Imagen 3
  */
 async function generateImageWithImagen(prompt: string, aspectRatio: string): Promise<GeneratedImage | null> {
+  const apiKey = getGeminiApiKey();
+  if (!apiKey) return null;
+
   try {
     console.log('[Gemini] Falling back to Imagen 3');
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:predict?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:predict?key=${apiKey}`,
       {
         method: 'POST',
         headers: {
@@ -324,5 +332,5 @@ export function downloadBase64Image(base64: string, filename: string, mimeType: 
  * Check if the Gemini API is configured
  */
 export function isGeminiConfigured(): boolean {
-  return !!GEMINI_API_KEY;
+  return !!getGeminiApiKey();
 }

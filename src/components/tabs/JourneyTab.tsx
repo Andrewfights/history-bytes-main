@@ -181,17 +181,18 @@ export function JourneyTab() {
   // Check for pending Pearl Harbor entry (from HomeTab JourneyCard)
   useEffect(() => {
     if (pendingPearlHarbor) {
-      // Clear flag first
-      setPendingPearlHarbor(false);
-
       // If user has selected a host, go directly to journey
       if (hasSelectedHost && selectedHostId) {
         updateLastVisit();
+        trackArcVisit(WW2_ARC_ID);
+        setSelectedArcId(WW2_ARC_ID);
         setView('pearl-harbor-journey');
       } else {
         // New user - show host selection
         setShowWW2HostSelection(true);
       }
+      // Clear flag AFTER navigation is set to avoid race condition
+      setPendingPearlHarbor(false);
     }
   }, [pendingPearlHarbor, hasSelectedHost, selectedHostId]);
 
@@ -674,6 +675,11 @@ export function JourneyTab() {
               onBack={handleBackFromWorldMap}
             />
           </motion.div>
+        )}
+
+        {/* Guard: If pearl-harbor views but no host, show host selection */}
+        {(view === 'pearl-harbor' || view === 'pearl-harbor-journey' || view === 'pearl-harbor-lesson') && !selectedHostId && (
+          <WW2HostSelection onSelectHost={handleWW2HostSelected} />
         )}
 
         {view === 'pearl-harbor' && selectedHostId && (

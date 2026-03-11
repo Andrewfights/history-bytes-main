@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Eye, EyeOff, LogOut, Edit2, Check, TrendingUp, TrendingDown, Target, BookOpen, Brain, Gamepad2, Play, Camera, Crown, Settings, ChevronDown, ChevronUp } from 'lucide-react';
+import { User, Eye, EyeOff, LogOut, Edit2, Check, TrendingUp, TrendingDown, Target, BookOpen, Brain, Gamepad2, Play, Camera, Crown, Settings, ChevronDown, ChevronUp, Key } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { getRank, getNextRankXP } from '@/types';
 import { BadgeShowcase } from '@/components/badges/BadgeShowcase';
 import { StudyNotes } from './StudyNotes';
+import { ApiKeySettings } from './ApiKeySettings';
 
 
 const avatarOptions = ['👤', '🧑‍🎓', '🦉', '🏛️', '⚔️', '🌍', '🎭', '📜', '🔺', '👑'];
@@ -102,22 +103,22 @@ export function ProfileSettings() {
         <div className="flex items-center justify-center gap-4 mt-3">
           <div className="text-center">
             <p className="text-2xl font-bold text-gradient-gold">{user.xp.toLocaleString()}</p>
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Total XP</p>
+            <p className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Total XP</p>
           </div>
           <div className="w-px h-8 bg-border" />
           <div className="text-center">
             <p className="text-2xl font-bold">{user.streak}</p>
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Day Streak</p>
+            <p className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Day Streak</p>
           </div>
           <div className="w-px h-8 bg-border" />
           <div className="text-center">
             <p className="text-2xl font-bold">{Math.round(overallAccuracy)}%</p>
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Accuracy</p>
+            <p className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Accuracy</p>
           </div>
           <div className="w-px h-8 bg-border" />
           <div className="text-center">
             <p className="text-2xl font-bold text-primary">{crownedCount}</p>
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Crowned</p>
+            <p className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Crowned</p>
           </div>
         </div>
       </div>
@@ -131,7 +132,7 @@ export function ProfileSettings() {
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="bg-card border border-primary/30 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
               <Crown size={16} className="text-primary" />
-              <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-muted-foreground">Current Rank</h3>
+              <h3 className="text-xs uppercase tracking-[0.2em] font-bold text-muted-foreground">Current Rank</h3>
             </div>
             <p className="font-editorial text-2xl font-bold text-primary">{rank}</p>
             <div className="mt-2 h-2 rounded-full bg-border overflow-hidden">
@@ -143,11 +144,11 @@ export function ProfileSettings() {
               />
             </div>
             <div className="flex justify-between mt-1.5">
-              <span className="text-[10px] text-muted-foreground">{user.xp.toLocaleString()} XP</span>
+              <span className="text-xs text-muted-foreground">{user.xp.toLocaleString()} XP</span>
               {next ? (
-                <span className="text-[10px] text-muted-foreground">Next: {next} ({threshold.toLocaleString()} XP)</span>
+                <span className="text-xs text-muted-foreground">Next: {next} ({threshold.toLocaleString()} XP)</span>
               ) : (
-                <span className="text-[10px] text-primary font-bold">Maximum Rank Achieved</span>
+                <span className="text-xs text-primary font-bold">Maximum Rank Achieved</span>
               )}
             </div>
           </motion.div>
@@ -166,7 +167,7 @@ export function ProfileSettings() {
 
       {/* Category Breakdown */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-        <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-muted-foreground mb-3">Progress by Category</h3>
+        <h3 className="text-xs uppercase tracking-[0.2em] font-bold text-muted-foreground mb-3">Progress by Category</h3>
         <div className="grid grid-cols-2 gap-3">
           {categoryStats.map((cat) => {
             const Icon = cat.icon;
@@ -189,7 +190,7 @@ export function ProfileSettings() {
 
       {/* Per-Era Performance */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-        <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-muted-foreground mb-3">Performance by Era</h3>
+        <h3 className="text-xs uppercase tracking-[0.2em] font-bold text-muted-foreground mb-3">Performance by Era</h3>
         <div className="space-y-3">
           {eraStats.map((era) => {
             const notStarted = era.quizzesDone === 0;
@@ -198,7 +199,7 @@ export function ProfileSettings() {
                 <div className="flex items-center justify-between mb-1">
                   <h4 className="text-sm font-semibold">{era.era}</h4>
                   {notStarted ? (
-                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Not Started</span>
+                    <span className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Not Started</span>
                   ) : (
                     <span className={`text-sm font-bold ${era.accuracy >= 80 ? 'text-success' : era.accuracy >= 60 ? 'text-primary' : 'text-destructive'}`}>
                       {era.accuracy}%
@@ -230,7 +231,7 @@ export function ProfileSettings() {
 
       {/* Recommendations */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-        <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-muted-foreground mb-3">Recommended Next</h3>
+        <h3 className="text-xs uppercase tracking-[0.2em] font-bold text-muted-foreground mb-3">Recommended Next</h3>
         <div className="bg-card border border-primary/30 rounded-xl p-4">
           <div className="flex items-start gap-3">
             <Target size={20} className="text-primary mt-0.5" />
@@ -242,9 +243,18 @@ export function ProfileSettings() {
         </div>
       </motion.div>
 
+      {/* API Keys */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.35 }}
+      >
+        <ApiKeySettings />
+      </motion.div>
+
       {/* Settings */}
       <div className="space-y-3">
-        <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-muted-foreground">Settings</h3>
+        <h3 className="text-xs uppercase tracking-[0.2em] font-bold text-muted-foreground">Settings</h3>
 
         <motion.button
           initial={{ opacity: 0, x: -10 }}
