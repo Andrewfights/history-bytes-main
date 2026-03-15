@@ -39,6 +39,7 @@ function AppContent() {
   const handleOnboardingComplete = (guideId: string) => {
     setSelectedGuide(guideId);
     completeOnboarding();
+    setActiveTab('home'); // Ensure user lands on home after onboarding
   };
 
   const handleAuthSuccess = (userId: string, email: string, isNewUser: boolean) => {

@@ -19,25 +19,28 @@ export interface LessonCheckpoint {
   timestamp: number;
   // Lesson-specific state
   state: {
-    // Radar lesson
+    // Legacy lesson state
     detectedBlips?: string[];
-    selectedDecision?: string;
-    // Quiz state
     selectedAnswers?: Record<number, number>;
     quizScore?: number;
-    // Testimonies
     currentTestimony?: number;
     viewedTestimonies?: string[];
-    // Radio headline
     taggedFacts?: string[];
     headlineWords?: string[];
-    // Battleship row
     identifiedShips?: string[];
-    // Memorial
     visitedLocations?: string[];
-    // Generic
     earnedXP?: number;
     skippedScreens?: string[];
+
+    // New 10-beat curriculum state
+    viewedHotspots?: string[];
+    challengeScore?: number;
+    finalScore?: number;
+    selectedDecision?: string;
+    currentEventIndex?: number;
+    stationsListened?: string[];
+    quizAnswers?: Record<string, number | null>;
+    score?: number;
   };
 }
 
@@ -105,18 +108,35 @@ export function usePearlHarborProgress() {
   }, []);
 
   // Save a checkpoint (mid-lesson state)
-  const saveCheckpoint = useCallback((lessonId: string, screen: string, screenIndex: number, state: LessonCheckpoint['state'] = {}) => {
-    const newCheckpoint: LessonCheckpoint = {
-      lessonId,
-      screen,
-      screenIndex,
-      timestamp: Date.now(),
-      state,
-    };
+  // Supports both object form and individual args for backwards compatibility
+  const saveCheckpoint = useCallback((
+    lessonIdOrCheckpoint: string | Omit<LessonCheckpoint, 'timestamp'> & { timestamp?: number },
+    screen?: string,
+    screenIndex?: number,
+    state: LessonCheckpoint['state'] = {}
+  ) => {
+    let newCheckpoint: LessonCheckpoint;
+
+    if (typeof lessonIdOrCheckpoint === 'object') {
+      // Object form: saveCheckpoint({ lessonId, screen, screenIndex, state })
+      newCheckpoint = {
+        ...lessonIdOrCheckpoint,
+        timestamp: lessonIdOrCheckpoint.timestamp || Date.now(),
+      };
+    } else {
+      // Individual args form: saveCheckpoint(lessonId, screen, screenIndex, state)
+      newCheckpoint = {
+        lessonId: lessonIdOrCheckpoint,
+        screen: screen!,
+        screenIndex: screenIndex!,
+        timestamp: Date.now(),
+        state,
+      };
+    }
+
     setCheckpoint(newCheckpoint);
     try {
       localStorage.setItem(CHECKPOINT_KEY, JSON.stringify(newCheckpoint));
-      console.log('[Checkpoint] Saved:', screen, 'for lesson', lessonId);
     } catch (error) {
       console.error('Failed to save checkpoint:', error);
     }
@@ -132,6 +152,11 @@ export function usePearlHarborProgress() {
       console.error('Failed to clear checkpoint:', error);
     }
   }, []);
+
+  // Get current checkpoint (used by beats)
+  const getCheckpoint = useCallback((): LessonCheckpoint | null => {
+    return checkpoint;
+  }, [checkpoint]);
 
   // Get checkpoint for a specific lesson (returns null if no checkpoint or different lesson)
   const getCheckpointForLesson = useCallback((lessonId: string): LessonCheckpoint | null => {
@@ -299,6 +324,7 @@ export function usePearlHarborProgress() {
     checkpoint,
     saveCheckpoint,
     clearCheckpoint,
+    getCheckpoint,
     getCheckpointForLesson,
     hasResumableCheckpoint,
   };

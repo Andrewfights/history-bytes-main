@@ -17,6 +17,7 @@ const buttonVariants = cva(
         link: "text-primary underline-offset-4 hover:underline",
         premium: "bg-gradient-to-br from-gold-primary via-gold-highlight to-gold-deep text-obsidian-900 font-semibold shadow-[0_0_0_1px_rgba(255,255,255,0.08)_inset,0_10px_24px_rgba(198,162,79,0.25)] hover:shadow-[0_0_0_1px_rgba(255,255,255,0.08)_inset,0_14px_34px_rgba(198,162,79,0.35)] gradient-shine",
         glass: "bg-card/50 backdrop-blur-md border border-white/10 text-foreground hover:bg-card/70 hover:border-primary/30 shadow-lg",
+        brand: "bg-hc-red text-white font-semibold hover:bg-hc-red-dark shadow-sm hover:shadow-md hover:shadow-hc-red/20",
       },
       size: {
         default: "h-10 px-4 py-2",

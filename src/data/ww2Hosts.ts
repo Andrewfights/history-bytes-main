@@ -4,6 +4,8 @@
 
 import { WW2Host } from '@/types';
 
+const WW2_HOSTS_STORAGE_KEY = 'hb-ww2-hosts';
+
 export const WW2_HOSTS: WW2Host[] = [
   {
     id: 'soldier',
@@ -184,7 +186,28 @@ export const HOST_DIALOGUES: Record<string, Record<string, HostDialogue>> = {
 };
 
 export function getWW2HostById(id: string): WW2Host | undefined {
-  return WW2_HOSTS.find(host => host.id === id);
+  const hosts = getStoredWW2Hosts();
+  return hosts.find(host => host.id === id);
+}
+
+/**
+ * Load WW2 hosts from localStorage (admin edits) or fall back to defaults.
+ * This ensures the frontend shows any images/videos uploaded in admin.
+ */
+export function getStoredWW2Hosts(): WW2Host[] {
+  try {
+    const stored = localStorage.getItem(WW2_HOSTS_STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        // Sort by displayOrder if present
+        return parsed.sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+      }
+    }
+  } catch (e) {
+    console.error('Error loading stored WW2 hosts:', e);
+  }
+  return WW2_HOSTS;
 }
 
 export function getHostDialogue(hostId: string, gameId: string): HostDialogue | undefined {

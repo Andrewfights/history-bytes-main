@@ -1,15 +1,15 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Map, BookOpen, Gamepad2, ArrowLeft, Image, Mic, Wand2, Users, Ghost, HelpCircle, Anchor } from 'lucide-react';
+import { LayoutDashboard, Map, BookOpen, Gamepad2, ArrowLeft, Image, Mic, Wand2, Users, HelpCircle, Compass, Shield } from 'lucide-react';
 
 const navItems = [
   { path: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
-  { path: '/admin/journeys', label: 'Journeys', icon: Map, end: false },
-  { path: '/admin/ghost-army', label: 'Ghost Army', icon: Ghost, end: false },
-  { path: '/admin/pearl-harbor', label: 'Pearl Harbor', icon: Anchor, end: false },
+  { path: '/admin/journey-management', label: 'Journey Builder', icon: Compass, end: false },
+  { path: '/admin/journeys', label: 'Arc Editor', icon: Map, end: false },
   { path: '/admin/trivia', label: 'Trivia Editor', icon: HelpCircle, end: false },
   { path: '/admin/courses', label: 'Courses', icon: BookOpen, end: false },
   { path: '/admin/arcade', label: 'Arcade', icon: Gamepad2, end: false },
   { path: '/admin/guides', label: 'Spirit Guides', icon: Users, end: false },
+  { path: '/admin/ww2-guides', label: 'WW2 Guides', icon: Shield, end: false },
   { path: '/admin/studio', label: 'Media Studio', icon: Wand2, end: false },
   { path: '/admin/media', label: 'Media Library', icon: Image, end: false },
   { path: '/admin/voices', label: 'Voices', icon: Mic, end: false },

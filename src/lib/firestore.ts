@@ -143,6 +143,67 @@ export interface FirestoreLessonContent {
   createdAt?: Timestamp;
 }
 
+// ============ Journey Management Types ============
+
+export type JourneyStatus = 'draft' | 'published' | 'archived';
+export type ModuleCategory = 'quiz' | 'interactive' | 'narrative' | 'challenge' | 'assessment';
+export type HostMode = 'pip' | 'voice-only' | 'none';
+
+export interface FirestoreJourney {
+  id: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  icon: string;
+  coverImage?: string;
+  totalXP: number;
+  estimatedDuration: string;
+  status: JourneyStatus;
+  beatIds: string[]; // Ordered list of beat IDs
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
+}
+
+export interface FirestoreJourneyBeat {
+  id: string;
+  journeyId: string;
+  number: number;
+  title: string;
+  subtitle: string;
+  templateId: string; // References module template
+  icon: string;
+  xpReward: number;
+  description: string;
+  estimatedDuration: string;
+  config: Record<string, unknown>; // Template-specific configuration
+  mediaAssets: {
+    backgroundImage?: string;
+    videoUrl?: string;
+    audioUrl?: string;
+    additionalImages?: string[];
+  };
+  hostConfig: {
+    hostId?: string;
+    mode: HostMode;
+    dialogues?: Record<string, string>;
+  };
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
+}
+
+export interface FirestoreModuleTemplate {
+  id: string;
+  name: string;
+  description: string;
+  category: ModuleCategory;
+  icon: string;
+  configSchema: Record<string, unknown>; // JSON Schema for validation
+  defaultConfig: Record<string, unknown>;
+  componentPath: string; // React component to render
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
+}
+
 // ============ Generic Helpers ============
 
 async function getDocument<T>(collectionName: string, docId: string): Promise<T | null> {
@@ -430,4 +491,95 @@ export async function batchSaveDocuments<T extends Record<string, unknown>>(
     console.error(`[Firestore] Batch save error for ${collectionName}:`, err);
     return false;
   }
+}
+
+// ============ Journey Operations ============
+
+export async function getJourneys(): Promise<FirestoreJourney[]> {
+  return getCollection<FirestoreJourney>('journeys', orderBy('createdAt', 'desc'));
+}
+
+export async function getJourney(journeyId: string): Promise<FirestoreJourney | null> {
+  return getDocument<FirestoreJourney>('journeys', journeyId);
+}
+
+export async function saveJourney(journey: FirestoreJourney): Promise<boolean> {
+  const data = {
+    ...journey,
+    createdAt: journey.createdAt || serverTimestamp(),
+  };
+  return setDocument('journeys', journey.id, data);
+}
+
+export async function deleteJourney(journeyId: string): Promise<boolean> {
+  return deleteDocument('journeys', journeyId);
+}
+
+export function subscribeToJourneys(callback: (journeys: FirestoreJourney[]) => void): Unsubscribe {
+  return subscribeToCollection<FirestoreJourney>('journeys', callback, orderBy('createdAt', 'desc'));
+}
+
+// ============ Journey Beat Operations ============
+
+export async function getJourneyBeats(journeyId?: string): Promise<FirestoreJourneyBeat[]> {
+  if (journeyId) {
+    return getCollection<FirestoreJourneyBeat>(
+      'journeyBeats',
+      where('journeyId', '==', journeyId),
+      orderBy('number')
+    );
+  }
+  return getCollection<FirestoreJourneyBeat>('journeyBeats', orderBy('number'));
+}
+
+export async function getJourneyBeat(beatId: string): Promise<FirestoreJourneyBeat | null> {
+  return getDocument<FirestoreJourneyBeat>('journeyBeats', beatId);
+}
+
+export async function saveJourneyBeat(beat: FirestoreJourneyBeat): Promise<boolean> {
+  const data = {
+    ...beat,
+    createdAt: beat.createdAt || serverTimestamp(),
+  };
+  return setDocument('journeyBeats', beat.id, data);
+}
+
+export async function deleteJourneyBeat(beatId: string): Promise<boolean> {
+  return deleteDocument('journeyBeats', beatId);
+}
+
+export function subscribeToJourneyBeats(
+  journeyId: string,
+  callback: (beats: FirestoreJourneyBeat[]) => void
+): Unsubscribe {
+  return subscribeToCollection<FirestoreJourneyBeat>(
+    'journeyBeats',
+    callback,
+    where('journeyId', '==', journeyId),
+    orderBy('number')
+  );
+}
+
+// ============ Module Template Operations ============
+
+export async function getModuleTemplates(): Promise<FirestoreModuleTemplate[]> {
+  return getCollection<FirestoreModuleTemplate>('moduleTemplates', orderBy('name'));
+}
+
+export async function getModuleTemplate(templateId: string): Promise<FirestoreModuleTemplate | null> {
+  return getDocument<FirestoreModuleTemplate>('moduleTemplates', templateId);
+}
+
+export async function saveModuleTemplate(template: FirestoreModuleTemplate): Promise<boolean> {
+  const data = {
+    ...template,
+    createdAt: template.createdAt || serverTimestamp(),
+  };
+  return setDocument('moduleTemplates', template.id, data);
+}
+
+export function subscribeToModuleTemplates(
+  callback: (templates: FirestoreModuleTemplate[]) => void
+): Unsubscribe {
+  return subscribeToCollection<FirestoreModuleTemplate>('moduleTemplates', callback, orderBy('name'));
 }

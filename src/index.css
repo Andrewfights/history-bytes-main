@@ -27,6 +27,12 @@
     --gold-highlight: 43 71% 69%;    /* #E8C979 */
     --gold-deep: 40 61% 45%;         /* #B88A2E */
 
+    /* === HISTORY CHANNEL BRAND RED === */
+    --hc-red: 352 84% 42%;           /* #C41230 */
+    --hc-red-light: 352 76% 48%;     /* #D4213F */
+    --hc-red-dark: 352 84% 35%;      /* #A30F28 */
+    --hc-red-glow: 0 0 8px rgba(196,18,48,0.4);
+
     /* === TEXT (Ivory Base) === */
     --text-primary: 40 26% 94%;      /* #F5F2EA */
     --text-secondary: 40 26% 94%;    /* with opacity */
@@ -259,6 +265,43 @@ body::after {
 
   .btn-gold:hover {
     box-shadow: var(--shadow-inset-hairline), var(--shadow-gold-glow-strong);
+  }
+
+  /* === HISTORY CHANNEL BRAND UTILITIES === */
+  .hc-underline {
+    position: relative;
+  }
+
+  .hc-underline::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    width: 2.5rem;
+    height: 3px;
+    background: hsl(var(--hc-red));
+    border-radius: 1.5px;
+  }
+
+  .hc-underline-full::after {
+    width: 100%;
+  }
+
+  .hc-underline-center::after {
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .divider-red {
+    height: 3px;
+    background: hsl(var(--hc-red));
+    border-radius: 1.5px;
+  }
+
+  .divider-red-gradient {
+    height: 3px;
+    background: linear-gradient(90deg, transparent 0%, hsl(var(--hc-red)) 20%, hsl(var(--hc-red)) 80%, transparent 100%);
+    border-radius: 1.5px;
   }
 
   .btn-gold:focus-visible {

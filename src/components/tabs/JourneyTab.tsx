@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, Trophy, Flame, TrendingUp, Clock, Lock, Globe, Map, ArrowRight } from 'lucide-react';
+import { ChevronRight, Trophy, Flame, TrendingUp, Clock, Globe, Map, ArrowRight } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { arcs, getArcById } from '@/data/journeyData';
 
@@ -34,9 +34,11 @@ import {
   useWW2Preferences,
 } from '@/components/journey/ww2';
 import { PearlHarborModule, PearlHarborJourneyMap, PearlHarborLessonPlayer } from '@/components/journey/pearl-harbor';
+import { WW2TheaterSelection } from '@/components/journey/ww2-theaters';
+import { TrophyRoom } from '@/components/journey/trophy-room';
 import { getWW2HostById } from '@/data/ww2Hosts';
 
-type JourneyView = 'landing' | 'arc' | 'node' | 'world-map' | 'ww2-entry' | 'pearl-harbor' | 'pearl-harbor-journey' | 'pearl-harbor-lesson';
+type JourneyView = 'landing' | 'arc' | 'node' | 'world-map' | 'ww2-entry' | 'ww2-theaters' | 'pearl-harbor' | 'pearl-harbor-journey' | 'pearl-harbor-lesson' | 'trophy-room';
 
 export function JourneyTab() {
   const {
@@ -114,6 +116,8 @@ export function JourneyTab() {
   const [showWW2HostSelection, setShowWW2HostSelection] = useState(false);
   const [showWW2HostGreeting, setShowWW2HostGreeting] = useState(false);
   const [showWW2PathSelection, setShowWW2PathSelection] = useState(false);
+  const [showWW2WelcomeVideo, setShowWW2WelcomeVideo] = useState(false);
+  const [pendingHostId, setPendingHostId] = useState<string | null>(null);
 
   // Note: Auto-resume of Ghost Army disabled - user should explicitly select it
 
@@ -181,12 +185,12 @@ export function JourneyTab() {
   // Check for pending Pearl Harbor entry (from HomeTab JourneyCard)
   useEffect(() => {
     if (pendingPearlHarbor) {
-      // If user has selected a host, go directly to journey
+      // If user has selected a host, go to theater selection
       if (hasSelectedHost && selectedHostId) {
         updateLastVisit();
         trackArcVisit(WW2_ARC_ID);
         setSelectedArcId(WW2_ARC_ID);
-        setView('pearl-harbor-journey');
+        setView('ww2-theaters');
       } else {
         // New user - show host selection
         setShowWW2HostSelection(true);
@@ -248,19 +252,37 @@ export function JourneyTab() {
   const handleWW2HostSelected = (hostId: string) => {
     selectHost(hostId);
     setShowWW2HostSelection(false);
-    // Go directly to Pearl Harbor journey (no path selection)
+
+    // Check if host has a welcome video
+    const host = getWW2HostById(hostId);
+    if (host?.welcomeVideoUrl) {
+      // Show welcome video first
+      setPendingHostId(hostId);
+      setShowWW2WelcomeVideo(true);
+    } else {
+      // No welcome video, go directly to theater selection
+      trackArcVisit(WW2_ARC_ID);
+      setSelectedArcId(WW2_ARC_ID);
+      setView('ww2-theaters');
+    }
+  };
+
+  const handleWW2WelcomeVideoEnd = () => {
+    setShowWW2WelcomeVideo(false);
+    setPendingHostId(null);
+    // Now go to theater selection
     trackArcVisit(WW2_ARC_ID);
     setSelectedArcId(WW2_ARC_ID);
-    setView('pearl-harbor-journey');
+    setView('ww2-theaters');
   };
 
   const handleWW2GreetingContinue = () => {
     updateLastVisit();
     setShowWW2HostGreeting(false);
-    // Go directly to Pearl Harbor journey (no path selection)
+    // Go to theater selection
     trackArcVisit(WW2_ARC_ID);
     setSelectedArcId(WW2_ARC_ID);
-    setView('pearl-harbor-journey');
+    setView('ww2-theaters');
   };
 
   const handleWW2ChangeGuide = () => {
@@ -286,6 +308,17 @@ export function JourneyTab() {
   const handleBackFromPearlHarbor = () => {
     setView('landing');
     setSelectedArcId(null);
+  };
+
+  // Handler to go back from theater selection
+  const handleBackFromTheaterSelection = () => {
+    setView('landing');
+    setSelectedArcId(null);
+  };
+
+  // Handler to go to Pearl Harbor from theater selection
+  const handleTheaterSelectPearlHarbor = () => {
+    setView('pearl-harbor-journey');
   };
 
   // Handle selecting a Pearl Harbor lesson
@@ -433,8 +466,8 @@ export function JourneyTab() {
 
   // Handle back from world map
   const handleBackFromWorldMap = () => {
-    // Return to Pearl Harbor journey (the main WW2 path)
-    setView('pearl-harbor-journey');
+    // Return to theater selection
+    setView('ww2-theaters');
   };
 
   // Render WW2 Intro if showing
@@ -471,6 +504,36 @@ export function JourneyTab() {
   // Render WW2 Host Selection if showing
   if (showWW2HostSelection) {
     return <WW2HostSelection onSelectHost={handleWW2HostSelected} />;
+  }
+
+  // Render WW2 Welcome Video after host selection
+  if (showWW2WelcomeVideo && pendingHostId) {
+    const host = getWW2HostById(pendingHostId);
+    if (host?.welcomeVideoUrl) {
+      return (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 bg-black flex items-center justify-center"
+        >
+          <video
+            src={host.welcomeVideoUrl}
+            autoPlay
+            playsInline
+            onEnded={handleWW2WelcomeVideoEnd}
+            className="w-full h-full object-contain"
+          />
+          {/* Skip button */}
+          <button
+            onClick={handleWW2WelcomeVideoEnd}
+            className="absolute bottom-8 right-8 px-6 py-3 rounded-full bg-white/20 backdrop-blur-sm text-white font-medium hover:bg-white/30 transition-colors"
+          >
+            Skip
+          </button>
+        </motion.div>
+      );
+    }
   }
 
   // Render WW2 Host Greeting if showing
@@ -524,7 +587,7 @@ export function JourneyTab() {
                   trackArcVisit(WW2_ARC_ID);
                   setSelectedArcId(WW2_ARC_ID);
                   if (hasSelectedHost && selectedHostId) {
-                    setView('pearl-harbor-journey');
+                    setView('ww2-theaters');
                   } else {
                     setShowWW2HostSelection(true);
                   }
@@ -567,6 +630,27 @@ export function JourneyTab() {
             {/* Progress Overview Section */}
             <ProgressOverview user={user} completedNodesCount={completedJourneyNodes.length} />
 
+            {/* Trophy Room Button */}
+            <motion.button
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              onClick={() => setView('trophy-room')}
+              className="w-full mb-6 p-4 rounded-xl bg-gradient-to-r from-amber-500/10 to-yellow-500/5 border border-amber-500/20 hover:border-amber-500/40 transition-all group"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
+                    <Trophy size={20} className="text-amber-400" />
+                  </div>
+                  <div className="text-left">
+                    <h3 className="font-bold text-white">Trophy Room</h3>
+                    <p className="text-xs text-white/60">View your era achievements</p>
+                  </div>
+                </div>
+                <ChevronRight size={20} className="text-amber-400 group-hover:translate-x-1 transition-transform" />
+              </div>
+            </motion.button>
+
             {/* Feeling Lucky Card - Hidden in funnel mode */}
             {!isFunnelMode && (
               <>
@@ -602,10 +686,13 @@ export function JourneyTab() {
                 animate={{ opacity: 1, y: 0 }}
                 className="mb-6"
               >
-                <h2 className="flex items-center gap-2 text-xs font-bold uppercase text-muted-foreground tracking-wider mb-3">
-                  <Clock size={12} />
-                  Recently Played
-                </h2>
+                <div className="mb-4">
+                  <h2 className="flex items-center gap-2 text-xs font-bold uppercase text-muted-foreground tracking-wider">
+                    <Clock size={12} />
+                    Recently Played
+                  </h2>
+                  <div className="mt-2 w-12 h-[3px] bg-hc-red rounded-full" />
+                </div>
                 <div className="space-y-3">
                   {recentArcIds.map((arcId, index) => {
                     const arc = getArcById(arcId);
@@ -632,16 +719,18 @@ export function JourneyTab() {
 
             {/* All Eras */}
             <div>
-              <h2 className="text-xs font-bold uppercase text-muted-foreground tracking-wider mb-3">
-                All Eras
-              </h2>
+              <div className="mb-4">
+                <h2 className="text-xs font-bold uppercase text-muted-foreground tracking-wider">
+                  All Eras
+                </h2>
+                <div className="mt-2 w-12 h-[3px] bg-hc-red rounded-full" />
+              </div>
               <div className="space-y-3">
                 {arcs
                   .filter(arc => !recentArcIds.includes(arc.id))
                   .map((arc, index) => {
-                    // In funnel mode, only WW2 is available
-                    const isLocked = isFunnelMode && arc.id !== WW2_ARC_ID;
-                    const isWW2Available = isFunnelMode && arc.id === WW2_ARC_ID;
+                    // All eras are now available - highlight WW2 as featured
+                    const isWW2Featured = arc.id === WW2_ARC_ID;
 
                     return (
                       <motion.div
@@ -653,9 +742,8 @@ export function JourneyTab() {
                         <ArcCard
                           arc={arc}
                           thumbnailUrl={journeyThumbnails[arc.id]}
-                          onSelect={() => !isLocked && handleSelectArc(arc.id)}
-                          isLocked={isLocked}
-                          isHighlighted={isWW2Available}
+                          onSelect={() => handleSelectArc(arc.id)}
+                          isHighlighted={isWW2Featured}
                         />
                       </motion.div>
                     );
@@ -728,8 +816,26 @@ export function JourneyTab() {
           </motion.div>
         )}
 
-        {/* Guard: If pearl-harbor views but no host, show host selection */}
-        {(view === 'pearl-harbor' || view === 'pearl-harbor-journey' || view === 'pearl-harbor-lesson') && !selectedHostId && (
+        {/* WW2 Theater Selection */}
+        {view === 'ww2-theaters' && selectedHostId && (
+          <motion.div
+            key="ww2-theaters"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="h-screen"
+          >
+            <WW2TheaterSelection
+              host={getWW2HostById(selectedHostId)!}
+              onBack={handleBackFromTheaterSelection}
+              onSelectPearlHarbor={handleTheaterSelectPearlHarbor}
+              onSelectWorldMap={handleOpenWorldMap}
+            />
+          </motion.div>
+        )}
+
+        {/* Guard: If ww2-theaters or pearl-harbor views but no host, show host selection */}
+        {(view === 'ww2-theaters' || view === 'pearl-harbor' || view === 'pearl-harbor-journey' || view === 'pearl-harbor-lesson') && !selectedHostId && (
           <WW2HostSelection onSelectHost={handleWW2HostSelected} />
         )}
 
@@ -781,6 +887,17 @@ export function JourneyTab() {
             />
           </motion.div>
         )}
+
+        {/* Trophy Room View */}
+        {view === 'trophy-room' && (
+          <TrophyRoom
+            onBack={() => setView('landing')}
+            onSelectEra={(arcId) => {
+              setSelectedArcId(arcId);
+              setView('arc');
+            }}
+          />
+        )}
       </AnimatePresence>
     </div>
   );
@@ -792,12 +909,11 @@ interface ArcCardProps {
   onSelect: () => void;
   isContinue?: boolean;
   isRecent?: boolean;
-  isLocked?: boolean;
   isHighlighted?: boolean;
   thumbnailUrl?: string;
 }
 
-function ArcCard({ arc, onSelect, isContinue, isRecent, isLocked, isHighlighted, thumbnailUrl }: ArcCardProps) {
+function ArcCard({ arc, onSelect, isContinue, isRecent, isHighlighted, thumbnailUrl }: ArcCardProps) {
   const hasValidThumbnail = thumbnailUrl && (
     thumbnailUrl.startsWith('http://') ||
     thumbnailUrl.startsWith('https://') ||
@@ -807,41 +923,7 @@ function ArcCard({ arc, onSelect, isContinue, isRecent, isLocked, isHighlighted,
   const totalChapters = arc.chapters.length;
   const hasContent = totalChapters > 0;
 
-  // Locked style
-  if (isLocked) {
-    return (
-      <div className="w-full text-left p-4 rounded-xl border bg-card/50 border-border opacity-40 blur-[1px] pointer-events-none">
-        <div className="flex items-center gap-4">
-          {/* Icon */}
-          <div className="w-14 h-14 rounded-xl flex items-center justify-center overflow-hidden bg-muted/50">
-            {hasValidThumbnail ? (
-              <img src={thumbnailUrl} alt={arc.title} className="w-full h-full object-cover" />
-            ) : (
-              <Map size={28} className="text-muted-foreground/50" />
-            )}
-          </div>
-
-          {/* Content */}
-          <div className="flex-1 min-w-0">
-            <h3 className="font-editorial font-bold text-lg truncate">{arc.title}</h3>
-            <p className="text-sm text-muted-foreground line-clamp-1">{arc.description}</p>
-            <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-              {host && (
-                <span className="flex items-center gap-1">
-                  <span>{host.avatar}</span>
-                  <span>{host.name}</span>
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Lock icon */}
-          <Lock size={20} className="text-muted-foreground shrink-0" />
-        </div>
-      </div>
-    );
-  }
-
+  // All eras are now unlocked and fully visible
   return (
     <motion.button
       onClick={onSelect}
@@ -939,7 +1021,10 @@ function ProgressOverview({ user, completedNodesCount }: ProgressOverviewProps) 
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h1 className="font-editorial text-2xl font-bold">Your Journey</h1>
+        <div>
+          <h1 className="font-editorial text-2xl font-bold">Your Journey</h1>
+          <div className="mt-1 w-16 h-[3px] bg-hc-red rounded-full" />
+        </div>
         <div className="flex items-center gap-2 text-orange-500">
           <Flame size={18} className="fill-orange-500" />
           <span className="font-bold">{user.streak}</span>

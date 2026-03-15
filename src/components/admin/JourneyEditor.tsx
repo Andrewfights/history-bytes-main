@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { ChevronRight, Map, Layers, FileText, ArrowLeft, Save, Plus, Trash2, Wand2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { arcs as defaultArcs, getArcById, getChapterById, getNodeById } from '@/data/journeyData';
-import { Arc, JourneyChapter, JourneyNode, JourneyNodeType } from '@/types';
+import { Arc, JourneyChapter, JourneyNode, JourneyNodeType, JourneyNodeContent, TwoTruthsContent, QuizMixContent, DecisionContent, BossContent, Question } from '@/types';
 import { saveJourneyArcs, loadStoredJourneyArcs } from '@/lib/adminStorage';
 import { generateImage, base64ToDataUrl, isGeminiConfigured } from '@/lib/gemini';
 import { uploadFile } from '@/lib/supabase';
@@ -501,11 +501,12 @@ function NodeEditor({
 }) {
   const [title, setTitle] = useState(node.title);
   const [xpReward, setXpReward] = useState(node.xpReward);
+  const [content, setContent] = useState(node.content);
 
   // Update parent state when local state changes
   useEffect(() => {
-    onUpdate({ title, xpReward });
-  }, [title, xpReward]);
+    onUpdate({ title, xpReward, content });
+  }, [title, xpReward, content]);
 
   return (
     <motion.div
@@ -529,7 +530,7 @@ function NodeEditor({
         </button>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-6">
         <div>
           <label className="text-sm font-medium text-foreground mb-1.5 block">Title</label>
           <input
@@ -561,14 +562,569 @@ function NodeEditor({
           </div>
         </div>
 
-        {/* Content Preview */}
-        <div>
-          <label className="text-sm font-medium text-foreground mb-1.5 block">Content (JSON)</label>
-          <pre className="w-full p-4 rounded-xl bg-muted border border-border text-xs text-muted-foreground overflow-auto max-h-64 font-mono">
-            {JSON.stringify(node.content, null, 2)}
-          </pre>
+        {/* Content Editor - Visual Forms */}
+        <div className="border-t border-border pt-6">
+          <h3 className="text-lg font-semibold text-foreground mb-4">Content Configuration</h3>
+          <NodeContentEditor
+            type={node.type}
+            content={content}
+            onChange={setContent}
+          />
         </div>
       </div>
     </motion.div>
+  );
+}
+
+// Visual content editor based on node type
+function NodeContentEditor({
+  type,
+  content,
+  onChange,
+}: {
+  type: JourneyNodeType;
+  content: JourneyNodeContent;
+  onChange: (content: JourneyNodeContent) => void;
+}) {
+  switch (type) {
+    case 'two-truths':
+      return <TwoTruthsEditor content={content as TwoTruthsContent} onChange={onChange} />;
+    case 'quiz-mix':
+      return <QuizMixEditor content={content as QuizMixContent} onChange={onChange} />;
+    case 'decision':
+      return <DecisionEditor content={content as DecisionContent} onChange={onChange} />;
+    case 'boss':
+      return <BossEditor content={content as BossContent} onChange={onChange} />;
+    default:
+      return <GenericContentEditor content={content} onChange={onChange} />;
+  }
+}
+
+// Two Truths Editor
+function TwoTruthsEditor({
+  content,
+  onChange,
+}: {
+  content: TwoTruthsContent;
+  onChange: (content: JourneyNodeContent) => void;
+}) {
+  const statements = content.statements || ['', '', ''];
+  const lieIndex = content.lieIndex ?? 2;
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="text-sm font-medium text-foreground mb-1.5 block">Context (optional)</label>
+        <textarea
+          value={content.context || ''}
+          onChange={(e) => onChange({ ...content, context: e.target.value })}
+          placeholder="Background context shown before the game..."
+          rows={2}
+          className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none resize-none"
+        />
+      </div>
+
+      <div>
+        <label className="text-sm font-medium text-foreground mb-3 block">
+          Statements <span className="text-muted-foreground">(select which one is the lie)</span>
+        </label>
+        <div className="space-y-3">
+          {statements.map((statement, index) => (
+            <div key={index} className="flex items-center gap-3">
+              <input
+                type="radio"
+                name="lieIndex"
+                checked={lieIndex === index}
+                onChange={() => onChange({ ...content, lieIndex: index })}
+                className="accent-red-500 w-4 h-4"
+              />
+              <input
+                type="text"
+                value={statement}
+                onChange={(e) => {
+                  const newStatements = [...statements];
+                  newStatements[index] = e.target.value;
+                  onChange({ ...content, statements: newStatements });
+                }}
+                placeholder={`Statement ${index + 1}`}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-background border border-border focus:border-primary outline-none"
+              />
+              <span className={`text-xs font-medium px-2 py-1 rounded ${lieIndex === index ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>
+                {lieIndex === index ? 'LIE' : 'TRUTH'}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <label className="text-sm font-medium text-foreground mb-1.5 block">Explanation</label>
+        <textarea
+          value={content.explanation || ''}
+          onChange={(e) => onChange({ ...content, explanation: e.target.value })}
+          placeholder="Explain why the lie is false..."
+          rows={2}
+          className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none resize-none"
+        />
+      </div>
+
+      <div>
+        <label className="text-sm font-medium text-foreground mb-1.5 block">Host Reaction</label>
+        <input
+          type="text"
+          value={content.hostReaction || ''}
+          onChange={(e) => onChange({ ...content, hostReaction: e.target.value })}
+          placeholder="What the host says after the answer..."
+          className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none"
+        />
+      </div>
+    </div>
+  );
+}
+
+// Quiz Mix Editor (Multiple Questions)
+function QuizMixEditor({
+  content,
+  onChange,
+}: {
+  content: QuizMixContent;
+  onChange: (content: JourneyNodeContent) => void;
+}) {
+  const questions = content.questions || [];
+
+  const addQuestion = () => {
+    onChange({
+      ...content,
+      questions: [
+        ...questions,
+        {
+          id: `q-${Date.now()}`,
+          sessionId: '',
+          type: 'multiple-choice',
+          prompt: '',
+          choices: ['', '', '', ''],
+          answer: 0,
+          explanation: '',
+        },
+      ],
+    });
+  };
+
+  const updateQuestion = (index: number, updates: Partial<Question>) => {
+    const newQuestions = [...questions];
+    newQuestions[index] = { ...newQuestions[index], ...updates };
+    onChange({ ...content, questions: newQuestions });
+  };
+
+  const removeQuestion = (index: number) => {
+    onChange({ ...content, questions: questions.filter((_, i) => i !== index) });
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <label className="text-sm font-medium text-foreground">
+          Questions ({questions.length})
+        </label>
+        <button
+          onClick={addQuestion}
+          className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-sm font-medium hover:bg-primary/20 transition-colors"
+        >
+          <Plus size={14} />
+          Add Question
+        </button>
+      </div>
+
+      {questions.length === 0 ? (
+        <p className="text-sm text-muted-foreground text-center py-8">No questions yet. Click "Add Question" to get started.</p>
+      ) : (
+        <div className="space-y-4">
+          {questions.map((question, qIndex) => (
+            <div key={qIndex} className="border border-border rounded-xl p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-foreground">Question {qIndex + 1}</span>
+                <button
+                  onClick={() => removeQuestion(qIndex)}
+                  className="p-1.5 rounded hover:bg-red-500/10 text-muted-foreground hover:text-red-400 transition-colors"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+
+              <input
+                type="text"
+                value={question.prompt}
+                onChange={(e) => updateQuestion(qIndex, { prompt: e.target.value })}
+                placeholder="Question prompt"
+                className="w-full px-3 py-2 rounded-lg bg-background border border-border focus:border-primary outline-none text-sm"
+              />
+
+              <div className="grid grid-cols-2 gap-2">
+                {(question.choices || []).map((choice, cIndex) => (
+                  <div key={cIndex} className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name={`answer-${qIndex}`}
+                      checked={question.answer === cIndex}
+                      onChange={() => updateQuestion(qIndex, { answer: cIndex })}
+                      className="accent-primary"
+                    />
+                    <input
+                      type="text"
+                      value={choice}
+                      onChange={(e) => {
+                        const newChoices = [...(question.choices || [])];
+                        newChoices[cIndex] = e.target.value;
+                        updateQuestion(qIndex, { choices: newChoices });
+                      }}
+                      placeholder={`Option ${cIndex + 1}`}
+                      className="flex-1 px-2 py-1.5 rounded border border-border focus:border-primary outline-none text-sm"
+                    />
+                  </div>
+                ))}
+              </div>
+
+              <input
+                type="text"
+                value={question.explanation || ''}
+                onChange={(e) => updateQuestion(qIndex, { explanation: e.target.value })}
+                placeholder="Explanation (shown after answer)"
+                className="w-full px-3 py-2 rounded-lg bg-background border border-border focus:border-primary outline-none text-sm"
+              />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Decision Editor
+function DecisionEditor({
+  content,
+  onChange,
+}: {
+  content: DecisionContent;
+  onChange: (content: JourneyNodeContent) => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="text-sm font-medium text-foreground mb-1.5 block">Scenario</label>
+        <textarea
+          value={content.scenario || ''}
+          onChange={(e) => onChange({ ...content, scenario: e.target.value })}
+          placeholder="Set the scene for the decision..."
+          rows={2}
+          className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none resize-none"
+        />
+      </div>
+
+      <div>
+        <label className="text-sm font-medium text-foreground mb-1.5 block">Context</label>
+        <textarea
+          value={content.context || ''}
+          onChange={(e) => onChange({ ...content, context: e.target.value })}
+          placeholder="Historical background..."
+          rows={2}
+          className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none resize-none"
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-3 p-4 border border-border rounded-xl">
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-foreground">Option A</span>
+            {content.optionA?.isHistorical && (
+              <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded">Historical</span>
+            )}
+          </div>
+          <input
+            type="text"
+            value={content.optionA?.label || ''}
+            onChange={(e) => onChange({ ...content, optionA: { ...content.optionA, label: e.target.value } })}
+            placeholder="Choice label"
+            className="w-full px-3 py-2 rounded-lg bg-background border border-border focus:border-primary outline-none text-sm"
+          />
+          <textarea
+            value={content.optionA?.outcome || ''}
+            onChange={(e) => onChange({ ...content, optionA: { ...content.optionA, outcome: e.target.value } })}
+            placeholder="What happens if chosen..."
+            rows={2}
+            className="w-full px-3 py-2 rounded-lg bg-background border border-border focus:border-primary outline-none text-sm resize-none"
+          />
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={content.optionA?.isHistorical || false}
+              onChange={(e) => onChange({ ...content, optionA: { ...content.optionA, isHistorical: e.target.checked } })}
+              className="accent-green-500"
+            />
+            Historical choice
+          </label>
+        </div>
+
+        <div className="space-y-3 p-4 border border-border rounded-xl">
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-foreground">Option B</span>
+            {content.optionB?.isHistorical && (
+              <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded">Historical</span>
+            )}
+          </div>
+          <input
+            type="text"
+            value={content.optionB?.label || ''}
+            onChange={(e) => onChange({ ...content, optionB: { ...content.optionB, label: e.target.value } })}
+            placeholder="Choice label"
+            className="w-full px-3 py-2 rounded-lg bg-background border border-border focus:border-primary outline-none text-sm"
+          />
+          <textarea
+            value={content.optionB?.outcome || ''}
+            onChange={(e) => onChange({ ...content, optionB: { ...content.optionB, outcome: e.target.value } })}
+            placeholder="What happens if chosen..."
+            rows={2}
+            className="w-full px-3 py-2 rounded-lg bg-background border border-border focus:border-primary outline-none text-sm resize-none"
+          />
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={content.optionB?.isHistorical || false}
+              onChange={(e) => onChange({ ...content, optionB: { ...content.optionB, isHistorical: e.target.checked } })}
+              className="accent-green-500"
+            />
+            Historical choice
+          </label>
+        </div>
+      </div>
+
+      <div>
+        <label className="text-sm font-medium text-foreground mb-1.5 block">Historical Outcome</label>
+        <textarea
+          value={content.historicalOutcome || ''}
+          onChange={(e) => onChange({ ...content, historicalOutcome: e.target.value })}
+          placeholder="What actually happened in history..."
+          rows={2}
+          className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none resize-none"
+        />
+      </div>
+
+      <div>
+        <label className="text-sm font-medium text-foreground mb-1.5 block">Host Reaction</label>
+        <input
+          type="text"
+          value={content.hostReaction || ''}
+          onChange={(e) => onChange({ ...content, hostReaction: e.target.value })}
+          placeholder="What the host says..."
+          className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none"
+        />
+      </div>
+    </div>
+  );
+}
+
+// Boss Challenge Editor
+function BossEditor({
+  content,
+  onChange,
+}: {
+  content: BossContent;
+  onChange: (content: JourneyNodeContent) => void;
+}) {
+  const questions = content.questions || [];
+
+  const addQuestion = () => {
+    onChange({
+      ...content,
+      questions: [
+        ...questions,
+        {
+          id: `q-${Date.now()}`,
+          sessionId: '',
+          type: 'multiple-choice',
+          prompt: '',
+          choices: ['', '', '', ''],
+          answer: 0,
+          explanation: '',
+        },
+      ],
+    });
+  };
+
+  const updateQuestion = (index: number, updates: Partial<Question>) => {
+    const newQuestions = [...questions];
+    newQuestions[index] = { ...newQuestions[index], ...updates };
+    onChange({ ...content, questions: newQuestions });
+  };
+
+  const removeQuestion = (index: number) => {
+    onChange({ ...content, questions: questions.filter((_, i) => i !== index) });
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="text-sm font-medium text-foreground mb-1.5 block">Time Limit (seconds)</label>
+          <input
+            type="number"
+            value={content.timeLimit || 60}
+            onChange={(e) => onChange({ ...content, timeLimit: parseInt(e.target.value) || 60 })}
+            className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none"
+          />
+        </div>
+        <div>
+          <label className="text-sm font-medium text-foreground mb-1.5 block">XP Multiplier</label>
+          <input
+            type="number"
+            step="0.1"
+            value={content.xpMultiplier || 1.5}
+            onChange={(e) => onChange({ ...content, xpMultiplier: parseFloat(e.target.value) || 1.5 })}
+            className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none"
+          />
+        </div>
+      </div>
+
+      <div>
+        <label className="text-sm font-medium text-foreground mb-1.5 block">Host Intro</label>
+        <input
+          type="text"
+          value={content.hostIntro || ''}
+          onChange={(e) => onChange({ ...content, hostIntro: e.target.value })}
+          placeholder="What the host says before the challenge..."
+          className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none"
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="text-sm font-medium text-foreground mb-1.5 block">Victory Message</label>
+          <input
+            type="text"
+            value={content.hostVictory || ''}
+            onChange={(e) => onChange({ ...content, hostVictory: e.target.value })}
+            placeholder="Message on success..."
+            className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none"
+          />
+        </div>
+        <div>
+          <label className="text-sm font-medium text-foreground mb-1.5 block">Defeat Message</label>
+          <input
+            type="text"
+            value={content.hostDefeat || ''}
+            onChange={(e) => onChange({ ...content, hostDefeat: e.target.value })}
+            placeholder="Message on failure..."
+            className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none"
+          />
+        </div>
+      </div>
+
+      <div className="border-t border-border pt-4">
+        <div className="flex items-center justify-between mb-3">
+          <label className="text-sm font-medium text-foreground">
+            Questions ({questions.length})
+          </label>
+          <button
+            onClick={addQuestion}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-sm font-medium hover:bg-primary/20 transition-colors"
+          >
+            <Plus size={14} />
+            Add Question
+          </button>
+        </div>
+
+        {questions.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-6">No questions yet.</p>
+        ) : (
+          <div className="space-y-3">
+            {questions.map((question, qIndex) => (
+              <div key={qIndex} className="border border-border rounded-xl p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-foreground">Q{qIndex + 1}</span>
+                  <button
+                    onClick={() => removeQuestion(qIndex)}
+                    className="p-1 rounded hover:bg-red-500/10 text-muted-foreground hover:text-red-400"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+
+                <input
+                  type="text"
+                  value={question.prompt}
+                  onChange={(e) => updateQuestion(qIndex, { prompt: e.target.value })}
+                  placeholder="Question"
+                  className="w-full px-3 py-2 rounded-lg bg-background border border-border focus:border-primary outline-none text-sm"
+                />
+
+                <div className="grid grid-cols-2 gap-2">
+                  {(question.choices || []).map((choice, cIndex) => (
+                    <div key={cIndex} className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name={`boss-answer-${qIndex}`}
+                        checked={question.answer === cIndex}
+                        onChange={() => updateQuestion(qIndex, { answer: cIndex })}
+                        className="accent-primary"
+                      />
+                      <input
+                        type="text"
+                        value={choice}
+                        onChange={(e) => {
+                          const newChoices = [...(question.choices || [])];
+                          newChoices[cIndex] = e.target.value;
+                          updateQuestion(qIndex, { choices: newChoices });
+                        }}
+                        placeholder={`Option ${cIndex + 1}`}
+                        className="flex-1 px-2 py-1 rounded border border-border focus:border-primary outline-none text-sm"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Generic fallback editor for other node types
+function GenericContentEditor({
+  content,
+  onChange,
+}: {
+  content: JourneyNodeContent;
+  onChange: (content: JourneyNodeContent) => void;
+}) {
+  const [jsonValue, setJsonValue] = useState(JSON.stringify(content, null, 2));
+  const [error, setError] = useState<string | null>(null);
+
+  const handleJsonChange = (value: string) => {
+    setJsonValue(value);
+    try {
+      const parsed = JSON.parse(value);
+      onChange(parsed);
+      setError(null);
+    } catch (e) {
+      setError('Invalid JSON');
+    }
+  };
+
+  return (
+    <div>
+      <p className="text-sm text-muted-foreground mb-3">
+        Visual editor not available for this node type. Edit JSON directly:
+      </p>
+      <textarea
+        value={jsonValue}
+        onChange={(e) => handleJsonChange(e.target.value)}
+        rows={12}
+        className={`w-full px-4 py-3 rounded-xl bg-background border font-mono text-sm outline-none transition-colors resize-none ${
+          error ? 'border-red-500' : 'border-border focus:border-primary'
+        }`}
+      />
+      {error && <p className="text-red-400 text-sm mt-1">{error}</p>}
+    </div>
   );
 }

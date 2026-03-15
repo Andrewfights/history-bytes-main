@@ -39,6 +39,12 @@ export default {
           highlight: '#E8C979',
           deep: '#B88A2E',
         },
+        // History Channel Brand Red
+        'hc-red': {
+          DEFAULT: '#C41230',
+          light: '#D4213F',
+          dark: '#A30F28',
+        },
         ivory: '#F5F2EA',
         // Existing token mappings
         border: "hsl(var(--border))",
@@ -102,6 +108,7 @@ export default {
         'elev3': '0 24px 60px rgba(0,0,0,0.60)',
         'gold-glow': '0 10px 24px rgba(198,162,79,0.25)',
         'gold-glow-strong': '0 14px 34px rgba(198,162,79,0.35)',
+        'red-glow': '0 0 8px rgba(196,18,48,0.4)',
         'inset-hairline': '0 0 0 1px rgba(255,255,255,0.08) inset',
       },
       keyframes: {

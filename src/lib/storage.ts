@@ -30,6 +30,11 @@ export const STORAGE_KEYS = {
   TOOLTIPS: `${STORAGE_PREFIX}:tooltips`,
   STUDY_NOTES: `${STORAGE_PREFIX}:study-notes`,
   FUNNEL_STATE: `${STORAGE_PREFIX}:funnel-state`,
+  // WW2 specific preferences (uses different prefix for legacy reasons)
+  WW2_PREFERENCES: 'hb_ww2_preferences',
+  WW2_THEATER_PROGRESS: 'hb_ww2_theater_progress',
+  PEARL_HARBOR_PROGRESS: 'hb_pearl_harbor_progress',
+  PEARL_HARBOR_CHECKPOINT: 'hb_pearl_harbor_checkpoint',
 } as const;
 
 export interface AuthState {

@@ -23,6 +23,20 @@ import { RadioHeadlineLesson } from './lessons/RadioHeadlineLesson';
 import { BattleshipRowLesson } from './lessons/BattleshipRowLesson';
 import { MemorialTourLesson } from './lessons/MemorialTourLesson';
 import { MasteryQuiz } from './lessons/MasteryQuiz';
+// New 10-beat curriculum components
+import {
+  RoadToWarBeat,
+  RadarBlipBeat,
+  ToraToraToraBeat,
+  VoicesFromHarborBeat,
+  BreakingNewsBeat,
+  NagumoDilemmaBeat,
+  FactOrMythBeat,
+  DayOfInfamyBeat,
+  ArsenalDemocracyBeat,
+  MasteryRunBeat,
+  FinalExamBeat,
+} from './beats';
 
 interface PearlHarborLessonPlayerProps {
   lessonId: string;
@@ -147,6 +161,118 @@ export function PearlHarborLessonPlayer({
 
   // Route to the correct lesson component based on type
   switch (lesson.type) {
+    // New 10-beat curriculum
+    case 'road-to-war':
+      return (
+        <RoadToWarBeat
+          host={host}
+          onComplete={handleLessonComplete}
+          onSkip={handleLessonSkip}
+          onBack={onBack}
+        />
+      );
+
+    case 'radar-blip':
+      return (
+        <RadarBlipBeat
+          host={host}
+          onComplete={handleLessonComplete}
+          onSkip={handleLessonSkip}
+          onBack={onBack}
+        />
+      );
+
+    case 'tora-tora-tora':
+      return (
+        <ToraToraToraBeat
+          host={host}
+          onComplete={handleLessonComplete}
+          onSkip={handleLessonSkip}
+          onBack={onBack}
+        />
+      );
+
+    case 'voices-harbor':
+      return (
+        <VoicesFromHarborBeat
+          host={host}
+          onComplete={handleLessonComplete}
+          onSkip={handleLessonSkip}
+          onBack={onBack}
+        />
+      );
+
+    case 'breaking-news':
+      return (
+        <BreakingNewsBeat
+          host={host}
+          onComplete={handleLessonComplete}
+          onSkip={handleLessonSkip}
+          onBack={onBack}
+        />
+      );
+
+    case 'nagumo-dilemma':
+      return (
+        <NagumoDilemmaBeat
+          host={host}
+          onComplete={handleLessonComplete}
+          onSkip={handleLessonSkip}
+          onBack={onBack}
+        />
+      );
+
+    case 'fact-or-myth':
+      return (
+        <FactOrMythBeat
+          host={host}
+          onComplete={handleLessonComplete}
+          onSkip={handleLessonSkip}
+          onBack={onBack}
+        />
+      );
+
+    case 'day-of-infamy':
+      return (
+        <DayOfInfamyBeat
+          host={host}
+          onComplete={handleLessonComplete}
+          onSkip={handleLessonSkip}
+          onBack={onBack}
+        />
+      );
+
+    case 'arsenal-democracy':
+      return (
+        <ArsenalDemocracyBeat
+          host={host}
+          onComplete={handleLessonComplete}
+          onSkip={handleLessonSkip}
+          onBack={onBack}
+        />
+      );
+
+    case 'mastery-run':
+      return (
+        <MasteryRunBeat
+          host={host}
+          onComplete={handleLessonComplete}
+          onSkip={handleLessonSkip}
+          onBack={onBack}
+        />
+      );
+
+    case 'final-exam':
+      return (
+        <FinalExamBeat
+          host={host}
+          onComplete={handleLessonComplete}
+          onSkip={handleLessonSkip}
+          onBack={onBack}
+        />
+      );
+
+    // Legacy lesson types (can be removed once all beats are implemented)
     case 'video-hotspots':
       return (
         <VideoLessonPlayer
@@ -200,16 +326,6 @@ export function PearlHarborLessonPlayer({
     case 'memorial-tour':
       return (
         <MemorialTourLesson
-          host={host}
-          onComplete={handleLessonComplete}
-          onSkip={handleLessonSkip}
-          onBack={onBack}
-        />
-      );
-
-    case 'mastery-run':
-      return (
-        <MasteryQuiz
           host={host}
           onComplete={handleLessonComplete}
           onSkip={handleLessonSkip}

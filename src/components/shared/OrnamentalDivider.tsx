@@ -1,11 +1,27 @@
 import { motion } from 'framer-motion';
 
 interface OrnamentalDividerProps {
-  variant?: 'simple' | 'compass' | 'laurel';
+  variant?: 'simple' | 'compass' | 'laurel' | 'brand';
   className?: string;
 }
 
 export function OrnamentalDivider({ variant = 'simple', className = '' }: OrnamentalDividerProps) {
+  // Brand variant uses History Channel red
+  if (variant === 'brand') {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.2, duration: 0.6 }}
+        className={`flex items-center gap-3 py-2 ${className}`}
+      >
+        <div className="flex-1 h-[3px] bg-gradient-to-r from-transparent via-hc-red to-transparent rounded-full" />
+        <span className="text-hc-red text-sm font-bold">H</span>
+        <div className="flex-1 h-[3px] bg-gradient-to-r from-transparent via-hc-red to-transparent rounded-full" />
+      </motion.div>
+    );
+  }
+
   const symbol = variant === 'compass' ? '✦' : variant === 'laurel' ? '⚜' : '◆';
 
   return (

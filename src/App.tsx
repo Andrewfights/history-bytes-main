@@ -16,9 +16,11 @@ import MediaLibrary from "./components/admin/MediaLibrary";
 import MediaStudio from "./components/admin/MediaStudio";
 import VoicesEditor from "./components/admin/VoicesEditor";
 import GuideEditor from "./components/admin/GuideEditor";
+import WW2GuideEditor from "./components/admin/WW2GuideEditor";
 import { GhostArmyEditor } from "./components/admin/GhostArmyEditor";
 import { PearlHarborEditor } from "./components/admin/PearlHarborEditor";
 import { TriviaEditor } from "./components/admin/TriviaEditor";
+import { JourneyManagement } from "./components/admin/journey-management";
 
 const queryClient = new QueryClient();
 
@@ -36,12 +38,14 @@ const App = () => (
               <Route path="/admin" element={<AdminLayout />}>
                 <Route index element={<AdminDashboard />} />
                 <Route path="journeys" element={<JourneyEditor />} />
+                <Route path="journey-management" element={<JourneyManagement />} />
                 <Route path="courses" element={<CourseEditor />} />
                 <Route path="arcade" element={<ArcadeEditor />} />
                 <Route path="studio" element={<MediaStudio />} />
                 <Route path="media" element={<MediaLibrary />} />
                 <Route path="voices" element={<VoicesEditor />} />
                 <Route path="guides" element={<GuideEditor />} />
+                <Route path="ww2-guides" element={<WW2GuideEditor />} />
                 <Route path="ghost-army" element={<GhostArmyEditor />} />
                 <Route path="pearl-harbor" element={<PearlHarborEditor />} />
                 <Route path="trivia" element={<TriviaEditor />} />

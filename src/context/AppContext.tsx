@@ -698,6 +698,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       // Reset tooltips and study notes
       setSeenTooltips([]);
       setStudyNotes([]);
+      // Reset funnel state (WW2 demo)
+      setFunnelState(defaultFunnelState);
+
+      // Reset to home tab
+      setActiveTab('home');
 
       // Ensure onboarding shows
       setIsOnboarded(false);

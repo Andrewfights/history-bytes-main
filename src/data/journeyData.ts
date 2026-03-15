@@ -3179,20 +3179,148 @@ const americanRevChapter1: JourneyChapter = {
 };
 
 // ============================================================
+// WW2 BATTLES AS CHAPTERS (10 Major Battles)
+// ============================================================
+
+// Chapter 1: Pearl Harbor (has full content from pearlHarborLessons.ts)
+const pearlHarborChapter: JourneyChapter = {
+  id: 'ww2-pearl-harbor',
+  arcId: 'world-war-2',
+  title: 'Pearl Harbor',
+  description: 'December 7, 1941 - The attack that brought America into the war',
+  order: 1,
+  nodes: ww2Chapter2Nodes.slice(0, 3), // Reuse existing nodes as placeholders
+  isLocked: false,
+};
+
+// Chapter 2: Midway
+const midwayChapter: JourneyChapter = {
+  id: 'ww2-midway',
+  arcId: 'world-war-2',
+  title: 'Midway',
+  description: 'June 4-7, 1942 - The turning point in the Pacific',
+  order: 2,
+  nodes: [],
+  isLocked: true,
+};
+
+// Chapter 3: Guadalcanal
+const guadalcanalChapter: JourneyChapter = {
+  id: 'ww2-guadalcanal',
+  arcId: 'world-war-2',
+  title: 'Guadalcanal',
+  description: "August 1942 - February 1943 - America's first major offensive",
+  order: 3,
+  nodes: [],
+  isLocked: true,
+};
+
+// Chapter 4: Leyte Gulf
+const leyteGulfChapter: JourneyChapter = {
+  id: 'ww2-leyte-gulf',
+  arcId: 'world-war-2',
+  title: 'Leyte Gulf',
+  description: 'October 23-26, 1944 - The largest naval battle in history',
+  order: 4,
+  nodes: [],
+  isLocked: true,
+};
+
+// Chapter 5: Okinawa
+const okinawaChapter: JourneyChapter = {
+  id: 'ww2-okinawa',
+  arcId: 'world-war-2',
+  title: 'Okinawa',
+  description: 'April 1 - June 22, 1945 - The bloodiest battle of the Pacific',
+  order: 5,
+  nodes: [],
+  isLocked: true,
+};
+
+// Chapter 6: Barbarossa
+const barbarossaChapter: JourneyChapter = {
+  id: 'ww2-barbarossa',
+  arcId: 'world-war-2',
+  title: 'Barbarossa',
+  description: 'June - December 1941 - Germany invades the Soviet Union',
+  order: 6,
+  nodes: [],
+  isLocked: true,
+};
+
+// Chapter 7: Stalingrad
+const stalingradChapter: JourneyChapter = {
+  id: 'ww2-stalingrad',
+  arcId: 'world-war-2',
+  title: 'Stalingrad',
+  description: 'August 1942 - February 1943 - The turning point on the Eastern Front',
+  order: 7,
+  nodes: [],
+  isLocked: true,
+};
+
+// Chapter 8: D-Day
+const dDayChapter: JourneyChapter = {
+  id: 'ww2-d-day',
+  arcId: 'world-war-2',
+  title: 'D-Day',
+  description: 'June 6, 1944 - The invasion of Normandy',
+  order: 8,
+  nodes: ww2Chapter3Nodes.slice(0, 3), // Reuse existing D-Day content
+  isLocked: true,
+};
+
+// Chapter 9: Bulge
+const bulgeChapter: JourneyChapter = {
+  id: 'ww2-bulge',
+  arcId: 'world-war-2',
+  title: 'Bulge',
+  description: "December 1944 - January 1945 - Germany's last major offensive",
+  order: 9,
+  nodes: [],
+  isLocked: true,
+};
+
+// Chapter 10: Berlin
+const berlinChapter: JourneyChapter = {
+  id: 'ww2-berlin',
+  arcId: 'world-war-2',
+  title: 'Berlin',
+  description: 'April 16 - May 2, 1945 - The fall of the Third Reich',
+  order: 10,
+  nodes: [],
+  isLocked: true,
+};
+
+// All WW2 Battle Chapters in order
+const ww2BattleChapters: JourneyChapter[] = [
+  pearlHarborChapter,
+  midwayChapter,
+  guadalcanalChapter,
+  leyteGulfChapter,
+  okinawaChapter,
+  barbarossaChapter,
+  stalingradChapter,
+  dDayChapter,
+  bulgeChapter,
+  berlinChapter,
+];
+
+// ============================================================
 // ALL ARCS (15 Historical Eras)
 // ============================================================
 
 export const arcs: Arc[] = [
-  // WW2 FIRST - Primary focus for users
+  // WW2 FIRST - Primary focus for users (10 Major Battles)
   {
     id: 'world-war-2',
     title: 'World War II',
-    description: 'The war that changed the world forever',
+    description: 'The war that changed the world forever - 10 Major Battles',
     icon: '🪖',
     hostId: 'correspondent',
-    chapters: [ww2Chapter1, ww2Chapter2, ww2Chapter3],
+    chapters: ww2BattleChapters,
     badge: '🎖️',
-    totalXP: 1530,
+    totalXP: 3000,
   },
   // Other Arcs
   frenchRevolutionArc,

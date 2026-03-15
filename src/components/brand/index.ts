@@ -1,0 +1,1 @@
+export { HistoryLogo } from './HistoryLogo';

@@ -803,6 +803,7 @@ export interface WW2Host {
   title: string;
   era: string;
   specialty: string;
+  imageUrl?: string;         // Portrait image for carousel
   introVideoUrl?: string;    // 30s intro video for selection
   welcomeVideoUrl?: string;  // Return visit greeting video
   primaryColor: string;
@@ -958,4 +959,33 @@ export interface PearlHarborProgress {
   lastPlayDate: string | null;
   totalXP: number;
   hasBattleshipRowBadge: boolean;
+}
+
+// ---- WW2 Theater Selection Types ----
+
+export type WW2Theater = 'pacific' | 'european';
+
+export type BattleStatus = 'locked' | 'available' | 'in-progress' | 'completed';
+
+export interface WW2Battle {
+  id: string;
+  theater: WW2Theater;
+  name: string;
+  subtitle: string;
+  imageUrl: string;
+  order: number;
+  globalOrder: number; // 1-10 display order across both theaters
+  lessonCount: number;
+  xpReward: number;
+  description: string;
+  unlockRequirement: string | null; // Battle ID that must be completed first
+  isFirstStop?: boolean; // Pearl Harbor is the required first stop
+}
+
+export interface WW2TheaterProgress {
+  completedBattles: string[];
+  currentBattle: string | null;
+  unlockedBattles: string[];
+  totalXP: number;
+  lastVisited: string | null;
 }

@@ -266,6 +266,40 @@ export const badges: Badge[] = [
     unlockCondition: { type: 'rank_achieved', rank: 'Rhodes Scholar' },
     xpBonus: 1000,
   },
+
+  // ============================================
+  // PEARL HARBOR FINAL EXAM BADGES (3)
+  // ============================================
+  {
+    id: 'pearl-harbor-scholar',
+    name: 'Pearl Harbor Scholar',
+    description: 'Score 15/15 on the Pearl Harbor Final Exam',
+    icon: '🏅',
+    category: 'mastery',
+    rarity: 'legendary',
+    unlockCondition: { type: 'exam_score', examId: 'pearl-harbor', minScore: 15 },
+    xpBonus: 150,
+  },
+  {
+    id: 'pearl-harbor-expert',
+    name: 'Pearl Harbor Expert',
+    description: 'Score 12+ on the Pearl Harbor Final Exam',
+    icon: '🎖️',
+    category: 'mastery',
+    rarity: 'epic',
+    unlockCondition: { type: 'exam_score', examId: 'pearl-harbor', minScore: 12 },
+    xpBonus: 100,
+  },
+  {
+    id: 'pearl-harbor-historian',
+    name: 'Pearl Harbor Historian',
+    description: 'Score 9+ on the Pearl Harbor Final Exam',
+    icon: '📜',
+    category: 'mastery',
+    rarity: 'rare',
+    unlockCondition: { type: 'exam_score', examId: 'pearl-harbor', minScore: 9 },
+    xpBonus: 50,
+  },
 ];
 
 // Helper functions
