@@ -1,18 +1,47 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
-import { Shield, Save, Upload, Loader2, ImageIcon, GripVertical, Video, Play, Trash2, Plus, X } from 'lucide-react';
+import { Shield, Save, Upload, Loader2, ImageIcon, GripVertical, Video, Play, Trash2, Plus, X, Cloud, CloudOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { WW2_HOSTS } from '@/data/ww2Hosts';
 import { MediaPicker } from './MediaPicker';
-import { uploadFile, type MediaFile } from '@/lib/supabase';
+import { uploadFile, type MediaFile, isFirebaseConfigured } from '@/lib/supabase';
+import { saveAllWW2Hosts, getWW2Hosts, type FirestoreWW2Host } from '@/lib/firestore';
 import type { WW2Host } from '@/types';
 
 type EditableWW2Host = WW2Host & { localImageUrl?: string; displayOrder?: number };
 
 const STORAGE_KEY = 'hb-ww2-hosts';
 
-// Load hosts from localStorage or fall back to defaults
-function loadStoredHosts(): EditableWW2Host[] {
+// Load hosts from Firestore or localStorage or fall back to defaults
+async function loadStoredHostsAsync(): Promise<EditableWW2Host[]> {
+  // Try Firestore first
+  if (isFirebaseConfigured()) {
+    try {
+      const firestoreHosts = await getWW2Hosts();
+      if (firestoreHosts && firestoreHosts.length > 0) {
+        console.log('[WW2GuideEditor] Loaded from Firestore:', firestoreHosts.length);
+        return firestoreHosts.map((h, i) => ({
+          id: h.id as WW2Host['id'],
+          name: h.name,
+          title: h.title,
+          era: h.era,
+          specialty: h.specialty,
+          imageUrl: h.imageUrl,
+          introVideoUrl: h.introVideoUrl,
+          welcomeVideoUrl: h.welcomeVideoUrl,
+          primaryColor: h.primaryColor,
+          avatar: h.avatar,
+          voiceStyle: h.voiceStyle,
+          description: h.description,
+          displayOrder: h.displayOrder ?? i,
+        }));
+      }
+    } catch (e) {
+      console.error('[WW2GuideEditor] Error loading from Firestore:', e);
+    }
+  }
+
+  // Fall back to localStorage
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
@@ -28,39 +57,70 @@ function loadStoredHosts(): EditableWW2Host[] {
   return WW2_HOSTS.map((host, i) => ({ ...host, displayOrder: i }));
 }
 
-// Save hosts to localStorage
-function saveStoredHosts(hosts: EditableWW2Host[]): void {
+// Save hosts to localStorage (always) and Firestore (if configured)
+async function saveStoredHostsAsync(hosts: EditableWW2Host[]): Promise<boolean> {
+  // Always save to localStorage as backup
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(hosts));
   } catch (e) {
-    console.error('Error saving WW2 hosts:', e);
+    console.error('Error saving WW2 hosts to localStorage:', e);
   }
+
+  // Save to Firestore if configured
+  if (isFirebaseConfigured()) {
+    try {
+      const firestoreHosts: FirestoreWW2Host[] = hosts.map((h, i) => ({
+        id: h.id,
+        name: h.name,
+        title: h.title,
+        era: h.era,
+        specialty: h.specialty,
+        imageUrl: h.imageUrl,
+        introVideoUrl: h.introVideoUrl,
+        welcomeVideoUrl: h.welcomeVideoUrl,
+        primaryColor: h.primaryColor,
+        avatar: h.avatar,
+        voiceStyle: h.voiceStyle,
+        description: h.description,
+        displayOrder: i,
+      }));
+      const success = await saveAllWW2Hosts(firestoreHosts);
+      if (success) {
+        console.log('[WW2GuideEditor] Saved to Firestore');
+        return true;
+      }
+    } catch (e) {
+      console.error('[WW2GuideEditor] Error saving to Firestore:', e);
+    }
+  }
+
+  return false;
 }
 
 export default function WW2GuideEditor() {
   const [hosts, setHosts] = useState<EditableWW2Host[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [imageError, setImageError] = useState<Record<string, boolean>>({});
   const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
   const [mediaPickerType, setMediaPickerType] = useState<'introVideo' | 'welcomeVideo' | 'image'>('introVideo');
   const [previewingVideo, setPreviewingVideo] = useState<string | null>(null);
+  const [isFirebaseEnabled] = useState(isFirebaseConfigured());
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const selectedHost = hosts.find(h => h.id === selectedId);
 
   // Load hosts on mount
   useEffect(() => {
-    const loadedHosts = loadStoredHosts();
-    setHosts(loadedHosts);
+    const loadHosts = async () => {
+      setIsLoading(true);
+      const loadedHosts = await loadStoredHostsAsync();
+      setHosts(loadedHosts);
+      setIsLoading(false);
+    };
+    loadHosts();
   }, []);
-
-  // Auto-save when hosts change
-  useEffect(() => {
-    if (hosts.length > 0) {
-      saveStoredHosts(hosts);
-    }
-  }, [hosts]);
 
   const openMediaPicker = (type: 'introVideo' | 'welcomeVideo' | 'image') => {
     setMediaPickerType(type);
@@ -141,9 +201,9 @@ export default function WW2GuideEditor() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      saveStoredHosts(hosts);
+      const savedToCloud = await saveStoredHostsAsync(hosts);
       toast.success('WW2 guides saved', {
-        description: 'Changes saved to browser storage.',
+        description: savedToCloud ? 'Synced to cloud.' : 'Saved locally (cloud not configured).',
       });
     } catch (error) {
       console.error('Save error:', error);
@@ -156,9 +216,9 @@ export default function WW2GuideEditor() {
   const handleSaveAll = async () => {
     setIsSaving(true);
     try {
-      saveStoredHosts(hosts);
+      const savedToCloud = await saveStoredHostsAsync(hosts);
       toast.success('All WW2 guides saved', {
-        description: 'Changes saved to browser storage.',
+        description: savedToCloud ? 'Synced to cloud - will deploy with app.' : 'Saved locally (cloud not configured).',
       });
     } catch (error) {
       console.error('Save error:', error);
@@ -170,10 +230,33 @@ export default function WW2GuideEditor() {
 
   return (
     <div className="max-w-6xl">
+      {/* Loading State */}
+      {isLoading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="animate-spin mr-2" size={24} />
+          <span className="text-muted-foreground">Loading guides...</span>
+        </div>
+      )}
+
+      {!isLoading && (
+        <>
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="font-editorial text-3xl font-bold text-foreground">WW2 Guide Editor</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="font-editorial text-3xl font-bold text-foreground">WW2 Guide Editor</h1>
+            {isFirebaseEnabled ? (
+              <span className="flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-green-500/20 text-green-400">
+                <Cloud size={12} />
+                Cloud Sync
+              </span>
+            ) : (
+              <span className="flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-yellow-500/20 text-yellow-400">
+                <CloudOff size={12} />
+                Local Only
+              </span>
+            )}
+          </div>
           <p className="text-muted-foreground mt-1">
             Manage WW2 era guides - drag to reorder, upload images and videos
           </p>
@@ -524,6 +607,8 @@ export default function WW2GuideEditor() {
           </motion.div>
         )}
       </AnimatePresence>
+        </>
+      )}
     </div>
   );
 }

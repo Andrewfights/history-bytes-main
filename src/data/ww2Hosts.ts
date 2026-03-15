@@ -3,8 +3,14 @@
  */
 
 import { WW2Host } from '@/types';
+import { getWW2Hosts as getFirestoreWW2Hosts, subscribeToWW2Hosts } from '@/lib/firestore';
+import { isFirebaseConfigured } from '@/lib/firebase';
 
 const WW2_HOSTS_STORAGE_KEY = 'hb-ww2-hosts';
+
+// Cache for Firestore data
+let firestoreHostsCache: WW2Host[] | null = null;
+let firestoreSubscribed = false;
 
 export const WW2_HOSTS: WW2Host[] = [
   {
@@ -191,10 +197,16 @@ export function getWW2HostById(id: string): WW2Host | undefined {
 }
 
 /**
- * Load WW2 hosts from localStorage (admin edits) or fall back to defaults.
- * This ensures the frontend shows any images/videos uploaded in admin.
+ * Load WW2 hosts from Firestore (production) or localStorage (fallback) or defaults.
+ * Priority: Firestore cache > localStorage > defaults
  */
 export function getStoredWW2Hosts(): WW2Host[] {
+  // If we have Firestore cached data, use it
+  if (firestoreHostsCache && firestoreHostsCache.length > 0) {
+    return firestoreHostsCache;
+  }
+
+  // Try localStorage as fallback
   try {
     const stored = localStorage.getItem(WW2_HOSTS_STORAGE_KEY);
     if (stored) {
@@ -208,6 +220,78 @@ export function getStoredWW2Hosts(): WW2Host[] {
     console.error('Error loading stored WW2 hosts:', e);
   }
   return WW2_HOSTS;
+}
+
+/**
+ * Initialize Firestore subscription for WW2 hosts.
+ * Call this once when the app starts (e.g., in AppContext or main.tsx).
+ */
+export function initWW2HostsSubscription(): () => void {
+  if (!isFirebaseConfigured() || firestoreSubscribed) {
+    return () => {};
+  }
+
+  firestoreSubscribed = true;
+
+  const unsubscribe = subscribeToWW2Hosts((hosts) => {
+    if (hosts && hosts.length > 0) {
+      firestoreHostsCache = hosts.map(h => ({
+        id: h.id as WW2Host['id'],
+        name: h.name,
+        title: h.title,
+        era: h.era,
+        specialty: h.specialty,
+        imageUrl: h.imageUrl,
+        introVideoUrl: h.introVideoUrl,
+        welcomeVideoUrl: h.welcomeVideoUrl,
+        primaryColor: h.primaryColor,
+        avatar: h.avatar,
+        voiceStyle: h.voiceStyle,
+        description: h.description,
+      }));
+      console.log('[WW2Hosts] Loaded from Firestore:', firestoreHostsCache.length);
+    }
+  });
+
+  return () => {
+    firestoreSubscribed = false;
+    unsubscribe();
+  };
+}
+
+/**
+ * Async function to load WW2 hosts from Firestore.
+ * Use this for initial data fetch.
+ */
+export async function loadWW2HostsFromFirestore(): Promise<WW2Host[]> {
+  if (!isFirebaseConfigured()) {
+    return getStoredWW2Hosts();
+  }
+
+  try {
+    const hosts = await getFirestoreWW2Hosts();
+    if (hosts && hosts.length > 0) {
+      firestoreHostsCache = hosts.map(h => ({
+        id: h.id as WW2Host['id'],
+        name: h.name,
+        title: h.title,
+        era: h.era,
+        specialty: h.specialty,
+        imageUrl: h.imageUrl,
+        introVideoUrl: h.introVideoUrl,
+        welcomeVideoUrl: h.welcomeVideoUrl,
+        primaryColor: h.primaryColor,
+        avatar: h.avatar,
+        voiceStyle: h.voiceStyle,
+        description: h.description,
+      }));
+      return firestoreHostsCache;
+    }
+  } catch (e) {
+    console.error('[WW2Hosts] Error loading from Firestore:', e);
+  }
+
+  return getStoredWW2Hosts();
 }
 
 export function getHostDialogue(hostId: string, gameId: string): HostDialogue | undefined {

@@ -231,10 +231,9 @@ export function usePearlHarborProgress() {
       const newTotalXP = prev.totalXP + xpWithBonus;
 
       // Check for completion badge
-      // For lessons: all 7 lessons complete
-      // For activities: all 15 activities complete
-      const completedLessons = newCompletedActivities.filter(id => id.startsWith('ph-lesson-')).length;
-      const hasBadge = completedLessons >= PEARL_HARBOR_LESSONS.length || newCompletedActivities.length >= 15;
+      // For lessons: all beats complete (ph-beat-1 through ph-beat-11)
+      const completedBeats = newCompletedActivities.filter(id => id.startsWith('ph-beat-')).length;
+      const hasBadge = completedBeats >= PEARL_HARBOR_LESSONS.length;
 
       const newProgress: PearlHarborProgress = {
         ...prev,
@@ -296,9 +295,10 @@ export function usePearlHarborProgress() {
     return progress.unlockedLessons.includes(lessonId) || progress.completedActivities.includes(lessonId);
   }, [progress.unlockedLessons, progress.completedActivities]);
 
-  // Get overall progress percentage
+  // Get overall progress percentage (based on completed beats)
   const getOverallProgress = useCallback(() => {
-    return Math.round((progress.completedActivities.length / 15) * 100);
+    const completedBeats = progress.completedActivities.filter(id => id.startsWith('ph-beat-')).length;
+    return Math.round((completedBeats / PEARL_HARBOR_LESSONS.length) * 100);
   }, [progress.completedActivities]);
 
   // Get streak bonus percentage

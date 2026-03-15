@@ -96,6 +96,24 @@ export interface FirestoreSpiritGuide {
   updatedAt?: Timestamp;
 }
 
+export interface FirestoreWW2Host {
+  id: string;
+  name: string;
+  title: string;
+  era: string;
+  specialty: string;
+  avatar: string;
+  imageUrl?: string;
+  introVideoUrl?: string;
+  welcomeVideoUrl?: string;
+  primaryColor: string;
+  voiceStyle: string;
+  description: string;
+  displayOrder: number;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
+}
+
 export interface FirestoreCourse {
   id: string;
   title: string;
@@ -582,4 +600,42 @@ export function subscribeToModuleTemplates(
   callback: (templates: FirestoreModuleTemplate[]) => void
 ): Unsubscribe {
   return subscribeToCollection<FirestoreModuleTemplate>('moduleTemplates', callback, orderBy('name'));
+}
+
+// ============ WW2 Host Operations ============
+
+export async function getWW2Hosts(): Promise<FirestoreWW2Host[]> {
+  return getCollection<FirestoreWW2Host>('ww2Hosts', orderBy('displayOrder'));
+}
+
+export async function getWW2Host(hostId: string): Promise<FirestoreWW2Host | null> {
+  return getDocument<FirestoreWW2Host>('ww2Hosts', hostId);
+}
+
+export async function saveWW2Host(host: FirestoreWW2Host): Promise<boolean> {
+  const data = {
+    ...host,
+    createdAt: host.createdAt || serverTimestamp(),
+  };
+  return setDocument('ww2Hosts', host.id, data);
+}
+
+export async function saveAllWW2Hosts(hosts: FirestoreWW2Host[]): Promise<boolean> {
+  const documents = hosts.map((host, index) => ({
+    id: host.id,
+    data: {
+      ...host,
+      displayOrder: index,
+      createdAt: host.createdAt || serverTimestamp(),
+    },
+  }));
+  return batchSaveDocuments('ww2Hosts', documents);
+}
+
+export async function deleteWW2Host(hostId: string): Promise<boolean> {
+  return deleteDocument('ww2Hosts', hostId);
+}
+
+export function subscribeToWW2Hosts(callback: (hosts: FirestoreWW2Host[]) => void): Unsubscribe {
+  return subscribeToCollection<FirestoreWW2Host>('ww2Hosts', callback, orderBy('displayOrder'));
 }
