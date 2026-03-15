@@ -85,14 +85,14 @@ export function PearlHarborJourneyMap({
 
         {/* Title */}
         <div className="text-center pt-2">
-          <p className="text-xs uppercase tracking-[0.3em] text-white/50 mb-1">
+          <p className="text-[10px] sm:text-xs uppercase tracking-[0.3em] text-white/50 mb-1">
             Pearl Harbor
           </p>
-          <h1 className="font-editorial text-2xl font-bold text-white mb-2">
+          <h1 className="font-editorial text-xl sm:text-2xl font-bold text-white mb-2">
             Day of Infamy
           </h1>
-          <div className="flex items-center justify-center gap-2 text-white/50 text-sm">
-            <Crown size={16} className="text-amber-400" />
+          <div className="flex items-center justify-center gap-2 text-white/50 text-xs sm:text-sm">
+            <Crown size={14} className="text-amber-400 sm:w-4 sm:h-4" />
             <span>{completedCount} of {PEARL_HARBOR_LESSONS.length} completed</span>
           </div>
         </div>
@@ -145,7 +145,7 @@ export function PearlHarborJourneyMap({
                 <motion.div
                   key={lesson.id}
                   data-lesson
-                  className="flex flex-col items-center w-full max-w-xs"
+                  className="flex flex-col items-center w-full max-w-full sm:max-w-xs md:max-w-sm px-2 sm:px-0"
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: index * 0.08 }}
@@ -232,12 +232,12 @@ export function PearlHarborJourneyMap({
                             <AlertCircle size={14} className="text-orange-500" />
                           )}
                         </div>
-                        <h3 className={`font-bold text-lg ${
+                        <h3 className={`font-bold text-base sm:text-lg ${
                           state === 'locked' ? 'text-zinc-500' : 'text-white'
                         }`}>
                           {lesson.title}
                         </h3>
-                        <p className={`text-sm ${
+                        <p className={`text-xs sm:text-sm ${
                           state === 'locked' ? 'text-zinc-600' : 'text-white/60'
                         }`}>
                           {state === 'unlocked' ? 'Skipped - Return to complete' : lesson.subtitle}
@@ -288,15 +288,15 @@ export function PearlHarborJourneyMap({
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.5 }}
-                className="text-center mt-6"
+                className="text-center mt-4 sm:mt-6"
               >
-                <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-5xl mb-4">
+                <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-4xl sm:text-5xl mb-3 sm:mb-4">
                   🎖️
                 </div>
-                <h3 className="font-editorial text-xl font-bold text-white">
+                <h3 className="font-editorial text-lg sm:text-xl font-bold text-white">
                   Pearl Harbor Complete
                 </h3>
-                <p className="text-white/60 text-sm mt-1">
+                <p className="text-white/60 text-xs sm:text-sm mt-1">
                   You've mastered the story of December 7, 1941
                 </p>
               </motion.div>
@@ -311,9 +311,13 @@ export function PearlHarborJourneyMap({
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
         onClick={onOpenWorldMap}
-        className="fixed bottom-24 right-4 z-30 flex items-center gap-2 px-4 py-3 rounded-full bg-gradient-to-r from-blue-600 to-blue-700 text-white font-bold shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-shadow"
+        className="fixed z-30 flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 rounded-full bg-gradient-to-r from-blue-600 to-blue-700 text-white font-bold text-sm sm:text-base shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-shadow"
+        style={{
+          bottom: 'max(6rem, calc(5.5rem + env(safe-area-inset-bottom)))',
+          right: '1rem',
+        }}
       >
-        <Globe size={20} />
+        <Globe size={18} className="sm:w-5 sm:h-5" />
         <span>View Map</span>
       </motion.button>
     </div>

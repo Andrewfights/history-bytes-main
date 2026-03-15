@@ -35,6 +35,8 @@ export const STORAGE_KEYS = {
   WW2_THEATER_PROGRESS: 'hb_ww2_theater_progress',
   PEARL_HARBOR_PROGRESS: 'hb_pearl_harbor_progress',
   PEARL_HARBOR_CHECKPOINT: 'hb_pearl_harbor_checkpoint',
+  // Pantheon Souvenir Room
+  PANTHEON_PROGRESS: 'hb_pantheon_progress',
 } as const;
 
 export interface AuthState {
@@ -143,6 +145,20 @@ export interface FunnelState {
     ghostArmyProgress: GhostArmyProgress;
     unlockedStories: string[];  // Unlocked after Ghost Army completion
   };
+}
+
+// Pantheon Souvenir Room persistence
+export interface PersistedSouvenirProgress {
+  souvenirId: string;
+  currentTier: 'gray' | 'bronze' | 'silver' | 'gold';
+  unlockedAt: string;       // ISO date
+  upgradedAt?: string;      // ISO date
+  examScores: number[];     // Historical exam scores (percentage 0-100)
+}
+
+export interface PersistedPantheonProgress {
+  souvenirs: Record<string, PersistedSouvenirProgress>;
+  lastVisited?: string;
 }
 
 function isStorageAvailable(): boolean {
@@ -603,4 +619,20 @@ export async function syncUserDataToFirebase(): Promise<void> {
   } catch (err) {
     console.error('Failed to sync user data to Firestore:', err);
   }
+}
+
+// ============ Pantheon Souvenir Room ============
+
+const DEFAULT_PANTHEON_PROGRESS: PersistedPantheonProgress = {
+  souvenirs: {},
+  lastVisited: undefined,
+};
+
+export function loadPantheonProgress(): PersistedPantheonProgress {
+  const stored = loadFromStorage<PersistedPantheonProgress>(STORAGE_KEYS.PANTHEON_PROGRESS);
+  return stored || DEFAULT_PANTHEON_PROGRESS;
+}
+
+export function savePantheonProgress(progress: PersistedPantheonProgress): void {
+  saveToStorage(STORAGE_KEYS.PANTHEON_PROGRESS, progress);
 }

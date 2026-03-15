@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Globe, X } from 'lucide-react';
+import { ArrowLeft, Globe, X, RefreshCw, User } from 'lucide-react';
 import { WW2Host } from '@/types';
 import { getBattleById } from '@/data/ww2Battles';
 import { TheaterColumn } from './TheaterColumn';
@@ -16,6 +16,7 @@ interface WW2TheaterSelectionProps {
   onBack: () => void;
   onSelectPearlHarbor: () => void;
   onSelectWorldMap: () => void;
+  onChangeGuide?: () => void;
 }
 
 export function WW2TheaterSelection({
@@ -23,6 +24,7 @@ export function WW2TheaterSelection({
   onBack,
   onSelectPearlHarbor,
   onSelectWorldMap,
+  onChangeGuide,
 }: WW2TheaterSelectionProps) {
   const {
     getBattleStatus,
@@ -32,6 +34,7 @@ export function WW2TheaterSelection({
   } = useWW2TheaterProgress();
 
   const [showComingSoon, setShowComingSoon] = useState<string | null>(null);
+  const [showHostMenu, setShowHostMenu] = useState(false);
 
   // Sync Pearl Harbor completion on mount
   useEffect(() => {
@@ -89,11 +92,44 @@ export function WW2TheaterSelection({
             <ArrowLeft size={24} />
           </button>
           <div className="flex items-center gap-3">
-            <div
-              className="w-10 h-10 rounded-lg flex items-center justify-center text-xl"
-              style={{ backgroundColor: host.primaryColor }}
-            >
-              {host.avatar}
+            {/* Host avatar - clickable to show menu */}
+            <div className="relative">
+              <button
+                onClick={() => setShowHostMenu(!showHostMenu)}
+                className="w-10 h-10 rounded-lg flex items-center justify-center text-xl transition-transform hover:scale-105"
+                style={{ backgroundColor: host.primaryColor }}
+              >
+                {host.avatar}
+              </button>
+
+              {/* Host dropdown menu */}
+              <AnimatePresence>
+                {showHostMenu && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                    className="absolute top-12 left-0 z-50 w-48 bg-slate-800 rounded-xl border border-white/10 shadow-xl overflow-hidden"
+                  >
+                    <div className="p-3 border-b border-white/10">
+                      <p className="text-xs text-white/50">Current Guide</p>
+                      <p className="text-sm font-medium text-white">{host.name}</p>
+                    </div>
+                    {onChangeGuide && (
+                      <button
+                        onClick={() => {
+                          setShowHostMenu(false);
+                          onChangeGuide();
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-white/80 hover:bg-white/10 transition-colors"
+                      >
+                        <RefreshCw size={16} />
+                        Change Guide
+                      </button>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
             <div>
               <h1 className="font-editorial text-lg font-bold text-white">
@@ -116,21 +152,29 @@ export function WW2TheaterSelection({
         </button>
       </div>
 
+      {/* Click outside to close host menu */}
+      {showHostMenu && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={() => setShowHostMenu(false)}
+        />
+      )}
+
       {/* Main Title */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="relative z-10 text-center py-4 px-4"
+        className="relative z-10 text-center py-3 sm:py-4 px-4"
       >
-        <h2 className="text-2xl font-editorial font-bold text-amber-100">
+        <h2 className="text-xl sm:text-2xl font-editorial font-bold text-amber-100">
           Select a Theater to Deploy
         </h2>
-        <p className="text-white/50 text-sm mt-1">
+        <p className="text-white/50 text-xs sm:text-sm mt-1">
           Complete Pearl Harbor to unlock more campaigns
         </p>
         {/* Overall Progress */}
-        <div className="flex items-center justify-center gap-2 mt-2 text-xs text-white/40">
+        <div className="flex items-center justify-center gap-2 mt-2 text-[10px] sm:text-xs text-white/40">
           <span>Overall Progress:</span>
           <span className="text-amber-400 font-medium">
             {overallProgress.completed}/{overallProgress.total} Battles
@@ -199,11 +243,11 @@ function ComingSoonModal({
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
-        className="relative max-w-sm w-full bg-gradient-to-b from-slate-800 to-slate-900 rounded-2xl overflow-hidden border border-white/10"
+        className="relative max-w-full sm:max-w-sm w-full mx-2 bg-gradient-to-b from-slate-800 to-slate-900 rounded-2xl overflow-hidden border border-white/10"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Battle Image */}
-        <div className="relative h-40">
+        <div className="relative h-32 sm:h-40">
           <img
             src={battle.imageUrl}
             alt={battle.name}
@@ -214,33 +258,33 @@ function ComingSoonModal({
           {/* Close Button */}
           <button
             onClick={onClose}
-            className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/50 flex items-center justify-center text-white/70 hover:text-white transition-colors"
+            className="absolute top-2 sm:top-3 right-2 sm:right-3 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-black/50 flex items-center justify-center text-white/70 hover:text-white transition-colors"
           >
-            <X size={18} />
+            <X size={16} className="sm:w-[18px] sm:h-[18px]" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-5 text-center">
-          <h3 className="text-xl font-bold text-white mb-1">{battle.name}</h3>
-          <p className="text-white/50 text-sm mb-4">{battle.subtitle}</p>
+        <div className="p-4 sm:p-5 text-center">
+          <h3 className="text-lg sm:text-xl font-bold text-white mb-1">{battle.name}</h3>
+          <p className="text-white/50 text-xs sm:text-sm mb-3 sm:mb-4">{battle.subtitle}</p>
 
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500/20 rounded-lg mb-4">
-            <span className="text-amber-400 text-sm font-medium">
+          <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-amber-500/20 rounded-lg mb-3 sm:mb-4">
+            <span className="text-amber-400 text-xs sm:text-sm font-medium">
               Coming Soon
             </span>
           </div>
 
-          <p className="text-white/60 text-sm mb-4">{battle.description}</p>
+          <p className="text-white/60 text-xs sm:text-sm mb-3 sm:mb-4">{battle.description}</p>
 
-          <div className="flex items-center justify-center gap-4 text-xs text-white/40">
+          <div className="flex items-center justify-center gap-3 sm:gap-4 text-[10px] sm:text-xs text-white/40">
             <span>{battle.lessonCount} Lessons</span>
             <span className="text-amber-400">+{battle.xpReward} XP</span>
           </div>
 
           <button
             onClick={onClose}
-            className="mt-5 w-full py-3 bg-white/10 hover:bg-white/20 rounded-xl text-white font-medium transition-colors"
+            className="mt-4 sm:mt-5 w-full py-2.5 sm:py-3 bg-white/10 hover:bg-white/20 rounded-xl text-white text-sm sm:text-base font-medium transition-colors"
           >
             Got it
           </button>

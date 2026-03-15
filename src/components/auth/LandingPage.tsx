@@ -1,9 +1,64 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Mail, Lock, User, ArrowRight, Sparkles, History } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, Sparkles, History, CheckCircle, RefreshCw, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { toast } from 'sonner';
 
-type AuthMode = 'landing' | 'signin' | 'signup' | 'forgot';
+type AuthMode = 'landing' | 'signin' | 'signup' | 'forgot' | 'verify-sent' | 'reset-sent';
+
+// Translate Firebase error codes to user-friendly messages
+function getAuthErrorMessage(error: unknown): string {
+  if (!(error instanceof Error)) return 'An unexpected error occurred';
+
+  const message = error.message.toLowerCase();
+
+  // Firebase Auth error codes
+  if (message.includes('auth/invalid-email')) {
+    return 'Please enter a valid email address';
+  }
+  if (message.includes('auth/user-disabled')) {
+    return 'This account has been disabled. Please contact support.';
+  }
+  if (message.includes('auth/user-not-found')) {
+    return 'No account found with this email. Would you like to sign up?';
+  }
+  if (message.includes('auth/wrong-password') || message.includes('auth/invalid-credential')) {
+    return 'Incorrect password. Please try again or reset your password.';
+  }
+  if (message.includes('auth/email-already-in-use')) {
+    return 'An account with this email already exists. Try signing in instead.';
+  }
+  if (message.includes('auth/weak-password')) {
+    return 'Password is too weak. Please use at least 6 characters.';
+  }
+  if (message.includes('auth/operation-not-allowed')) {
+    return 'Email/password sign-in is not enabled. Please contact support.';
+  }
+  if (message.includes('auth/too-many-requests')) {
+    return 'Too many failed attempts. Please try again later or reset your password.';
+  }
+  if (message.includes('auth/network-request-failed')) {
+    return 'Network error. Please check your connection and try again.';
+  }
+  if (message.includes('auth/popup-closed-by-user')) {
+    return 'Sign-in was cancelled. Please try again.';
+  }
+  if (message.includes('auth/requires-recent-login')) {
+    return 'Please sign in again to complete this action.';
+  }
+  if (message.includes('auth/missing-continue-uri')) {
+    return 'Email service misconfigured. Please contact support.';
+  }
+  if (message.includes('auth/invalid-continue-uri')) {
+    return 'Email service misconfigured. Please contact support.';
+  }
+  if (message.includes('auth/unauthorized-continue-uri')) {
+    return 'Email service not authorized. Check Firebase Console settings.';
+  }
+
+  // Fallback to original message, cleaned up
+  return error.message.replace(/Firebase: /g, '').replace(/\(auth\/.*\)\.?/g, '').trim() || 'An error occurred';
+}
 
 interface LandingPageProps {
   onAuthSuccess: (userId: string, email: string, isNewUser: boolean) => void;
@@ -26,7 +81,7 @@ const DEMO_USERS = {
 };
 
 export function LandingPage({ onAuthSuccess }: LandingPageProps) {
-  const { signIn, signUp, resetPassword, isConfigured } = useAuth();
+  const { signIn, signUp, resetPassword, sendVerificationEmail, isConfigured } = useAuth();
   const [mode, setMode] = useState<AuthMode>('landing');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -34,6 +89,7 @@ export function LandingPage({ onAuthSuccess }: LandingPageProps) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isResending, setIsResending] = useState(false);
 
   const handleDemoLogin = (type: 'new' | 'existing') => {
     setIsLoading(true);
@@ -53,11 +109,22 @@ export function LandingPage({ onAuthSuccess }: LandingPageProps) {
     // If Firebase is configured, use real auth
     if (isConfigured) {
       try {
-        await signIn(email, password);
-        // Auth state change will be handled by AuthContext
+        console.log('[LandingPage] Starting sign in for:', email);
+        const result = await signIn(email, password);
+        console.log('[LandingPage] Sign in completed successfully, UID:', result.uid);
+        toast.success('Welcome back!', {
+          description: 'You have signed in successfully.',
+          duration: 3000,
+        });
+        // Call onAuthSuccess to update AppContext with Firebase UID - existing user
+        onAuthSuccess(result.uid, result.email, false);
       } catch (err: unknown) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to sign in';
+        console.error('[LandingPage] Sign in failed:', err);
+        const errorMessage = getAuthErrorMessage(err);
         setError(errorMessage);
+        toast.error('Sign in failed', {
+          description: errorMessage,
+        });
         setIsLoading(false);
       }
       return;
@@ -95,11 +162,22 @@ export function LandingPage({ onAuthSuccess }: LandingPageProps) {
     // If Firebase is configured, use real auth
     if (isConfigured) {
       try {
-        await signUp(email, password, name);
-        // Auth state change will be handled by AuthContext
+        console.log('[LandingPage] Starting signup for:', email);
+        const result = await signUp(email, password, name);
+        console.log('[LandingPage] Signup completed successfully, UID:', result.uid);
+        toast.success('Account created! Check your email for verification.', {
+          description: `Verification email sent to ${email}`,
+          duration: 8000,
+        });
+        // Call onAuthSuccess to update AppContext with Firebase UID - new user
+        onAuthSuccess(result.uid, result.email, true);
       } catch (err: unknown) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to create account';
+        console.error('[LandingPage] Signup failed:', err);
+        const errorMessage = getAuthErrorMessage(err);
         setError(errorMessage);
+        toast.error('Sign up failed', {
+          description: errorMessage,
+        });
         setIsLoading(false);
       }
       return;
@@ -110,6 +188,30 @@ export function LandingPage({ onAuthSuccess }: LandingPageProps) {
       const userId = `user-${Date.now()}`;
       onAuthSuccess(userId, email, true);
     }, 500);
+  };
+
+  const handleResendVerification = async () => {
+    setIsResending(true);
+    setError('');
+    try {
+      console.log('[LandingPage] Resending verification email...');
+      await sendVerificationEmail();
+      console.log('[LandingPage] Verification email resent successfully');
+      setSuccess('Verification email sent! Check your inbox.');
+      toast.success('Verification email sent!', {
+        description: 'Check your inbox and spam folder.',
+        duration: 5000,
+      });
+    } catch (err: unknown) {
+      console.error('[LandingPage] Failed to resend verification:', err);
+      const errorMessage = getAuthErrorMessage(err);
+      setError(errorMessage);
+      toast.error('Failed to send email', {
+        description: errorMessage,
+      });
+    } finally {
+      setIsResending(false);
+    }
   };
 
   const handleForgotPassword = async (e: React.FormEvent) => {
@@ -125,12 +227,22 @@ export function LandingPage({ onAuthSuccess }: LandingPageProps) {
     }
 
     try {
+      console.log('[LandingPage] Sending password reset email to:', email);
       await resetPassword(email);
-      setSuccess('Password reset email sent! Check your inbox.');
+      console.log('[LandingPage] Password reset email sent successfully');
+      toast.success('Password reset email sent!', {
+        description: `Check ${email} for the reset link.`,
+        duration: 8000,
+      });
+      setMode('reset-sent');
       setIsLoading(false);
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to send reset email';
+      console.error('[LandingPage] Failed to send password reset:', err);
+      const errorMessage = getAuthErrorMessage(err);
       setError(errorMessage);
+      toast.error('Failed to send reset email', {
+        description: errorMessage,
+      });
       setIsLoading(false);
     }
   };
@@ -515,6 +627,147 @@ export function LandingPage({ onAuthSuccess }: LandingPageProps) {
                 {isLoading ? 'Sending...' : 'Send Reset Link'}
               </motion.button>
             </form>
+          </motion.div>
+        )}
+
+        {/* Verification Email Sent Screen */}
+        {mode === 'verify-sent' && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="w-full max-w-md text-center"
+          >
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', damping: 15, delay: 0.1 }}
+              className="w-20 h-20 mx-auto mb-6 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center"
+            >
+              <Mail size={36} className="text-emerald-400" />
+            </motion.div>
+
+            <h2 className="font-editorial text-2xl font-bold text-foreground mb-2">
+              Check your email
+            </h2>
+            <p className="text-muted-foreground text-sm mb-6">
+              We've sent a verification link to <span className="text-foreground font-medium">{email}</span>
+            </p>
+
+            <div className="bg-card border border-border rounded-xl p-4 mb-6">
+              <p className="text-sm text-muted-foreground">
+                Click the link in your email to verify your account. Then return here to sign in.
+              </p>
+            </div>
+
+            {error && (
+              <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 mb-4">
+                {error}
+              </p>
+            )}
+
+            {success && (
+              <p className="text-sm text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2 mb-4">
+                {success}
+              </p>
+            )}
+
+            <div className="space-y-3">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => {
+                  setError('');
+                  setSuccess('');
+                  setMode('signin');
+                }}
+                className="w-full py-3.5 rounded-xl bg-primary text-primary-foreground font-semibold text-base"
+              >
+                Go to Sign In
+              </motion.button>
+
+              <button
+                onClick={handleResendVerification}
+                disabled={isResending}
+                className="w-full py-3 rounded-xl border border-border text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {isResending ? (
+                  <>
+                    <RefreshCw size={14} className="animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw size={14} />
+                    Resend verification email
+                  </>
+                )}
+              </button>
+            </div>
+
+            <p className="text-xs text-muted-foreground mt-6">
+              Didn't receive it? Check your spam folder or try resending.
+            </p>
+          </motion.div>
+        )}
+
+        {/* Password Reset Sent Screen */}
+        {mode === 'reset-sent' && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="w-full max-w-md text-center"
+          >
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', damping: 15, delay: 0.1 }}
+              className="w-20 h-20 mx-auto mb-6 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center"
+            >
+              <CheckCircle size={36} className="text-emerald-400" />
+            </motion.div>
+
+            <h2 className="font-editorial text-2xl font-bold text-foreground mb-2">
+              Reset link sent
+            </h2>
+            <p className="text-muted-foreground text-sm mb-6">
+              We've sent a password reset link to <span className="text-foreground font-medium">{email}</span>
+            </p>
+
+            <div className="bg-card border border-border rounded-xl p-4 mb-6">
+              <p className="text-sm text-muted-foreground">
+                Click the link in your email to create a new password. The link will expire in 1 hour.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => {
+                  setError('');
+                  setSuccess('');
+                  setMode('signin');
+                }}
+                className="w-full py-3.5 rounded-xl bg-primary text-primary-foreground font-semibold text-base"
+              >
+                Return to Sign In
+              </motion.button>
+
+              <button
+                onClick={() => {
+                  setError('');
+                  setSuccess('');
+                  setMode('forgot');
+                }}
+                className="w-full py-3 rounded-xl border border-border text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors text-sm"
+              >
+                Send another reset link
+              </button>
+            </div>
+
+            <p className="text-xs text-muted-foreground mt-6">
+              Didn't receive it? Check your spam folder or try again.
+            </p>
           </motion.div>
         )}
       </div>

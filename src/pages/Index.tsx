@@ -12,6 +12,7 @@ import { WatchTab } from '@/components/tabs/WatchTab';
 import { SessionFlow } from '@/components/session/SessionFlow';
 import { OnboardingFlow } from '@/components/onboarding/OnboardingFlow';
 import { LandingPage } from '@/components/auth/LandingPage';
+import { EmailVerificationBanner } from '@/components/auth/EmailVerificationBanner';
 
 function AppContent() {
   const {
@@ -85,6 +86,11 @@ function AppContent() {
         <>
           <Header />
           <main className="max-w-lg md:max-w-4xl mx-auto pb-20 md:pb-6">
+            {/* Email verification banner - shows on all tabs when not verified */}
+            <div className="px-4 pt-4">
+              <EmailVerificationBanner />
+            </div>
+
             {activeTab === 'home' && (
               <HomeTab
                 onStartSession={handleStartSession}

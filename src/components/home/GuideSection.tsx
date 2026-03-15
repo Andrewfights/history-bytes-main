@@ -79,16 +79,16 @@ export function GuideSection({
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`relative overflow-hidden rounded-2xl border ${colors.border} bg-gradient-to-br ${colors.gradient} p-4 shadow-lg ${colors.glow}`}
+      className={`relative overflow-hidden rounded-2xl border ${colors.border} bg-gradient-to-br ${colors.gradient} p-3 sm:p-4 shadow-lg ${colors.glow}`}
     >
       {/* Background sparkles */}
       <div className="absolute top-2 right-4 pointer-events-none">
         <Sparkles className={`${colors.text} opacity-30`} size={16} />
       </div>
 
-      <div className="flex items-start gap-4">
+      <div className="flex items-start gap-3 sm:gap-4">
         {/* Guide Avatar/Video */}
-        <div className={`relative w-20 h-20 rounded-full overflow-hidden ${colors.bg} border-2 ${colors.border} flex-shrink-0`}>
+        <div className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden ${colors.bg} border-2 ${colors.border} flex-shrink-0`}>
           {hasVideo ? (
             <>
               <video
@@ -123,7 +123,7 @@ export function GuideSection({
             <img src={guide.imageUrl} alt={guide.name} className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <span className="text-3xl">{guide.avatar}</span>
+              <span className="text-2xl sm:text-3xl">{guide.avatar}</span>
             </div>
           )}
 
@@ -144,11 +144,11 @@ export function GuideSection({
 
         {/* Guide Info */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <h3 className="font-semibold text-foreground truncate">{guide.name}</h3>
-            <span className="text-lg">{guide.avatar}</span>
+          <div className="flex items-center gap-1.5 sm:gap-2 mb-1">
+            <h3 className="font-semibold text-sm sm:text-base text-foreground truncate">{guide.name}</h3>
+            <span className="text-base sm:text-lg">{guide.avatar}</span>
           </div>
-          <p className={`text-xs ${colors.text} mb-2`}>{guide.title}</p>
+          <p className={`text-[10px] sm:text-xs ${colors.text} mb-1.5 sm:mb-2`}>{guide.title}</p>
 
           {/* Animated Quote */}
           <AnimatePresence mode="wait">
@@ -158,7 +158,7 @@ export function GuideSection({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.3 }}
-              className="text-sm text-muted-foreground italic line-clamp-2"
+              className="text-xs sm:text-sm text-muted-foreground italic line-clamp-2"
             >
               "{currentQuote}"
             </motion.p>
@@ -167,15 +167,15 @@ export function GuideSection({
       </div>
 
       {/* Action Buttons */}
-      <div className="flex gap-2 mt-4">
+      <div className="flex flex-col sm:flex-row gap-2 mt-3 sm:mt-4">
         {/* Chat Button - Primary */}
         <motion.button
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={onOpenChat}
-          className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-primary text-primary-foreground font-medium text-sm"
+          className="flex-1 flex items-center justify-center gap-2 py-2.5 sm:py-3 rounded-xl bg-primary text-primary-foreground font-medium text-xs sm:text-sm"
         >
-          <MessageCircle size={16} />
+          <MessageCircle size={14} className="sm:w-4 sm:h-4" />
           Talk to {guide.name.split(' ')[0]}
         </motion.button>
 
@@ -186,12 +186,12 @@ export function GuideSection({
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => setShowQuickActions(!showQuickActions)}
-              className={`flex items-center justify-center gap-1 px-4 py-3 rounded-xl border ${colors.border} ${colors.bg} font-medium text-sm`}
+              className={`w-full sm:w-auto flex items-center justify-center gap-1 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl border ${colors.border} ${colors.bg} font-medium text-xs sm:text-sm`}
             >
               Quick Actions
               <ChevronRight
-                size={14}
-                className={`transition-transform ${showQuickActions ? 'rotate-90' : ''}`}
+                size={12}
+                className={`transition-transform sm:w-3.5 sm:h-3.5 ${showQuickActions ? 'rotate-90' : ''}`}
               />
             </motion.button>
 
@@ -202,7 +202,7 @@ export function GuideSection({
                   initial={{ opacity: 0, y: -10, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                  className="absolute right-0 top-full mt-2 w-48 bg-card border border-border rounded-xl shadow-lg overflow-hidden z-20"
+                  className="absolute left-0 right-0 sm:left-auto sm:right-0 top-full mt-2 sm:w-48 bg-card border border-border rounded-xl shadow-lg overflow-hidden z-20"
                 >
                   {quickActions.map((action, i) => (
                     <button
@@ -211,9 +211,9 @@ export function GuideSection({
                         action.action?.();
                         setShowQuickActions(false);
                       }}
-                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted transition-colors text-sm text-left"
+                      className="w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 hover:bg-muted transition-colors text-xs sm:text-sm text-left"
                     >
-                      <action.icon size={16} className={colors.text} />
+                      <action.icon size={14} className={`${colors.text} sm:w-4 sm:h-4`} />
                       {action.label}
                     </button>
                   ))}

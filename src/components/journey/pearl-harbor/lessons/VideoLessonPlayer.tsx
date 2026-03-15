@@ -260,11 +260,11 @@ export function VideoLessonPlayer({ host, onComplete, onSkip, onBack }: VideoLes
               className="flex-1 flex flex-col items-center justify-center px-6 text-center"
             >
               {/* Key art placeholder */}
-              <div className="w-48 h-48 rounded-2xl bg-gradient-to-br from-red-900/50 to-orange-900/50 flex items-center justify-center mb-8">
-                <span className="text-8xl">💥</span>
+              <div className="w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 rounded-2xl bg-gradient-to-br from-red-900/50 to-orange-900/50 flex items-center justify-center mb-6 sm:mb-8">
+                <span className="text-6xl sm:text-7xl md:text-8xl">💥</span>
               </div>
 
-              <h1 className="font-editorial text-3xl font-bold text-white mb-2">
+              <h1 className="font-editorial text-2xl sm:text-3xl font-bold text-white mb-2">
                 {LESSON_DATA.title}
               </h1>
               <p className="text-white/60 mb-8">
@@ -273,7 +273,7 @@ export function VideoLessonPlayer({ host, onComplete, onSkip, onBack }: VideoLes
 
               <motion.button
                 onClick={nextScreen}
-                className="px-8 py-4 rounded-full bg-amber-400 text-black font-bold text-lg"
+                className="px-6 sm:px-8 py-3 sm:py-4 rounded-full bg-amber-400 text-black font-bold text-base sm:text-lg"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
@@ -314,13 +314,13 @@ export function VideoLessonPlayer({ host, onComplete, onSkip, onBack }: VideoLes
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
                       onClick={() => handleHotspotClick(hotspot.id)}
-                      className={`absolute w-10 h-10 rounded-full border-2 flex items-center justify-center ${
+                      className={`absolute w-11 h-11 sm:w-12 sm:h-12 rounded-full border-2 flex items-center justify-center ${
                         isViewed ? 'border-green-400 bg-green-400/20' : 'border-amber-400 bg-amber-400/20'
                       }`}
                       style={{ left: `${hotspot.x}%`, top: `${hotspot.y}%`, transform: 'translate(-50%, -50%)' }}
                     >
                       {isViewed ? (
-                        <CheckCircle2 size={20} className="text-green-400" />
+                        <CheckCircle2 size={18} className="text-green-400 sm:w-5 sm:h-5" />
                       ) : (
                         <motion.div
                           className="w-3 h-3 rounded-full bg-amber-400"
@@ -358,13 +358,13 @@ export function VideoLessonPlayer({ host, onComplete, onSkip, onBack }: VideoLes
                 </AnimatePresence>
 
                 {/* Video controls */}
-                <div className="absolute bottom-0 inset-x-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
-                  <div className="flex items-center gap-4">
+                <div className="absolute bottom-0 inset-x-0 p-3 sm:p-4 bg-gradient-to-t from-black/80 to-transparent">
+                  <div className="flex items-center gap-3 sm:gap-4">
                     <button
                       onClick={() => setIsPlaying(!isPlaying)}
-                      className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center"
+                      className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/20 flex items-center justify-center"
                     >
-                      {isPlaying ? <Pause size={24} className="text-white" /> : <Play size={24} className="text-white ml-1" />}
+                      {isPlaying ? <Pause size={20} className="text-white sm:w-6 sm:h-6" /> : <Play size={20} className="text-white ml-0.5 sm:w-6 sm:h-6" />}
                     </button>
 
                     <div className="flex-1 h-1 bg-white/20 rounded-full overflow-hidden">
@@ -377,16 +377,16 @@ export function VideoLessonPlayer({ host, onComplete, onSkip, onBack }: VideoLes
                     {canProceedFromVideo ? (
                       <button
                         onClick={() => nextScreen(false)}
-                        className="px-4 py-2 rounded-full text-sm font-bold bg-amber-400 text-black"
+                        className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-bold bg-amber-400 text-black"
                       >
                         Continue
                       </button>
                     ) : (
                       <button
                         onClick={() => nextScreen(true)}
-                        className="px-4 py-2 rounded-full text-sm font-bold bg-white/10 text-white/60 hover:bg-white/20"
+                        className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-bold bg-white/10 text-white/60 hover:bg-white/20"
                       >
-                        <SkipForward size={16} className="inline mr-1" />
+                        <SkipForward size={14} className="inline mr-1 sm:w-4 sm:h-4" />
                         Skip
                       </button>
                     )}
@@ -621,7 +621,7 @@ export function VideoLessonPlayer({ host, onComplete, onSkip, onBack }: VideoLes
                   <motion.div
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
-                    className={`absolute w-8 h-8 rounded-full border-2 flex items-center justify-center ${
+                    className={`absolute w-9 h-9 sm:w-10 sm:h-10 rounded-full border-2 flex items-center justify-center ${
                       isAnswerCorrect ? 'border-green-500 bg-green-500/30' : 'border-red-500 bg-red-500/30'
                     }`}
                     style={{
@@ -630,7 +630,7 @@ export function VideoLessonPlayer({ host, onComplete, onSkip, onBack }: VideoLes
                       transform: 'translate(-50%, -50%)'
                     }}
                   >
-                    <MapPin size={16} className={isAnswerCorrect ? 'text-green-400' : 'text-red-400'} />
+                    <MapPin size={16} className={`sm:w-5 sm:h-5 ${isAnswerCorrect ? 'text-green-400' : 'text-red-400'}`} />
                   </motion.div>
                 )}
 
@@ -640,14 +640,14 @@ export function VideoLessonPlayer({ host, onComplete, onSkip, onBack }: VideoLes
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ delay: 0.3 }}
-                    className="absolute w-8 h-8 rounded-full border-2 border-green-500 bg-green-500/30 flex items-center justify-center"
+                    className="absolute w-9 h-9 sm:w-10 sm:h-10 rounded-full border-2 border-green-500 bg-green-500/30 flex items-center justify-center"
                     style={{
                       left: `${LESSON_DATA.quizzes.map.correctArea.x}%`,
                       top: `${LESSON_DATA.quizzes.map.correctArea.y}%`,
                       transform: 'translate(-50%, -50%)'
                     }}
                   >
-                    <MapPin size={16} className="text-green-400" />
+                    <MapPin size={16} className="text-green-400 sm:w-5 sm:h-5" />
                   </motion.div>
                 )}
 
@@ -794,12 +794,12 @@ export function VideoLessonPlayer({ host, onComplete, onSkip, onBack }: VideoLes
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ type: 'spring', stiffness: 200 }}
-                    className="w-24 h-24 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center mb-6"
+                    className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center mb-4 sm:mb-6"
                   >
-                    <span className="text-5xl">🎖️</span>
+                    <span className="text-4xl sm:text-5xl">🎖️</span>
                   </motion.div>
 
-                  <h2 className="font-editorial text-2xl font-bold text-white mb-2">
+                  <h2 className="font-editorial text-xl sm:text-2xl font-bold text-white mb-2">
                     Lesson Complete!
                   </h2>
 
@@ -823,7 +823,7 @@ export function VideoLessonPlayer({ host, onComplete, onSkip, onBack }: VideoLes
 
                   <motion.button
                     onClick={handleComplete}
-                    className="px-8 py-4 rounded-full bg-amber-400 text-black font-bold text-lg"
+                    className="px-6 sm:px-8 py-3 sm:py-4 rounded-full bg-amber-400 text-black font-bold text-base sm:text-lg"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
@@ -837,12 +837,12 @@ export function VideoLessonPlayer({ host, onComplete, onSkip, onBack }: VideoLes
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ type: 'spring', stiffness: 200 }}
-                    className="w-24 h-24 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center mb-6"
+                    className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center mb-4 sm:mb-6"
                   >
-                    <SkipForward size={48} className="text-white" />
+                    <SkipForward size={40} className="text-white sm:w-12 sm:h-12" />
                   </motion.div>
 
-                  <h2 className="font-editorial text-2xl font-bold text-white mb-2">
+                  <h2 className="font-editorial text-xl sm:text-2xl font-bold text-white mb-2">
                     Lesson Unlocked
                   </h2>
 
@@ -863,7 +863,7 @@ export function VideoLessonPlayer({ host, onComplete, onSkip, onBack }: VideoLes
 
                   <motion.button
                     onClick={handleComplete}
-                    className="px-8 py-4 rounded-full bg-orange-500 text-white font-bold text-lg"
+                    className="px-6 sm:px-8 py-3 sm:py-4 rounded-full bg-orange-500 text-white font-bold text-base sm:text-lg"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >

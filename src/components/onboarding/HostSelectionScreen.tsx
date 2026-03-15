@@ -44,11 +44,11 @@ export function HostSelectionScreen({ onSelect }: HostSelectionScreenProps) {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <div className="pt-12 pb-6 text-center px-6">
+      <div className="pt-8 sm:pt-12 pb-4 sm:pb-6 text-center px-4 sm:px-6">
         <motion.h1
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="font-editorial text-3xl font-bold text-foreground mb-2"
+          className="font-editorial text-2xl sm:text-3xl font-bold text-foreground mb-2"
         >
           Choose Your Guide
         </motion.h1>
@@ -56,7 +56,7 @@ export function HostSelectionScreen({ onSelect }: HostSelectionScreenProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
-          className="text-muted-foreground text-sm max-w-xs mx-auto"
+          className="text-muted-foreground text-xs sm:text-sm max-w-xs mx-auto"
         >
           Select a historical figure to guide you through the ages
         </motion.p>
@@ -88,7 +88,7 @@ export function HostSelectionScreen({ onSelect }: HostSelectionScreenProps) {
             animate="center"
             exit="exit"
             transition={{ duration: 0.3, ease: 'easeInOut' }}
-            className="w-full max-w-sm"
+            className="w-full max-w-full sm:max-w-sm px-2 sm:px-0"
           >
             <HostCard
               guide={guides[current]}
@@ -114,9 +114,9 @@ export function HostSelectionScreen({ onSelect }: HostSelectionScreenProps) {
       </div>
 
       {/* Navigation */}
-      <div className="pb-12 px-6">
+      <div className="pb-8 sm:pb-12 px-4 sm:px-6">
         {/* Dots */}
-        <div className="flex justify-center gap-2 mb-6">
+        <div className="flex justify-center gap-1.5 sm:gap-2 mb-4 sm:mb-6">
           {guides.map((_, i) => (
             <button
               key={i}
@@ -126,7 +126,7 @@ export function HostSelectionScreen({ onSelect }: HostSelectionScreenProps) {
               }}
               className={`h-2 rounded-full transition-all duration-300 ${
                 i === current
-                  ? 'w-8 bg-primary'
+                  ? 'w-6 sm:w-8 bg-primary'
                   : 'w-2 bg-muted-foreground/30 hover:bg-muted-foreground/50'
               }`}
               aria-label={`Go to guide ${i + 1}`}
@@ -135,29 +135,29 @@ export function HostSelectionScreen({ onSelect }: HostSelectionScreenProps) {
         </div>
 
         {/* Arrows */}
-        <div className="flex justify-center gap-4">
+        <div className="flex justify-center gap-3 sm:gap-4">
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => go(-1)}
-            className="w-12 h-12 rounded-full border border-border bg-card flex items-center justify-center hover:border-primary/40 transition-colors"
+            className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border border-border bg-card flex items-center justify-center hover:border-primary/40 transition-colors"
             aria-label="Previous guide"
           >
-            <ChevronLeft size={24} className="text-muted-foreground" />
+            <ChevronLeft size={20} className="text-muted-foreground sm:w-6 sm:h-6" />
           </motion.button>
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => go(1)}
-            className="w-12 h-12 rounded-full border border-border bg-card flex items-center justify-center hover:border-primary/40 transition-colors"
+            className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border border-border bg-card flex items-center justify-center hover:border-primary/40 transition-colors"
             aria-label="Next guide"
           >
-            <ChevronRight size={24} className="text-muted-foreground" />
+            <ChevronRight size={20} className="text-muted-foreground sm:w-6 sm:h-6" />
           </motion.button>
         </div>
 
         {/* Swipe hint on mobile */}
-        <p className="text-center text-xs text-muted-foreground mt-4 md:hidden">
+        <p className="text-center text-[10px] sm:text-xs text-muted-foreground mt-3 sm:mt-4 md:hidden">
           Swipe or tap arrows to explore guides
         </p>
       </div>

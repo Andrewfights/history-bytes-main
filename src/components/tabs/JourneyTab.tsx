@@ -36,9 +36,10 @@ import {
 import { PearlHarborModule, PearlHarborJourneyMap, PearlHarborLessonPlayer } from '@/components/journey/pearl-harbor';
 import { WW2TheaterSelection } from '@/components/journey/ww2-theaters';
 import { TrophyRoom } from '@/components/journey/trophy-room';
+import { PantheonRoom } from '@/components/journey/pantheon';
 import { getWW2HostById } from '@/data/ww2Hosts';
 
-type JourneyView = 'landing' | 'arc' | 'node' | 'world-map' | 'ww2-entry' | 'ww2-theaters' | 'pearl-harbor' | 'pearl-harbor-journey' | 'pearl-harbor-lesson' | 'trophy-room';
+type JourneyView = 'landing' | 'arc' | 'node' | 'world-map' | 'ww2-entry' | 'ww2-theaters' | 'pearl-harbor' | 'pearl-harbor-journey' | 'pearl-harbor-lesson' | 'trophy-room' | 'pantheon';
 
 export function JourneyTab() {
   const {
@@ -289,6 +290,13 @@ export function JourneyTab() {
     clearHostSelection();
     setShowWW2HostGreeting(false);
     setShowWW2HostSelection(true);
+  };
+
+  // Handler for changing guide from theater selection
+  const handleChangeGuideFromTheaters = () => {
+    clearHostSelection();
+    // This will trigger the guard that shows WW2HostSelection
+    // when view is 'ww2-theaters' but no host is selected
   };
 
   const handleWW2SelectMap = () => {
@@ -592,35 +600,35 @@ export function JourneyTab() {
                     setShowWW2HostSelection(true);
                   }
                 }}
-                className="w-full relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-900/80 via-red-900/60 to-slate-900 border border-amber-500/30 p-5 text-left group"
+                className="w-full relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-900/80 via-red-900/60 to-slate-900 border border-amber-500/30 p-4 sm:p-5 text-left group"
               >
                 {/* Background glow effect */}
                 <div className="absolute inset-0 bg-gradient-to-r from-amber-500/10 to-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
 
                 <div className="relative z-10">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-3xl">🪖</span>
-                    <span className="text-xs font-bold uppercase tracking-wider text-amber-400">Featured Journey</span>
+                    <span className="text-2xl sm:text-3xl">🪖</span>
+                    <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-amber-400">Featured Journey</span>
                   </div>
 
-                  <h2 className="font-editorial text-2xl font-bold text-white mb-1">
+                  <h2 className="font-editorial text-xl sm:text-2xl font-bold text-white mb-1">
                     Pearl Harbor
                   </h2>
-                  <p className="text-white/70 text-sm mb-4">
+                  <p className="text-white/70 text-xs sm:text-sm mb-3 sm:mb-4">
                     December 7, 1941 — Experience the day that changed history
                   </p>
 
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3 text-xs text-white/60">
+                    <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-xs text-white/60">
                       <span>7 Lessons</span>
                       <span>•</span>
                       <span>~45 min</span>
                       <span>•</span>
                       <span className="text-amber-400">+280 XP</span>
                     </div>
-                    <div className="flex items-center gap-1 text-amber-400 font-bold text-sm group-hover:translate-x-1 transition-transform">
+                    <div className="flex items-center gap-1 text-amber-400 font-bold text-xs sm:text-sm group-hover:translate-x-1 transition-transform">
                       Start Journey
-                      <ArrowRight size={16} />
+                      <ArrowRight size={14} className="sm:w-4 sm:h-4" />
                     </div>
                   </div>
                 </div>
@@ -629,6 +637,27 @@ export function JourneyTab() {
 
             {/* Progress Overview Section */}
             <ProgressOverview user={user} completedNodesCount={completedJourneyNodes.length} />
+
+            {/* Pantheon - Souvenir Collection */}
+            <motion.button
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              onClick={() => setView('pantheon')}
+              className="w-full mb-4 p-3 sm:p-4 rounded-xl bg-gradient-to-r from-slate-800/80 to-slate-900/60 border border-white/10 hover:border-amber-500/30 transition-all group"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-amber-500/20 to-slate-700/50 flex items-center justify-center text-xl sm:text-2xl">
+                    🪖
+                  </div>
+                  <div className="text-left">
+                    <h3 className="font-bold text-sm sm:text-base text-white">The Pantheon</h3>
+                    <p className="text-[10px] sm:text-xs text-white/60">Your souvenir collection</p>
+                  </div>
+                </div>
+                <ChevronRight size={18} className="text-white/40 group-hover:text-amber-400 group-hover:translate-x-1 transition-all sm:w-5 sm:h-5" />
+              </div>
+            </motion.button>
 
             {/* Trophy Room Button */}
             <motion.button
@@ -830,6 +859,7 @@ export function JourneyTab() {
               onBack={handleBackFromTheaterSelection}
               onSelectPearlHarbor={handleTheaterSelectPearlHarbor}
               onSelectWorldMap={handleOpenWorldMap}
+              onChangeGuide={handleChangeGuideFromTheaters}
             />
           </motion.div>
         )}
@@ -897,6 +927,11 @@ export function JourneyTab() {
               setView('arc');
             }}
           />
+        )}
+
+        {/* Pantheon - Souvenir Collection */}
+        {view === 'pantheon' && (
+          <PantheonRoom onBack={() => setView('landing')} />
         )}
       </AnimatePresence>
     </div>
@@ -1020,32 +1055,32 @@ function ProgressOverview({ user, completedNodesCount }: ProgressOverviewProps) 
       className="mb-6"
     >
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3 sm:mb-4">
         <div>
-          <h1 className="font-editorial text-2xl font-bold">Your Journey</h1>
-          <div className="mt-1 w-16 h-[3px] bg-hc-red rounded-full" />
+          <h1 className="font-editorial text-xl sm:text-2xl font-bold">Your Journey</h1>
+          <div className="mt-1 w-12 sm:w-16 h-[3px] bg-hc-red rounded-full" />
         </div>
-        <div className="flex items-center gap-2 text-orange-500">
-          <Flame size={18} className="fill-orange-500" />
-          <span className="font-bold">{user.streak}</span>
+        <div className="flex items-center gap-1.5 sm:gap-2 text-orange-500">
+          <Flame size={16} className="fill-orange-500 sm:w-[18px] sm:h-[18px]" />
+          <span className="font-bold text-sm sm:text-base">{user.streak}</span>
         </div>
       </div>
 
       {/* Rank Card */}
-      <div className="p-4 rounded-2xl bg-card border border-border mb-4">
-        <div className="flex items-center gap-4 mb-3">
+      <div className="p-3 sm:p-4 rounded-2xl bg-card border border-border mb-4">
+        <div className="flex items-center gap-3 sm:gap-4 mb-3">
           {/* Rank Badge */}
-          <div className={`w-16 h-16 rounded-xl bg-gradient-to-br ${tierColors[rankInfo.tier]} flex items-center justify-center`}>
-            <span className="text-3xl">{rankInfo.icon}</span>
+          <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-xl bg-gradient-to-br ${tierColors[rankInfo.tier]} flex items-center justify-center`}>
+            <span className="text-2xl sm:text-3xl">{rankInfo.icon}</span>
           </div>
 
           {/* Rank Info */}
           <div className="flex-1">
-            <p className="text-xs uppercase tracking-wider text-muted-foreground mb-0.5">
+            <p className="text-[10px] sm:text-xs uppercase tracking-wider text-muted-foreground mb-0.5">
               Current Rank
             </p>
-            <h2 className="font-editorial text-xl font-bold">{rankInfo.rank}</h2>
-            <p className="text-sm text-muted-foreground">{user.xp.toLocaleString()} XP</p>
+            <h2 className="font-editorial text-lg sm:text-xl font-bold">{rankInfo.rank}</h2>
+            <p className="text-xs sm:text-sm text-muted-foreground">{user.xp.toLocaleString()} XP</p>
           </div>
         </div>
 

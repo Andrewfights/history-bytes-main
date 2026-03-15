@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Eye, EyeOff, LogOut, Edit2, Check, TrendingUp, TrendingDown, Target, BookOpen, Brain, Gamepad2, Play, Camera, Crown, Settings, ChevronDown, ChevronUp, Key } from 'lucide-react';
+import { User, Eye, EyeOff, LogOut, Edit2, Check, TrendingUp, TrendingDown, Target, BookOpen, Brain, Gamepad2, Play, Camera, Crown, Settings, ChevronDown, ChevronUp, Key, Trophy } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { getRank, getNextRankXP } from '@/types';
 import { BadgeShowcase } from '@/components/badges/BadgeShowcase';
 import { StudyNotes } from './StudyNotes';
 import { ApiKeySettings } from './ApiKeySettings';
+import { usePantheonProgress, TierBadge, PantheonRoom } from '@/components/journey/pantheon';
 
 
 const avatarOptions = ['👤', '🧑‍🎓', '🦉', '🏛️', '⚔️', '🌍', '🎭', '📜', '🔺', '👑'];
@@ -31,6 +32,8 @@ export function ProfileSettings() {
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [selectedAvatar, setSelectedAvatar] = useState('👤');
   const [showStudyNotes, setShowStudyNotes] = useState(false);
+  const [showPantheon, setShowPantheon] = useState(false);
+  const { getTotalSouvenirs, getHighestTier, isLoading: isPantheonLoading } = usePantheonProgress();
 
   const handleSave = () => {
     updateUser({ displayName });
@@ -164,6 +167,41 @@ export function ProfileSettings() {
       >
         <BadgeShowcase />
       </motion.div>
+
+      {/* Pantheon - Souvenir Collection */}
+      <motion.button
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.075 }}
+        onClick={() => setShowPantheon(true)}
+        className="w-full bg-gradient-to-r from-slate-800/80 to-slate-900/60 border border-white/10 hover:border-amber-500/30 rounded-xl p-4 text-left transition-all group"
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500/20 to-slate-700/50 flex items-center justify-center text-2xl">
+              🪖
+            </div>
+            <div>
+              <h3 className="font-bold text-white flex items-center gap-2">
+                The Pantheon
+                {!isPantheonLoading && getHighestTier() && (
+                  <TierBadge tier={getHighestTier()!} size="sm" showLabel={false} />
+                )}
+              </h3>
+              <p className="text-xs text-white/60">
+                {isPantheonLoading ? (
+                  'Loading...'
+                ) : getTotalSouvenirs() > 0 ? (
+                  `${getTotalSouvenirs()} souvenir${getTotalSouvenirs() !== 1 ? 's' : ''} collected`
+                ) : (
+                  'Your souvenir collection awaits'
+                )}
+              </p>
+            </div>
+          </div>
+          <Trophy size={20} className="text-amber-400/50 group-hover:text-amber-400 transition-colors" />
+        </div>
+      </motion.button>
 
       {/* Category Breakdown */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
@@ -351,6 +389,13 @@ export function ProfileSettings() {
           </motion.div>
         </Link>
       </div>
+
+      {/* Pantheon Modal */}
+      <AnimatePresence>
+        {showPantheon && (
+          <PantheonRoom onBack={() => setShowPantheon(false)} />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

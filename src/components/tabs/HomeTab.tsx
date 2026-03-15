@@ -1,20 +1,20 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Trophy, GraduationCap, Sparkles, Calendar, ArrowRight } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Calendar, ArrowRight, X } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
-import { getRank, getNextRankXP } from '@/types';
-import { TopicChips } from '@/components/home/TopicChips';
 import { OrnamentalDivider } from '@/components/shared/OrnamentalDivider';
-import { HeroCarousel } from '@/components/home/HeroCarousel';
 import { DiceButton } from '@/components/shared/DiceButton';
 import { LuckyResultModal } from '@/components/shared/LuckyResultModal';
 import { ThisDayCard } from '@/components/home/ThisDayCard';
 import { GuideSection } from '@/components/home/GuideSection';
 import { GuideChatModal } from '@/components/home/GuideChatModal';
-import { JourneyCard } from '@/components/home/JourneyCard';
 import { JourneyResumeBanner } from '@/components/home/JourneyResumeBanner';
+import { FeaturedEraHero } from '@/components/home/FeaturedEraHero';
+import { EraCarousel } from '@/components/home/EraCarousel';
 import { RandomResult } from '@/lib/randomizer';
-import { Progress } from '@/components/ui/progress';
+import { getEraById, getComingSoonEras, HistoricalEra } from '@/data/historicalEras';
+import { usePearlHarborProgress } from '@/components/journey/pearl-harbor/hooks/usePearlHarborProgress';
+import { PEARL_HARBOR_LESSONS } from '@/data/pearlHarborLessons';
 
 
 interface HomeTabProps {
@@ -24,14 +24,27 @@ interface HomeTabProps {
 }
 
 export function HomeTab({ onStartSession, onPlayDaily, onSelectTopic }: HomeTabProps) {
-  const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
-  const { user, setActiveTab, setPendingLuckyNode, setPendingPearlHarbor, selectedGuideId } = useApp();
+  const { setActiveTab, setPendingLuckyNode, setPendingPearlHarbor, selectedGuideId } = useApp();
+
+  // Get WW2 era data
+  const ww2Era = getEraById('ww2');
+  const comingSoonEras = getComingSoonEras();
+
+  // Get Pearl Harbor progress for featured hero
+  const { progress, totalXP } = usePearlHarborProgress();
+  const completedLessons = progress.completedActivities.filter(
+    id => id.startsWith('ph-lesson-')
+  ).length;
+  const totalLessons = PEARL_HARBOR_LESSONS.length;
 
   // Handler to enter Pearl Harbor journey
   const handleEnterJourney = () => {
     setPendingPearlHarbor(true);
     setActiveTab('journey');
   };
+
+  // Coming Soon modal state
+  const [showComingSoon, setShowComingSoon] = useState<HistoricalEra | null>(null);
 
   // Lucky dice state
   const [luckyResult, setLuckyResult] = useState<RandomResult | null>(null);
@@ -54,25 +67,27 @@ export function HomeTab({ onStartSession, onPlayDaily, onSelectTopic }: HomeTabP
 
   const handleStartLuckyChallenge = () => {
     if (luckyResult) {
-      // Find chapter index
       const chapterIndex = luckyResult.arc.chapters.findIndex(c => c.id === luckyResult.chapter.id);
-
-      // Set pending node for JourneyTab to pick up
       setPendingLuckyNode({
         arcId: luckyResult.arc.id,
         chapterId: luckyResult.chapter.id,
         nodeId: luckyResult.node.id,
         chapterIndex: chapterIndex >= 0 ? chapterIndex : 0,
       });
-
       setShowLuckyModal(false);
       setActiveTab('journey');
     }
   };
 
-  const handleTopicSelect = (topicId: string) => {
-    setSelectedTopic(topicId);
-    onSelectTopic(topicId);
+  const handleSelectEra = (eraId: string) => {
+    if (eraId === 'ww2') {
+      handleEnterJourney();
+    } else {
+      const era = getEraById(eraId);
+      if (era) {
+        setShowComingSoon(era);
+      }
+    }
   };
 
   return (
@@ -80,15 +95,18 @@ export function HomeTab({ onStartSession, onPlayDaily, onSelectTopic }: HomeTabP
       {/* Journey Resume Banner - Only shows when in progress */}
       <JourneyResumeBanner onResume={handleEnterJourney} />
 
-      {/* FEATURED: Pearl Harbor Journey - TOP OF PAGE */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className="space-y-2"
-      >
-        <JourneyCard onEnterJourney={handleEnterJourney} />
-      </motion.div>
+      {/* FEATURED: WW2/Pearl Harbor Hero - Large key art */}
+      {ww2Era && (
+        <FeaturedEraHero
+          era={ww2Era}
+          progress={{
+            completed: completedLessons,
+            total: totalLessons,
+            xp: totalXP,
+          }}
+          onStart={handleEnterJourney}
+        />
+      )}
 
       {/* Guide Section */}
       {selectedGuideId && (
@@ -107,6 +125,16 @@ export function HomeTab({ onStartSession, onPlayDaily, onSelectTopic }: HomeTabP
       )}
 
       <OrnamentalDivider variant="compass" />
+
+      {/* Coming Soon Eras Carousel */}
+      <EraCarousel
+        title="More Journeys"
+        subtitle="Coming soon to History Bytes"
+        eras={comingSoonEras}
+        onSelectEra={handleSelectEra}
+      />
+
+      <OrnamentalDivider variant="simple" />
 
       {/* Daily Challenge & Lucky Dice Row */}
       <motion.div
@@ -163,16 +191,87 @@ export function HomeTab({ onStartSession, onPlayDaily, onSelectTopic }: HomeTabP
         <ThisDayCard />
       </motion.div>
 
-      <OrnamentalDivider variant="compass" />
-
-      {/* Topics */}
-      <TopicChips selectedTopic={selectedTopic} onSelect={handleTopicSelect} />
-
       {/* Guide Chat Modal */}
       <GuideChatModal
         isOpen={showChatModal}
         onClose={() => setShowChatModal(false)}
       />
+
+      {/* Coming Soon Modal */}
+      <AnimatePresence>
+        {showComingSoon && (
+          <ComingSoonModal
+            era={showComingSoon}
+            onClose={() => setShowComingSoon(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
+  );
+}
+
+// Coming Soon Modal Component
+function ComingSoonModal({
+  era,
+  onClose,
+}: {
+  era: HistoricalEra;
+  onClose: () => void;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        className="relative max-w-full sm:max-w-sm w-full mx-2 bg-gradient-to-b from-slate-800 to-slate-900 rounded-2xl overflow-hidden border border-white/10"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Era Image/Gradient Background */}
+        <div
+          className="relative h-32 sm:h-40"
+          style={{
+            background: `linear-gradient(135deg, ${era.accentColor}60 0%, ${era.accentColor}20 100%)`,
+          }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-800 via-transparent to-transparent" />
+
+          {/* Close Button */}
+          <button
+            onClick={onClose}
+            className="absolute top-2 sm:top-3 right-2 sm:right-3 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-black/50 flex items-center justify-center text-white/70 hover:text-white transition-colors"
+          >
+            <X size={16} className="sm:w-[18px] sm:h-[18px]" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-4 sm:p-5 text-center">
+          <h3 className="text-lg sm:text-xl font-bold text-white mb-1">{era.name}</h3>
+          <p className="text-white/50 text-xs sm:text-sm mb-3 sm:mb-4">{era.dateRange}</p>
+
+          <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-amber-500/20 rounded-lg mb-3 sm:mb-4">
+            <span className="text-amber-400 text-xs sm:text-sm font-medium">
+              Coming Soon
+            </span>
+          </div>
+
+          <p className="text-white/60 text-xs sm:text-sm mb-3 sm:mb-4">{era.subtitle}</p>
+
+          <button
+            onClick={onClose}
+            className="mt-4 sm:mt-5 w-full py-2.5 sm:py-3 bg-white/10 hover:bg-white/20 rounded-xl text-white text-sm sm:text-base font-medium transition-colors"
+          >
+            Got it
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
   );
 }

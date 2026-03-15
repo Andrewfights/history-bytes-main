@@ -378,17 +378,22 @@ export function BreakingNewsBeat({ host, onComplete, onSkip, onBack }: BreakingN
 
           {/* COMPLETION */}
           {screen === 'completion' && (
-            <motion.div key="completion" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full p-6 items-center justify-center">
-              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="text-6xl mb-6">📻</motion.div>
-              <h2 className="text-2xl font-bold text-white mb-2">Beat 5 Complete!</h2>
-              <p className="text-white/60 mb-6">Breaking News - America Learns</p>
-              <div className="flex items-center gap-2 px-6 py-3 bg-amber-500/20 rounded-full mb-8">
-                <Sparkles className="text-amber-400" />
-                <span className="text-amber-400 font-bold text-xl">+{skipped ? 0 : LESSON_DATA.xpReward} XP</span>
+            <motion.div key="completion" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full p-6">
+              <div className="flex-1 flex flex-col items-center justify-center">
+                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="text-6xl mb-6">📻</motion.div>
+                <h2 className="text-2xl font-bold text-white mb-2">Beat 5 Complete!</h2>
+                <p className="text-white/60 mb-6">Breaking News - America Learns</p>
+                <div className="flex items-center gap-2 px-6 py-3 bg-amber-500/20 rounded-full mb-8">
+                  <Sparkles className="text-amber-400" />
+                  <span className="text-amber-400 font-bold text-xl">+{skipped ? 0 : LESSON_DATA.xpReward} XP</span>
+                </div>
+                <p className="text-white/50 text-sm text-center max-w-sm">
+                  Next: Nagumo's Dilemma - What if Japan had launched a third wave?
+                </p>
               </div>
-              <p className="text-white/50 text-sm text-center max-w-sm">
-                Next: Nagumo's Dilemma - What if Japan had launched a third wave?
-              </p>
+              <button onClick={nextScreen} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors">
+                Continue
+              </button>
             </motion.div>
           )}
         </AnimatePresence>

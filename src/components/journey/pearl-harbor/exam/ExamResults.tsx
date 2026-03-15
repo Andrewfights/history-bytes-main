@@ -3,15 +3,17 @@
  * Shows score, tier, badges, XP, and review options
  */
 
-import { motion } from 'framer-motion';
-import { Award, Star, RotateCcw, BookOpen, ChevronRight } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Award, Star, RotateCcw, BookOpen, ChevronRight, Trophy } from 'lucide-react';
 import type { ExamScoreResult, ExamAnswer, ExamQuestion } from './types';
-import type { WW2Host } from '../../../../types';
+import type { WW2Host, SouvenirTier } from '../../../../types';
 import {
   EXAM_HOST_DIALOGUES,
   BADGE_DISPLAY_NAMES,
   FINAL_EXAM_SCORING,
 } from './examConfig';
+import { usePantheonProgress, TierBadge } from '../../pantheon';
 
 interface ExamResultsProps {
   result: ExamScoreResult;
@@ -34,6 +36,21 @@ export function ExamResults({
 }: ExamResultsProps) {
   const tierConfig = FINAL_EXAM_SCORING[result.tier];
   const hostMessage = EXAM_HOST_DIALOGUES.results[result.tier];
+
+  // Pantheon souvenir upgrade tracking
+  const { recordExamScore, getSouvenirTier } = usePantheonProgress();
+  const [souvenirUpgrade, setSouvenirUpgrade] = useState<SouvenirTier | null>(null);
+  const [showUpgradeNotice, setShowUpgradeNotice] = useState(false);
+
+  // Record exam score and check for souvenir upgrade
+  useEffect(() => {
+    const newTier = recordExamScore('ww2', result.correct, result.total);
+    if (newTier) {
+      setSouvenirUpgrade(newTier);
+      // Delay showing upgrade notice for dramatic effect
+      setTimeout(() => setShowUpgradeNotice(true), 800);
+    }
+  }, [result.correct, result.total, recordExamScore]);
 
   // Determine visual style based on tier
   const getTierStyle = () => {
@@ -214,6 +231,35 @@ export function ExamResults({
               </div>
             </div>
           )}
+
+          {/* Souvenir Upgrade Notification */}
+          <AnimatePresence>
+            {showUpgradeNotice && souvenirUpgrade && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                className="bg-gradient-to-r from-slate-800/90 to-slate-900/90 border border-amber-500/30 rounded-xl p-4 overflow-hidden relative"
+              >
+                {/* Subtle glow effect */}
+                <div className="absolute inset-0 bg-gradient-to-r from-amber-500/5 to-transparent" />
+
+                <div className="relative flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500/20 to-slate-700/50 flex items-center justify-center text-2xl">
+                    🪖
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-white font-bold">M1 Helmet Upgraded!</span>
+                      <TierBadge tier={souvenirUpgrade} size="sm" />
+                    </div>
+                    <div className="text-white/60 text-xs">Your souvenir has been upgraded in The Pantheon</div>
+                  </div>
+                  <Trophy size={20} className="text-amber-400" />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </motion.div>
 

@@ -1,29 +1,24 @@
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Type, Clock, HelpCircle, MapPin, Quote, X, Check, ArrowUp, ArrowDown, ChevronLeft, LetterText, SlidersHorizontal, Search, Link, Map, Archive, Zap, Globe, Gamepad2 } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Sparkles, Clock, HelpCircle, Quote, X, Check, ArrowUp, ArrowDown, ChevronLeft, Gamepad2 } from 'lucide-react';
 
-// Load game thumbnails from localStorage (synced with admin)
-const GAME_THUMBNAILS_KEY = 'hb_arcade_game_thumbnails';
-function loadGameThumbnails(): Record<string, string> {
-  try {
-    const stored = localStorage.getItem(GAME_THUMBNAILS_KEY);
-    return stored ? JSON.parse(stored) : {};
-  } catch {
-    return {};
-  }
-}
+// Data and utilities
+import {
+  ARCADE_GAMES,
+  ArcadeGame,
+  XP_CAP_PLAYS,
+  getDailyFeaturedGame,
+  getPopularGames,
+  loadGameThumbnails,
+  getGameImageUrl,
+} from '@/data/arcadeGames';
 
-// Map frontend game types to admin game types for thumbnails
-const gameTypeToThumbnailKey: Record<string, string> = {
-  'anachronism': 'anachronism',
-  'connections': 'connections',
-  'map-mystery': 'map-mystery',
-  'artifact': 'artifact',
-  'cause-effect': 'cause-effect',
-  'geoguessr-where': 'geoguessr',
-  'geoguessr-when': 'geoguessr',
-  'geoguessr-what': 'geoguessr',
-};
+// New components
+import { FeaturedGameHero } from '@/components/arcade/FeaturedGameHero';
+import { GameCarousel } from '@/components/arcade/GameCarousel';
+import { OrnamentalDivider } from '@/components/shared/OrnamentalDivider';
+
+// Game components
 import { WordleGame } from '@/components/arcade/WordleGame';
 import { GuessTheYearGame } from '@/components/arcade/GuessTheYearGame';
 import { TwoTruthsGame } from '@/components/arcade/TwoTruthsGame';
@@ -295,48 +290,17 @@ function GameResults({ title, xp, onBack }: { title: string; xp: number; onBack:
   );
 }
 
-// ---- Daily Featured (deterministic from date) ----
-function getDailyFeaturedId(games: typeof arcadeGames) {
-  const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
-  return games[dayOfYear % games.length].id;
-}
-
 // ---- Main Arcade Tab ----
 type ActiveGame = null | 'chrono' | 'who-am-i' | 'quote-or-fake' | 'wordle' | 'guess-year' | 'two-truths' | 'anachronism' | 'connections' | 'map-mystery' | 'artifact' | 'cause-effect' | 'geoguessr-where' | 'geoguessr-when' | 'geoguessr-what' | { type: string; xp: number };
-
-const arcadeGames = [
-  { id: 'g1', title: 'History Wordle', description: 'Guess the history word in 6 tries.', type: 'wordle' as const, icon: '🔤', xpReward: 40 },
-  { id: 'g2', title: 'Chrono Order', description: 'Arrange 4 events in chronological order.', type: 'chrono' as const, icon: '⏳', xpReward: 25 },
-  { id: 'g3', title: 'Who Am I?', description: '3 clues, 4 choices. Identify the figure.', type: 'who-am-i' as const, icon: '🎭', xpReward: 35 },
-  { id: 'g4', title: 'Two Truths & a Lie', description: 'Spot the fake fact among the real ones.', type: 'two-truths' as const, icon: '2+1', xpReward: 25 },
-  { id: 'g5', title: 'Quote or Fake', description: 'Real historical quote or AI fabrication?', type: 'quote-or-fake' as const, icon: '💬', xpReward: 20 },
-  { id: 'g6', title: 'Guess the Year', description: 'Drag the slider to pinpoint when it happened.', type: 'guess-year' as const, icon: '🕰️', xpReward: 50 },
-  { id: 'g7', title: 'Spot the Anachronism', description: 'Find what doesn\'t belong in history.', type: 'anachronism' as const, icon: '🔍', xpReward: 30 },
-  { id: 'g8', title: 'Historical Connections', description: 'Group 16 items into 4 categories.', type: 'connections' as const, icon: '🔗', xpReward: 45 },
-  { id: 'g9', title: 'Map Mysteries', description: 'Identify empires by their territory.', type: 'map-mystery' as const, icon: '🗺️', xpReward: 35 },
-  { id: 'g10', title: 'Artifact Detective', description: 'Uncover the history behind artifacts.', type: 'artifact' as const, icon: '🏺', xpReward: 30 },
-  { id: 'g11', title: 'Cause & Effect', description: 'Connect historical events to outcomes.', type: 'cause-effect' as const, icon: '⚡', xpReward: 35 },
-  { id: 'g12', title: 'Where in History?', description: 'Identify locations from historical scenes.', type: 'geoguessr-where' as const, icon: '📍', xpReward: 50 },
-  { id: 'g13', title: 'When in History?', description: 'Guess the year from historical images.', type: 'geoguessr-when' as const, icon: '📅', xpReward: 50 },
-  { id: 'g14', title: 'What Happened Here?', description: 'Name the event from the scene.', type: 'geoguessr-what' as const, icon: '🌍', xpReward: 50 },
-];
-
-const typeIcons: Record<string, React.ElementType> = {
-  wordle: LetterText,
-  chrono: Clock,
-  'who-am-i': HelpCircle,
-  'quote-or-fake': Quote,
-  'guess-year': SlidersHorizontal,
-};
-
-const XP_CAP_PLAYS = 3;
 
 export function ArcadeTab() {
   const { user, addXP, getArcadePlaysToday, recordArcadePlay } = useApp();
   const [activeGame, setActiveGame] = useState<ActiveGame>(null);
   const [gameThumbnails, setGameThumbnails] = useState<Record<string, string>>({});
-  const featuredId = getDailyFeaturedId(arcadeGames);
-  const featuredGame = arcadeGames.find(g => g.id === featuredId)!;
+
+  // Get featured and popular games from data
+  const featuredGame = getDailyFeaturedGame();
+  const popularGames = getPopularGames();
 
   // Load thumbnails from localStorage on mount
   useEffect(() => {
@@ -361,26 +325,18 @@ export function ArcadeTab() {
     };
   }, []);
 
-  // Get thumbnail for a game type
-  const getGameThumbnail = (gameType: string): string | undefined => {
-    const thumbnailKey = gameTypeToThumbnailKey[gameType];
-    return thumbnailKey ? gameThumbnails[thumbnailKey] : undefined;
-  };
-
-  // Check if thumbnail is valid
-  const isValidThumbnail = (url: string | undefined): boolean => {
-    if (!url) return false;
-    return url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:');
-  };
-
   const handleGameComplete = (gameType: string, gameTitle: string, xp: number) => {
-    const game = arcadeGames.find(g => g.type === gameType);
+    const game = ARCADE_GAMES.find(g => g.type === gameType);
     if (!game) return;
     const playsToday = getArcadePlaysToday(game.id);
     const xpToAward = playsToday < XP_CAP_PLAYS ? xp : 0;
     if (xpToAward > 0) addXP(xpToAward);
     recordArcadePlay(game.id, xpToAward);
     setActiveGame({ type: gameTitle, xp: xpToAward });
+  };
+
+  const handleSelectGame = (gameType: string) => {
+    setActiveGame(gameType as ActiveGame);
   };
 
   if (activeGame && typeof activeGame === 'object') {
@@ -430,56 +386,44 @@ export function ArcadeTab() {
   }
 
   return (
-    <div className="px-4 py-6 space-y-6 pb-24">
+    <div className="px-4 py-6 space-y-5 pb-24">
+      {/* Header */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="font-editorial text-2xl font-bold">Arcade</h1>
         <p className="text-sm text-muted-foreground mt-0.5">Fast Play · Leaderboards</p>
       </motion.div>
 
-      {/* Featured Today */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.05 }}
-        className="archival-card relative overflow-hidden"
-      >
-        <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -translate-y-6 translate-x-6 pointer-events-none" />
-        <div className="flex items-center gap-1 mb-3">
-          <Sparkles size={12} className="text-primary" />
-          <span className="text-[10px] uppercase tracking-[0.25em] font-bold text-primary">Featured Today</span>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center overflow-hidden flex-shrink-0">
-            {isValidThumbnail(getGameThumbnail(featuredGame.type)) ? (
-              <img src={getGameThumbnail(featuredGame.type)} alt={featuredGame.title} className="w-full h-full object-cover" />
-            ) : (
-              <Gamepad2 size={28} className="text-primary/50" />
-            )}
-          </div>
-          <div className="flex-1">
-            <h3 className="font-editorial font-bold text-lg leading-tight">{featuredGame.title}</h3>
-            <p className="text-xs text-primary font-semibold mt-0.5">2× XP Today</p>
-            <p className="text-xs text-muted-foreground">{featuredGame.description}</p>
-          </div>
-        </div>
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.97 }}
-          onClick={() => setActiveGame(featuredGame.type)}
-          className="w-full mt-4 py-2.5 rounded-lg bg-primary text-primary-foreground font-bold text-sm"
-        >
-          Play Now ▸
-        </motion.button>
-      </motion.div>
+      {/* Featured Game Hero - NEW */}
+      <FeaturedGameHero
+        game={featuredGame}
+        imageUrl={getGameImageUrl(featuredGame, gameThumbnails)}
+        playsToday={getArcadePlaysToday(featuredGame.id)}
+        onPlay={() => setActiveGame(featuredGame.type as ActiveGame)}
+      />
 
-      {/* All Games */}
-      <div>
-        <p className="text-[10px] uppercase tracking-[0.2em] font-bold text-muted-foreground mb-3">All Games</p>
+      <OrnamentalDivider variant="compass" />
+
+      {/* Quick Play Carousel - NEW */}
+      <GameCarousel
+        title="Quick Play"
+        subtitle="Popular games for quick sessions"
+        games={popularGames}
+        gameThumbnails={gameThumbnails}
+        onSelectGame={handleSelectGame}
+        getPlaysToday={getArcadePlaysToday}
+      />
+
+      <OrnamentalDivider variant="simple" />
+
+      {/* All Games Section */}
+      <section className="space-y-3">
+        <h2 className="section-plaque">All Games</h2>
         <div className="space-y-3">
-          {arcadeGames.map((game, i) => {
+          {ARCADE_GAMES.map((game, i) => {
             const playsToday = getArcadePlaysToday(game.id);
             const xpCapReached = playsToday >= XP_CAP_PLAYS;
-            const isFeatured = game.id === featuredId;
+            const isFeatured = game.id === featuredGame.id;
+            const imageUrl = getGameImageUrl(game, gameThumbnails);
 
             return (
               <motion.button
@@ -487,12 +431,12 @@ export function ArcadeTab() {
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.1 + i * 0.05 }}
-                onClick={() => setActiveGame(game.type)}
+                onClick={() => setActiveGame(game.type as ActiveGame)}
                 className="w-full lesson-card card-hover flex items-center gap-4 text-left active:scale-[0.99] transition-transform touch-target"
               >
                 <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">
-                  {isValidThumbnail(getGameThumbnail(game.type)) ? (
-                    <img src={getGameThumbnail(game.type)} alt={game.title} className="w-full h-full object-cover" />
+                  {imageUrl ? (
+                    <img src={imageUrl} alt={game.title} className="w-full h-full object-cover" />
                   ) : (
                     <Gamepad2 size={24} className="text-primary/50" />
                   )}
@@ -521,7 +465,7 @@ export function ArcadeTab() {
             );
           })}
         </div>
-      </div>
+      </section>
     </div>
   );
 }

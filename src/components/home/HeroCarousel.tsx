@@ -131,7 +131,7 @@ export function HeroCarousel({ onContinueJourney, onPlayDaily }: HeroCarouselPro
       {/* Gold top accent line */}
       <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-primary/60 to-transparent z-10" />
 
-      <div className="relative min-h-[200px] md:min-h-[220px]">
+      <div className="relative min-h-[180px] sm:min-h-[200px] md:min-h-[220px]">
         <AnimatePresence custom={direction} mode="wait">
           <motion.div
             key={current}
@@ -141,39 +141,39 @@ export function HeroCarousel({ onContinueJourney, onPlayDaily }: HeroCarouselPro
             animate="center"
             exit="exit"
             transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-            className="relative z-10 p-6 md:p-8"
+            className="relative z-10 p-4 sm:p-6 md:p-8"
           >
-            <p className={`section-plaque mb-3 ${hasImage ? 'text-primary drop-shadow-sm' : 'text-primary'}`}>{slide.tag}</p>
+            <p className={`section-plaque mb-2 sm:mb-3 text-[10px] sm:text-xs ${hasImage ? 'text-primary drop-shadow-sm' : 'text-primary'}`}>{slide.tag}</p>
             {slide.year && (
-              <p className="year-display text-5xl text-primary/30 mb-1">{slide.year}</p>
+              <p className="year-display text-4xl sm:text-5xl text-primary/30 mb-1">{slide.year}</p>
             )}
-            <h2 className={`font-editorial text-xl md:text-2xl font-bold leading-tight mb-2 ${hasImage ? 'text-foreground drop-shadow-sm' : ''}`}>
+            <h2 className={`font-editorial text-lg sm:text-xl md:text-2xl font-bold leading-tight mb-1.5 sm:mb-2 ${hasImage ? 'text-foreground drop-shadow-sm' : ''}`}>
               {slide.title}
             </h2>
-            <p className={`text-sm leading-relaxed mb-6 max-w-md ${hasImage ? 'text-foreground/90 drop-shadow-sm' : 'text-muted-foreground'}`}>
+            <p className={`text-xs sm:text-sm leading-relaxed mb-4 sm:mb-6 max-w-md ${hasImage ? 'text-foreground/90 drop-shadow-sm' : 'text-muted-foreground'}`}>
               {slide.subtitle}
             </p>
             <button
               onClick={slide.action.onClick}
-              className="btn-ceremonial flex items-center gap-2 px-6 py-2.5 text-sm tracking-wide transition-all active:scale-[0.97]"
+              className="btn-ceremonial flex items-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-2 sm:py-2.5 text-xs sm:text-sm tracking-wide transition-all active:scale-[0.97]"
             >
-              {slide.action.label} <ArrowRight size={15} />
+              {slide.action.label} <ArrowRight size={14} className="sm:w-4 sm:h-4" />
             </button>
           </motion.div>
         </AnimatePresence>
       </div>
 
       {/* Navigation */}
-      <div className="relative z-20 flex items-center justify-between px-6 pb-5">
+      <div className="relative z-20 flex items-center justify-between px-4 sm:px-6 pb-4 sm:pb-5">
         {/* Dots */}
-        <div className="flex gap-2">
+        <div className="flex gap-1.5 sm:gap-2">
           {slides.map((_, i) => (
             <button
               key={i}
               onClick={() => { setDirection(i > current ? 1 : -1); setCurrent(i); }}
               className={`h-1.5 rounded-full transition-all duration-300 ${
                 i === current
-                  ? 'w-6 bg-primary'
+                  ? 'w-5 sm:w-6 bg-primary'
                   : `w-1.5 ${hasImage ? 'bg-foreground/30 hover:bg-foreground/50' : 'bg-muted-foreground/30 hover:bg-muted-foreground/50'}`
               }`}
               aria-label={`Go to slide ${i + 1}`}
@@ -182,28 +182,28 @@ export function HeroCarousel({ onContinueJourney, onPlayDaily }: HeroCarouselPro
         </div>
 
         {/* Arrows */}
-        <div className="flex gap-1.5">
+        <div className="flex gap-1 sm:gap-1.5">
           <button
             onClick={() => go(-1)}
-            className={`w-8 h-8 rounded-md border flex items-center justify-center transition-colors ${
+            className={`w-7 h-7 sm:w-8 sm:h-8 rounded-md border flex items-center justify-center transition-colors ${
               hasImage
                 ? 'border-foreground/20 bg-background/50 backdrop-blur-sm hover:border-primary/40'
                 : 'border-border bg-card hover:border-primary/40'
             }`}
             aria-label="Previous slide"
           >
-            <ChevronLeft size={16} className={hasImage ? 'text-foreground/80' : 'text-muted-foreground'} />
+            <ChevronLeft size={14} className={`sm:w-4 sm:h-4 ${hasImage ? 'text-foreground/80' : 'text-muted-foreground'}`} />
           </button>
           <button
             onClick={() => go(1)}
-            className={`w-8 h-8 rounded-md border flex items-center justify-center transition-colors ${
+            className={`w-7 h-7 sm:w-8 sm:h-8 rounded-md border flex items-center justify-center transition-colors ${
               hasImage
                 ? 'border-foreground/20 bg-background/50 backdrop-blur-sm hover:border-primary/40'
                 : 'border-border bg-card hover:border-primary/40'
             }`}
             aria-label="Next slide"
           >
-            <ChevronRight size={16} className={hasImage ? 'text-foreground/80' : 'text-muted-foreground'} />
+            <ChevronRight size={14} className={`sm:w-4 sm:h-4 ${hasImage ? 'text-foreground/80' : 'text-muted-foreground'}`} />
           </button>
         </div>
       </div>

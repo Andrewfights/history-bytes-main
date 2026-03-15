@@ -989,3 +989,58 @@ export interface WW2TheaterProgress {
   totalXP: number;
   lastVisited: string | null;
 }
+
+// ---- Pantheon Souvenir Room Types ----
+
+// Souvenir material tiers (visual quality based on performance)
+export type SouvenirTier = 'gray' | 'bronze' | 'silver' | 'gold';
+
+// Tier display names
+export const SOUVENIR_TIER_NAMES: Record<SouvenirTier, string> = {
+  gray: 'Completion',
+  bronze: "Master's",
+  silver: 'PhD',
+  gold: 'Rhodes Scholar',
+};
+
+// Tier colors for UI
+export const SOUVENIR_TIER_COLORS: Record<SouvenirTier, { primary: string; glow: string }> = {
+  gray: { primary: '#9E9E9E', glow: '#757575' },
+  bronze: { primary: '#CD7F32', glow: '#FFB300' },
+  silver: { primary: '#C0C0C0', glow: '#E3F2FD' },
+  gold: { primary: '#FFD700', glow: '#FFF8E1' },
+};
+
+// Individual souvenir definition (static data)
+export interface Souvenir {
+  id: string;                              // e.g., 'ww2-m1-helmet'
+  worldId: string;                         // e.g., 'ww2'
+  name: string;                            // e.g., 'M1 Combat Helmet'
+  description: string;                     // Historical context
+  significance: string;                    // Thematic meaning
+  images: Record<SouvenirTier, string>;    // Image URLs per tier
+}
+
+// Player's progress for a single souvenir
+export interface SouvenirProgress {
+  souvenirId: string;
+  currentTier: SouvenirTier;
+  unlockedAt: string;                      // ISO date when first earned (gray tier)
+  upgradedAt?: string;                     // ISO date of last tier upgrade
+  examScores: number[];                    // Historical exam scores for tier calculation
+}
+
+// Full Pantheon state (persisted)
+export interface PantheonProgress {
+  souvenirs: Record<string, SouvenirProgress>;  // keyed by souvenirId
+  lastVisited?: string;                         // ISO date
+}
+
+// World definition for Pantheon display
+export interface PantheonWorld {
+  id: string;
+  name: string;
+  souvenirId: string;
+  order: number;
+  isAvailable: boolean;  // false for "coming soon" worlds
+}

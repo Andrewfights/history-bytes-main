@@ -6,7 +6,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Volume2, VolumeX, Play } from 'lucide-react';
-import { getStoredWW2Hosts } from '@/data/ww2Hosts';
+import { getStoredWW2Hosts, loadWW2HostsFromFirestore } from '@/data/ww2Hosts';
+import { subscribeToWW2Hosts } from '@/lib/firestore';
+import { isFirebaseConfigured } from '@/lib/firebase';
 import { WW2Host } from '@/types';
 import {
   Carousel,
@@ -24,9 +26,41 @@ export function WW2HostSelection({ onSelectHost }: WW2HostSelectionProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [hosts, setHosts] = useState<WW2Host[]>([]);
 
-  // Load hosts from storage (includes admin edits) on mount
+  // Load hosts from storage (includes admin edits) on mount and subscribe to updates
   useEffect(() => {
+    // Initial load - sync first, then async
     setHosts(getStoredWW2Hosts());
+
+    // Then load from Firestore async to get latest data
+    loadWW2HostsFromFirestore().then(hosts => {
+      if (hosts.length > 0) {
+        setHosts(hosts);
+      }
+    });
+
+    // Subscribe to Firestore updates so we get real-time changes
+    if (isFirebaseConfigured()) {
+      const unsubscribe = subscribeToWW2Hosts((firestoreHosts) => {
+        if (firestoreHosts && firestoreHosts.length > 0) {
+          const mappedHosts: WW2Host[] = firestoreHosts.map(h => ({
+            id: h.id as WW2Host['id'],
+            name: h.name,
+            title: h.title,
+            era: h.era,
+            specialty: h.specialty,
+            imageUrl: h.imageUrl,
+            introVideoUrl: h.introVideoUrl,
+            welcomeVideoUrl: h.welcomeVideoUrl,
+            primaryColor: h.primaryColor,
+            avatar: h.avatar,
+            voiceStyle: h.voiceStyle,
+            description: h.description,
+          }));
+          setHosts(mappedHosts);
+        }
+      });
+      return () => unsubscribe();
+    }
   }, []);
 
   // Track current slide
@@ -77,33 +111,33 @@ export function WW2HostSelection({ onSelectHost }: WW2HostSelectionProps) {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="text-center pt-6 pb-2 px-4"
+          className="text-center pt-4 sm:pt-6 pb-2 px-4"
         >
-          <h1 className="font-editorial text-3xl font-bold text-white mb-2">
+          <h1 className="font-editorial text-2xl sm:text-3xl font-bold text-white mb-2">
             Choose Your Guide
           </h1>
-          <p className="text-white/60 max-w-md mx-auto">
+          <p className="text-white/60 text-sm sm:text-base max-w-md mx-auto px-2">
             Select a historical figure to guide you through World War II
           </p>
         </motion.div>
 
         {/* Carousel */}
-        <div className="flex-1 flex flex-col items-center justify-center px-4 pb-safe" style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom))' }}>
-          <div className="relative w-full max-w-lg">
-            {/* Navigation Arrows */}
+        <div className="flex-1 flex flex-col items-center justify-center px-2 sm:px-4 pb-safe" style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom))' }}>
+          <div className="relative w-full max-w-sm sm:max-w-md md:max-w-lg mx-auto">
+            {/* Navigation Arrows - hidden on very small screens, use swipe instead */}
             <button
               onClick={scrollPrev}
               disabled={currentIndex === 0}
-              className="absolute left-0 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-white/20 transition-all"
+              className="hidden sm:flex absolute -left-2 sm:left-0 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/10 backdrop-blur-sm items-center justify-center text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-white/20 transition-all"
             >
-              <ChevronLeft size={24} />
+              <ChevronLeft size={20} className="sm:w-6 sm:h-6" />
             </button>
             <button
               onClick={scrollNext}
               disabled={currentIndex === hosts.length - 1}
-              className="absolute right-0 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-white/20 transition-all"
+              className="hidden sm:flex absolute -right-2 sm:right-0 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/10 backdrop-blur-sm items-center justify-center text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-white/20 transition-all"
             >
-              <ChevronRight size={24} />
+              <ChevronRight size={20} className="sm:w-6 sm:h-6" />
             </button>
 
             {/* Carousel Container */}
@@ -115,9 +149,9 @@ export function WW2HostSelection({ onSelectHost }: WW2HostSelectionProps) {
               }}
               className="w-full"
             >
-              <CarouselContent className="-ml-2">
+              <CarouselContent className="-ml-2 sm:-ml-4">
                 {hosts.map((host, index) => (
-                  <CarouselItem key={host.id} className="pl-2 basis-[85%]">
+                  <CarouselItem key={host.id} className="pl-2 sm:pl-4 basis-[90%] sm:basis-[85%]">
                     <HostCarouselCard
                       host={host}
                       isActive={currentIndex === index}
@@ -150,7 +184,7 @@ export function WW2HostSelection({ onSelectHost }: WW2HostSelectionProps) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             onClick={handleChooseGuide}
-            className="w-full max-w-lg mt-6 py-4 px-8 rounded-xl bg-amber-500 text-black font-bold text-lg hover:bg-amber-400 transition-all active:scale-[0.98]"
+            className="w-full max-w-sm sm:max-w-md md:max-w-lg mx-auto mt-4 sm:mt-6 py-3 sm:py-4 px-6 sm:px-8 rounded-xl bg-amber-500 text-black font-bold text-base sm:text-lg hover:bg-amber-400 transition-all active:scale-[0.98]"
           >
             Choose {hosts[currentIndex]?.name}
           </motion.button>
@@ -281,16 +315,16 @@ function HostCarouselCard({ host, isActive, isSelected, onClick }: HostCarouselC
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
 
         {/* Host Info */}
-        <div className="absolute bottom-0 left-0 right-0 p-5">
-          <h3 className="font-editorial text-2xl font-bold text-white mb-1">
+        <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-5">
+          <h3 className="font-editorial text-xl sm:text-2xl font-bold text-white mb-1">
             {host.name}
           </h3>
-          <p className="text-white/70 text-sm mb-3">{host.title}</p>
+          <p className="text-white/70 text-xs sm:text-sm mb-2 sm:mb-3">{host.title}</p>
 
           {/* Specialty Badge */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span
-              className="px-3 py-1 rounded-full text-xs font-medium"
+              className="px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium"
               style={{
                 backgroundColor: `${host.primaryColor}40`,
                 color: 'white',
@@ -298,7 +332,7 @@ function HostCarouselCard({ host, isActive, isSelected, onClick }: HostCarouselC
             >
               {host.specialty}
             </span>
-            <span className="text-white/40 text-xs">{host.era}</span>
+            <span className="text-white/40 text-[10px] sm:text-xs">{host.era}</span>
           </div>
 
           {/* Description - only show when active */}
@@ -308,7 +342,7 @@ function HostCarouselCard({ host, isActive, isSelected, onClick }: HostCarouselC
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
-                className="text-white/60 text-sm mt-3 line-clamp-2"
+                className="text-white/60 text-xs sm:text-sm mt-2 sm:mt-3 line-clamp-2"
               >
                 {host.description}
               </motion.p>

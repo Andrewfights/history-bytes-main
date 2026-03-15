@@ -422,29 +422,38 @@ export function RoadToWarBeat({ host, onComplete, onSkip, onBack }: RoadToWarBea
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex flex-col h-full p-6 items-center justify-center"
+              className="flex flex-col h-full p-6"
             >
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                className="text-6xl mb-6"
-              >
-                🗺️
-              </motion.div>
+              <div className="flex-1 flex flex-col items-center justify-center">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="text-6xl mb-6"
+                >
+                  🗺️
+                </motion.div>
 
-              <h2 className="text-2xl font-bold text-white mb-2">Beat 1 Complete!</h2>
-              <p className="text-white/60 mb-6">Why Pearl Harbor? The Road to War</p>
+                <h2 className="text-2xl font-bold text-white mb-2">Beat 1 Complete!</h2>
+                <p className="text-white/60 mb-6">Why Pearl Harbor? The Road to War</p>
 
-              <div className="flex items-center gap-2 px-6 py-3 bg-amber-500/20 rounded-full mb-8">
-                <Sparkles className="text-amber-400" />
-                <span className="text-amber-400 font-bold text-xl">
-                  +{skippedScreens.size === 0 ? LESSON_DATA.xpReward : 0} XP
-                </span>
+                <div className="flex items-center gap-2 px-6 py-3 bg-amber-500/20 rounded-full mb-8">
+                  <Sparkles className="text-amber-400" />
+                  <span className="text-amber-400 font-bold text-xl">
+                    +{skippedScreens.size === 0 ? LESSON_DATA.xpReward : 0} XP
+                  </span>
+                </div>
+
+                <p className="text-white/50 text-sm text-center max-w-sm">
+                  Next: The Radar Blip - Step into the shoes of Private Lockard at 7:02 AM
+                </p>
               </div>
 
-              <p className="text-white/50 text-sm text-center max-w-sm">
-                Next: The Radar Blip - Step into the shoes of Private Lockard at 7:02 AM
-              </p>
+              <button
+                onClick={() => nextScreen()}
+                className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors"
+              >
+                Continue
+              </button>
             </motion.div>
           )}
         </AnimatePresence>

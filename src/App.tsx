@@ -21,6 +21,9 @@ import { GhostArmyEditor } from "./components/admin/GhostArmyEditor";
 import { PearlHarborEditor } from "./components/admin/PearlHarborEditor";
 import { TriviaEditor } from "./components/admin/TriviaEditor";
 import { JourneyManagement } from "./components/admin/journey-management";
+import PantheonEditor from "./components/admin/PantheonEditor";
+import EraTileEditor from "./components/admin/EraTileEditor";
+import MapEditor from "./components/admin/MapEditor";
 
 const queryClient = new QueryClient();
 
@@ -46,9 +49,12 @@ const App = () => (
                 <Route path="voices" element={<VoicesEditor />} />
                 <Route path="guides" element={<GuideEditor />} />
                 <Route path="ww2-guides" element={<WW2GuideEditor />} />
+                <Route path="era-tiles" element={<EraTileEditor />} />
+                <Route path="maps" element={<MapEditor />} />
                 <Route path="ghost-army" element={<GhostArmyEditor />} />
                 <Route path="pearl-harbor" element={<PearlHarborEditor />} />
                 <Route path="trivia" element={<TriviaEditor />} />
+                <Route path="pantheon" element={<PantheonEditor />} />
               </Route>
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />

@@ -68,7 +68,7 @@ export function TheaterColumn({
         <div className="absolute inset-0 flex items-center justify-center">
           <h2
             className={`
-              font-editorial text-xs sm:text-xl font-bold uppercase tracking-wider text-center px-2
+              font-editorial text-[10px] sm:text-sm md:text-xl font-bold uppercase tracking-wider text-center px-2
               ${isPacific ? 'text-blue-200' : 'text-red-200'}
             `}
             style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}
@@ -151,13 +151,13 @@ function TheaterProgressBar({
 
   return (
     <div className="space-y-1">
-      <div className="flex justify-between text-xs text-white/50">
+      <div className="flex justify-between text-[10px] sm:text-xs text-white/50">
         <span>Progress</span>
         <span>
           {completed}/{battles.length} Complete
         </span>
       </div>
-      <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+      <div className="h-1 sm:h-1.5 bg-white/10 rounded-full overflow-hidden">
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${percentage}%` }}

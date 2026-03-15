@@ -21,7 +21,8 @@ export function WW2HostGreeting({ host, onContinue, onChangeGuide }: WW2HostGree
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-gradient-to-b from-slate-900 via-slate-950 to-black px-4"
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-gradient-to-b from-slate-900 via-slate-950 to-black px-4 sm:px-6"
+      style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
     >
       {/* Film grain overlay */}
       <div
@@ -31,13 +32,13 @@ export function WW2HostGreeting({ host, onContinue, onChangeGuide }: WW2HostGree
         }}
       />
 
-      <div className="relative z-10 text-center max-w-md">
+      <div className="relative z-10 text-center w-full max-w-sm sm:max-w-md px-2">
         {/* Host Avatar */}
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.2 }}
-          className="w-24 h-24 mx-auto rounded-2xl flex items-center justify-center text-5xl mb-6"
+          className="w-20 h-20 sm:w-24 sm:h-24 mx-auto rounded-2xl flex items-center justify-center text-4xl sm:text-5xl mb-4 sm:mb-6"
           style={{ backgroundColor: host.primaryColor }}
         >
           {host.avatar}
@@ -49,10 +50,10 @@ export function WW2HostGreeting({ host, onContinue, onChangeGuide }: WW2HostGree
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
         >
-          <h1 className="font-editorial text-2xl font-bold text-white mb-2">
+          <h1 className="font-editorial text-xl sm:text-2xl font-bold text-white mb-2">
             Welcome back, soldier!
           </h1>
-          <p className="text-white/60 mb-6">
+          <p className="text-white/60 text-sm sm:text-base mb-4 sm:mb-6">
             {host.name} is ready to continue your journey through World War II.
           </p>
         </motion.div>
@@ -92,18 +93,18 @@ export function WW2HostGreeting({ host, onContinue, onChangeGuide }: WW2HostGree
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
-          className="flex flex-col gap-3"
+          className="flex flex-col gap-2 sm:gap-3"
         >
           <button
             onClick={onContinue}
-            className="w-full py-4 px-8 rounded-xl bg-white text-black font-bold text-lg hover:bg-white/90 transition-all hover:scale-[1.02] active:scale-[0.98]"
+            className="w-full py-3 sm:py-4 px-6 sm:px-8 rounded-xl bg-white text-black font-bold text-base sm:text-lg hover:bg-white/90 transition-all hover:scale-[1.02] active:scale-[0.98]"
           >
             Continue
           </button>
 
           <button
             onClick={onChangeGuide}
-            className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-white/10 text-white/70 hover:bg-white/20 hover:text-white transition-colors"
+            className="flex items-center justify-center gap-2 py-2.5 sm:py-3 px-4 rounded-xl bg-white/10 text-white/70 text-sm sm:text-base hover:bg-white/20 hover:text-white transition-colors"
           >
             <RefreshCw size={16} />
             <span>Change Guide</span>

@@ -193,19 +193,19 @@ export function HostCard({ guide, isActive, onSelect }: HostCardProps) {
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.3 }}
-      className="w-full max-w-sm mx-auto px-4"
+      className="w-full max-w-[320px] sm:max-w-sm mx-auto px-2 sm:px-4"
     >
       <div
-        className={`relative rounded-2xl border-2 ${colors.border} ${colors.bg} p-6 transition-all duration-300 ${
+        className={`relative rounded-2xl border-2 ${colors.border} ${colors.bg} p-4 sm:p-6 transition-all duration-300 ${
           isActive ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : ''
         }`}
       >
         {/* Avatar / Portrait / Video */}
-        <div className="flex justify-center mb-4">
+        <div className="flex justify-center mb-3 sm:mb-4">
           <motion.div
             animate={isActive && !isPlayingVideo ? { scale: [1, 1.05, 1] } : {}}
             transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-            className={`relative w-28 h-28 rounded-full overflow-hidden ${colors.bg} border-2 ${colors.border}`}
+            className={`relative w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden ${colors.bg} border-2 ${colors.border}`}
           >
             {/* Video Layer */}
             <AnimatePresence>
@@ -288,24 +288,24 @@ export function HostCard({ guide, isActive, onSelect }: HostCardProps) {
         </div>
 
         {/* Name & Title */}
-        <div className="text-center mb-4">
-          <h3 className="font-editorial text-2xl font-bold text-foreground">
+        <div className="text-center mb-3 sm:mb-4">
+          <h3 className="font-editorial text-xl sm:text-2xl font-bold text-foreground">
             {guide.name}
           </h3>
-          <p className={`text-sm ${colors.text} font-medium`}>{guide.title}</p>
-          <p className="text-xs text-muted-foreground mt-1">{guide.era}</p>
+          <p className={`text-xs sm:text-sm ${colors.text} font-medium`}>{guide.title}</p>
+          <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">{guide.era}</p>
         </div>
 
         {/* Specialty Badge */}
-        <div className="flex justify-center mb-4">
-          <span className={`px-3 py-1 rounded-full text-xs font-medium ${colors.bg} ${colors.text} border ${colors.border}`}>
+        <div className="flex justify-center mb-3 sm:mb-4">
+          <span className={`px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium ${colors.bg} ${colors.text} border ${colors.border}`}>
             {guide.specialty}
           </span>
         </div>
 
         {/* Voice Preview Section */}
         {voiceQuotes.length > 0 && (
-          <div className={`mb-4 p-3 rounded-xl ${colors.bg} border ${colors.border}`}>
+          <div className={`mb-3 sm:mb-4 p-2 sm:p-3 rounded-xl ${colors.bg} border ${colors.border}`}>
             {/* Label */}
             <div className="text-center mb-2">
               <span className={`text-xs font-medium ${colors.text}`}>
@@ -330,17 +330,17 @@ export function HostCard({ guide, isActive, onSelect }: HostCardProps) {
             </div>
 
             {/* Voice Controls */}
-            <div className="flex items-center justify-center gap-3">
+            <div className="flex items-center justify-center gap-2 sm:gap-3">
               {/* Previous Quote Arrow */}
               {voiceQuotes.length > 1 && (
                 <motion.button
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                   onClick={(e) => { e.stopPropagation(); prevQuote(); }}
-                  className={`w-8 h-8 rounded-full flex items-center justify-center ${colors.bg} border ${colors.border} hover:bg-background/50 transition-colors`}
+                  className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center ${colors.bg} border ${colors.border} hover:bg-background/50 transition-colors`}
                   aria-label="Previous quote"
                 >
-                  <ChevronLeft size={16} className="text-muted-foreground" />
+                  <ChevronLeft size={14} className="text-muted-foreground sm:w-4 sm:h-4" />
                 </motion.button>
               )}
 
@@ -350,7 +350,7 @@ export function HostCard({ guide, isActive, onSelect }: HostCardProps) {
                 whileTap={{ scale: 0.95 }}
                 onClick={(e) => { e.stopPropagation(); playVoice(); }}
                 disabled={isLoadingVoice}
-                className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
+                className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center transition-all ${
                   isPlayingVoice
                     ? 'bg-primary text-primary-foreground'
                     : `${colors.bg} border-2 ${colors.border} hover:border-primary/50`
@@ -358,11 +358,11 @@ export function HostCard({ guide, isActive, onSelect }: HostCardProps) {
                 aria-label={isPlayingVoice ? 'Stop' : 'Play voice sample'}
               >
                 {isLoadingVoice ? (
-                  <Loader2 size={20} className="animate-spin text-muted-foreground" />
+                  <Loader2 size={18} className="animate-spin text-muted-foreground sm:w-5 sm:h-5" />
                 ) : isPlayingVoice ? (
-                  <Square size={16} fill="currentColor" />
+                  <Square size={14} fill="currentColor" className="sm:w-4 sm:h-4" />
                 ) : (
-                  <Play size={20} className={colors.text} fill="currentColor" />
+                  <Play size={18} className={`${colors.text} sm:w-5 sm:h-5`} fill="currentColor" />
                 )}
               </motion.button>
 
@@ -372,10 +372,10 @@ export function HostCard({ guide, isActive, onSelect }: HostCardProps) {
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                   onClick={(e) => { e.stopPropagation(); nextQuote(); }}
-                  className={`w-8 h-8 rounded-full flex items-center justify-center ${colors.bg} border ${colors.border} hover:bg-background/50 transition-colors`}
+                  className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center ${colors.bg} border ${colors.border} hover:bg-background/50 transition-colors`}
                   aria-label="Next quote"
                 >
-                  <ChevronRight size={16} className="text-muted-foreground" />
+                  <ChevronRight size={14} className="text-muted-foreground sm:w-4 sm:h-4" />
                 </motion.button>
               )}
             </div>
