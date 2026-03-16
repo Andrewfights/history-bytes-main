@@ -5,9 +5,6 @@
 import { WW2Host } from '@/types';
 import { getWW2Hosts as getFirestoreWW2Hosts, subscribeToWW2Hosts } from '@/lib/firestore';
 import { isFirebaseConfigured } from '@/lib/firebase';
-import { loadWW2Hosts, setWW2HostsFromFirestore } from '@/lib/adminStorage';
-
-const WW2_HOSTS_STORAGE_KEY = 'hb-ww2-hosts';
 
 // Cache for Firestore data
 let firestoreHostsCache: WW2Host[] | null = null;
@@ -198,39 +195,18 @@ export function getWW2HostById(id: string): WW2Host | undefined {
 }
 
 /**
- * Load WW2 hosts from cache (IndexedDB or Firestore).
- * Priority: Firestore cache > IndexedDB cache > defaults
+ * Load WW2 hosts from Firestore cache or defaults.
+ * Uses real-time Firestore subscription data when available.
  */
 export function getStoredWW2Hosts(): WW2Host[] {
-  // If we have Firestore cached data, use it (this is the source of truth for real-time)
+  // If we have Firestore cached data, use it (this is the source of truth)
   if (firestoreHostsCache && firestoreHostsCache.length > 0) {
     return firestoreHostsCache;
   }
 
-  // Check IndexedDB cache (guaranteed persistence layer)
-  const indexedDBData = loadWW2Hosts();
-  if (indexedDBData.hosts && indexedDBData.hosts.length > 0) {
-    console.log('[WW2Hosts] Using IndexedDB cache:', indexedDBData.hosts.length, 'hosts');
-    return indexedDBData.hosts.map(h => ({
-      id: h.id as WW2Host['id'],
-      name: h.name,
-      title: h.title,
-      era: h.era,
-      specialty: h.specialty,
-      imageUrl: h.imageUrl,
-      introVideoUrl: h.introVideoUrl,
-      welcomeVideoUrl: h.welcomeVideoUrl,
-      primaryColor: h.primaryColor,
-      avatar: h.avatar,
-      voiceStyle: h.voiceStyle,
-      description: h.description,
-    }));
-  }
-
   // If Firebase is configured, return defaults while waiting for Firestore to load
   if (isFirebaseConfigured()) {
-    console.log('[WW2Hosts] No cache, waiting for Firestore data...');
-    return WW2_HOSTS;
+    console.log('[WW2Hosts] Waiting for Firestore data...');
   }
 
   // Fall back to defaults
@@ -293,22 +269,6 @@ export function initWW2HostsSubscription(): () => void {
       console.log('[WW2Hosts] Cache updated from Firestore:', firestoreHostsCache.map(h => ({
         id: h.id,
         order: (h as { displayOrder?: number }).displayOrder
-      })));
-      // Also update IndexedDB cache for persistence
-      setWW2HostsFromFirestore(hosts.map(h => ({
-        id: h.id,
-        name: h.name,
-        title: h.title,
-        era: h.era,
-        specialty: h.specialty,
-        imageUrl: h.imageUrl,
-        introVideoUrl: h.introVideoUrl,
-        welcomeVideoUrl: h.welcomeVideoUrl,
-        primaryColor: h.primaryColor,
-        avatar: h.avatar,
-        voiceStyle: h.voiceStyle,
-        description: h.description,
-        displayOrder: h.displayOrder,
       })));
     }
   });
