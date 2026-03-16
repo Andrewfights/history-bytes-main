@@ -197,16 +197,24 @@ export function getWW2HostById(id: string): WW2Host | undefined {
 }
 
 /**
- * Load WW2 hosts from Firestore (production) or localStorage (fallback) or defaults.
- * Priority: Firestore cache > localStorage > defaults
+ * Load WW2 hosts from Firestore (production) or defaults.
+ * When Firebase is configured, ONLY use Firestore data (not localStorage).
+ * localStorage is only used when Firebase is NOT configured (local dev without Firebase).
  */
 export function getStoredWW2Hosts(): WW2Host[] {
-  // If we have Firestore cached data, use it
+  // If we have Firestore cached data, use it (this is the source of truth)
   if (firestoreHostsCache && firestoreHostsCache.length > 0) {
     return firestoreHostsCache;
   }
 
-  // Try localStorage as fallback
+  // If Firebase is configured, return defaults while waiting for Firestore to load
+  // Do NOT use localStorage to avoid inconsistency between devices
+  if (isFirebaseConfigured()) {
+    console.log('[WW2Hosts] Firebase configured, waiting for Firestore data...');
+    return WW2_HOSTS;
+  }
+
+  // Only use localStorage when Firebase is NOT configured (local dev)
   try {
     const stored = localStorage.getItem(WW2_HOSTS_STORAGE_KEY);
     if (stored) {
