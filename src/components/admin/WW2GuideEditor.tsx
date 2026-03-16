@@ -10,86 +10,19 @@ import type { WW2Host } from '@/types';
 
 type EditableWW2Host = WW2Host & { localImageUrl?: string; displayOrder?: number };
 
-const STORAGE_KEY = 'hb-ww2-hosts';
-
-// Load hosts from Firestore or localStorage or fall back to defaults
+// Load hosts from Firestore ONLY (no localStorage fallback for admin)
 async function loadStoredHostsAsync(): Promise<EditableWW2Host[]> {
-  // Try Firestore first
-  if (isFirebaseConfigured()) {
-    try {
-      const firestoreHosts = await getWW2Hosts();
-      if (firestoreHosts && firestoreHosts.length > 0) {
-        console.log('[WW2GuideEditor] Loaded from Firestore:', firestoreHosts.length);
-        return firestoreHosts.map((h, i) => ({
-          id: h.id as WW2Host['id'],
-          name: h.name,
-          title: h.title,
-          era: h.era,
-          specialty: h.specialty,
-          imageUrl: h.imageUrl,
-          introVideoUrl: h.introVideoUrl,
-          welcomeVideoUrl: h.welcomeVideoUrl,
-          primaryColor: h.primaryColor,
-          avatar: h.avatar,
-          voiceStyle: h.voiceStyle,
-          description: h.description,
-          displayOrder: h.displayOrder ?? i,
-        }));
-      }
-    } catch (e) {
-      console.error('[WW2GuideEditor] Error loading from Firestore:', e);
-    }
+  if (!isFirebaseConfigured()) {
+    console.warn('[WW2GuideEditor] Firebase not configured - using defaults');
+    return WW2_HOSTS.map((host, i) => ({ ...host, displayOrder: i }));
   }
 
-  // Fall back to localStorage
   try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
-      }
-    }
-  } catch (e) {
-    console.error('Error loading stored WW2 hosts:', e);
-  }
-  // Fall back to default hosts with display order
-  return WW2_HOSTS.map((host, i) => ({ ...host, displayOrder: i }));
-}
-
-// Check if a URL is a local data URL (won't work for other users)
-function isLocalDataUrl(url?: string): boolean {
-  return !!url && (url.startsWith('data:') || url.startsWith('blob:'));
-}
-
-// Save hosts to localStorage (always) and Firestore (if configured)
-async function saveStoredHostsAsync(hosts: EditableWW2Host[]): Promise<{ success: boolean; hasLocalUrls: boolean; error?: string }> {
-  // Check for local data URLs that won't work for other users
-  const localUrlWarnings: string[] = [];
-  for (const host of hosts) {
-    if (isLocalDataUrl(host.imageUrl)) localUrlWarnings.push(`${host.name}: portrait image`);
-    if (isLocalDataUrl(host.introVideoUrl)) localUrlWarnings.push(`${host.name}: intro video`);
-    if (isLocalDataUrl(host.welcomeVideoUrl)) localUrlWarnings.push(`${host.name}: welcome video`);
-  }
-
-  if (localUrlWarnings.length > 0) {
-    console.warn('[WW2GuideEditor] ⚠️ Local URLs detected (won\'t work for other users):', localUrlWarnings);
-  }
-
-  // Always save to localStorage as backup
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(hosts));
-    console.log('[WW2GuideEditor] Saved to localStorage');
-  } catch (e) {
-    console.error('Error saving WW2 hosts to localStorage:', e);
-  }
-
-  // Save to Firestore if configured
-  if (isFirebaseConfigured()) {
-    console.log('[WW2GuideEditor] Firebase configured, attempting Firestore save...');
-    try {
-      const firestoreHosts: FirestoreWW2Host[] = hosts.map((h, i) => ({
-        id: h.id,
+    const firestoreHosts = await getWW2Hosts();
+    if (firestoreHosts && firestoreHosts.length > 0) {
+      console.log('[WW2GuideEditor] Loaded from Firestore:', firestoreHosts.length);
+      return firestoreHosts.map((h, i) => ({
+        id: h.id as WW2Host['id'],
         name: h.name,
         title: h.title,
         era: h.era,
@@ -101,30 +34,72 @@ async function saveStoredHostsAsync(hosts: EditableWW2Host[]): Promise<{ success
         avatar: h.avatar,
         voiceStyle: h.voiceStyle,
         description: h.description,
-        displayOrder: i,
+        displayOrder: h.displayOrder ?? i,
       }));
-      console.log('[WW2GuideEditor] Saving hosts:', firestoreHosts.map(h => ({
-        id: h.id,
-        introVideo: h.introVideoUrl ? (isLocalDataUrl(h.introVideoUrl) ? '⚠️ LOCAL' : '✅ CLOUD') : '❌ NONE',
-        welcomeVideo: h.welcomeVideoUrl ? (isLocalDataUrl(h.welcomeVideoUrl) ? '⚠️ LOCAL' : '✅ CLOUD') : '❌ NONE',
-        image: h.imageUrl ? (isLocalDataUrl(h.imageUrl) ? '⚠️ LOCAL' : '✅ CLOUD') : '❌ NONE',
-      })));
-      const success = await saveAllWW2Hosts(firestoreHosts);
-      if (success) {
-        console.log('[WW2GuideEditor] ✅ Saved to Firestore successfully!');
-        return { success: true, hasLocalUrls: localUrlWarnings.length > 0 };
-      } else {
-        console.error('[WW2GuideEditor] ❌ Firestore save returned false');
-        return { success: false, hasLocalUrls: localUrlWarnings.length > 0, error: 'Firestore save failed' };
-      }
-    } catch (e) {
-      const error = e as Error;
-      console.error('[WW2GuideEditor] ❌ Error saving to Firestore:', error);
-      return { success: false, hasLocalUrls: localUrlWarnings.length > 0, error: error.message };
     }
-  } else {
-    console.log('[WW2GuideEditor] Firebase NOT configured');
-    return { success: false, hasLocalUrls: localUrlWarnings.length > 0, error: 'Firebase not configured - check .env file' };
+  } catch (e) {
+    console.error('[WW2GuideEditor] Error loading from Firestore:', e);
+  }
+
+  // Fall back to default hosts with display order
+  return WW2_HOSTS.map((host, i) => ({ ...host, displayOrder: i }));
+}
+
+// Check if a URL is a local data URL (won't work in production)
+function isLocalDataUrl(url?: string): boolean {
+  return !!url && (url.startsWith('data:') || url.startsWith('blob:'));
+}
+
+// Save hosts to Firestore ONLY (no localStorage - Firebase is required for admin)
+async function saveStoredHostsAsync(hosts: EditableWW2Host[]): Promise<{ success: boolean; error?: string }> {
+  // Firebase is required for admin operations
+  if (!isFirebaseConfigured()) {
+    return { success: false, error: 'Firebase not configured - admin requires Firebase. Check .env file and restart dev server.' };
+  }
+
+  // Block saving if any URLs are local data URLs (they won't work for other users)
+  const localUrlIssues: string[] = [];
+  for (const host of hosts) {
+    if (isLocalDataUrl(host.imageUrl)) localUrlIssues.push(`${host.name}: portrait image is local`);
+    if (isLocalDataUrl(host.introVideoUrl)) localUrlIssues.push(`${host.name}: intro video is local`);
+    if (isLocalDataUrl(host.welcomeVideoUrl)) localUrlIssues.push(`${host.name}: welcome video is local`);
+  }
+
+  if (localUrlIssues.length > 0) {
+    console.error('[WW2GuideEditor] ❌ Cannot save - local URLs detected:', localUrlIssues);
+    return { success: false, error: `Local files detected: ${localUrlIssues[0]}. Upload to Firebase Storage first.` };
+  }
+
+  // Save to Firestore
+  console.log('[WW2GuideEditor] Saving to Firestore...');
+  try {
+    const firestoreHosts: FirestoreWW2Host[] = hosts.map((h, i) => ({
+      id: h.id,
+      name: h.name,
+      title: h.title,
+      era: h.era,
+      specialty: h.specialty,
+      imageUrl: h.imageUrl,
+      introVideoUrl: h.introVideoUrl,
+      welcomeVideoUrl: h.welcomeVideoUrl,
+      primaryColor: h.primaryColor,
+      avatar: h.avatar,
+      voiceStyle: h.voiceStyle,
+      description: h.description,
+      displayOrder: i,
+    }));
+
+    const success = await saveAllWW2Hosts(firestoreHosts);
+    if (success) {
+      console.log('[WW2GuideEditor] ✅ Saved to Firestore successfully!');
+      return { success: true };
+    } else {
+      return { success: false, error: 'Firestore save failed' };
+    }
+  } catch (e) {
+    const error = e as Error;
+    console.error('[WW2GuideEditor] ❌ Error saving to Firestore:', error);
+    return { success: false, error: error.message };
   }
 }
 
@@ -200,7 +175,7 @@ export default function WW2GuideEditor() {
     const file = e.target.files?.[0];
     if (!file || !selectedId) return;
 
-    // Show preview immediately
+    // Show preview immediately (local preview only, not saved)
     const reader = new FileReader();
     reader.onload = (event) => {
       const dataUrl = event.target?.result as string;
@@ -211,26 +186,21 @@ export default function WW2GuideEditor() {
     };
     reader.readAsDataURL(file);
 
-    // Upload to storage
-    toast.loading('Uploading image...', { id: 'upload' });
+    // Upload to Firebase Storage (required - no fallback)
+    toast.loading('Uploading to Firebase Storage...', { id: 'upload' });
     const uploadResult = await uploadFile(file);
 
     if (uploadResult?.url) {
       setHosts(prev => prev.map(h =>
-        h.id === selectedId ? { ...h, imageUrl: uploadResult.url } : h
+        h.id === selectedId ? { ...h, imageUrl: uploadResult.url, localImageUrl: undefined } : h
       ));
-      toast.success('Image uploaded successfully', { id: 'upload' });
+      toast.success('Image uploaded to cloud', { id: 'upload' });
     } else {
-      // Fall back to data URL
-      const fallbackReader = new FileReader();
-      fallbackReader.onload = (event) => {
-        const dataUrl = event.target?.result as string;
-        setHosts(prev => prev.map(h =>
-          h.id === selectedId ? { ...h, imageUrl: dataUrl } : h
-        ));
-      };
-      fallbackReader.readAsDataURL(file);
-      toast.warning('Saved locally (cloud upload unavailable)', { id: 'upload' });
+      // Clear the local preview since we can't save it
+      setHosts(prev => prev.map(h =>
+        h.id === selectedId ? { ...h, localImageUrl: undefined } : h
+      ));
+      toast.error('Upload failed - check Firebase Storage configuration', { id: 'upload', duration: 5000 });
     }
 
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -240,18 +210,13 @@ export default function WW2GuideEditor() {
     setIsSaving(true);
     try {
       const result = await saveStoredHostsAsync(hosts);
-      if (result.hasLocalUrls) {
-        toast.warning('Saved with local files', {
-          description: 'Some media uses local URLs that won\'t work for other users. Re-upload via Media Library.',
-          duration: 8000,
-        });
-      } else if (result.success) {
+      if (result.success) {
         toast.success('WW2 guides saved', {
-          description: 'Synced to cloud - visible to all users.',
+          description: 'Synced to Firebase - visible to all users.',
         });
       } else {
-        toast.warning('Saved locally only', {
-          description: result.error || 'Cloud sync failed. Check Firebase configuration.',
+        toast.error('Save failed', {
+          description: result.error || 'Check Firebase configuration.',
           duration: 8000,
         });
       }
@@ -270,18 +235,13 @@ export default function WW2GuideEditor() {
     setIsSaving(true);
     try {
       const result = await saveStoredHostsAsync(hosts);
-      if (result.hasLocalUrls) {
-        toast.warning('Saved with local files', {
-          description: 'Some media uses local URLs that won\'t work for other users. Re-upload via Media Library.',
-          duration: 8000,
-        });
-      } else if (result.success) {
+      if (result.success) {
         toast.success('All WW2 guides saved', {
-          description: 'Synced to cloud - visible to all users.',
+          description: 'Synced to Firebase - visible to all users.',
         });
       } else {
-        toast.warning('Saved locally only', {
-          description: result.error || 'Cloud sync failed. Check Firebase configuration.',
+        toast.error('Save failed', {
+          description: result.error || 'Check Firebase configuration.',
           duration: 8000,
         });
       }
@@ -316,22 +276,22 @@ export default function WW2GuideEditor() {
             {isFirebaseEnabled ? (
               <span className="flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-green-500/20 text-green-400">
                 <Cloud size={12} />
-                Cloud Sync
+                Firebase Connected
               </span>
             ) : (
               <span
-                className="flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-yellow-500/20 text-yellow-400 cursor-help"
-                title={`Firebase not configured. Missing: ${
+                className="flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-red-500/20 text-red-400 cursor-help"
+                title={`Firebase required for admin. Missing: ${
                   [
                     !import.meta.env.VITE_FIREBASE_API_KEY && 'API_KEY',
                     !import.meta.env.VITE_FIREBASE_PROJECT_ID && 'PROJECT_ID',
                     !import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID && 'SENDER_ID',
                     !import.meta.env.VITE_FIREBASE_APP_ID && 'APP_ID',
                   ].filter(Boolean).join(', ') || 'unknown'
-                }. Restart dev server after adding .env`}
+                }. Add .env file and restart dev server.`}
               >
                 <CloudOff size={12} />
-                Local Only
+                Firebase Required
               </span>
             )}
           </div>
