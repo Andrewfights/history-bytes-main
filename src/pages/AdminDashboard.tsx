@@ -173,6 +173,17 @@ export default function AdminDashboard() {
             : 'bg-amber-500/10 border-amber-500/30'
         }`}
       >
+        {/* Debug info - shows what env vars are detected */}
+        {!firebaseConfigured && (
+          <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-xs font-mono">
+            <p className="text-red-400 font-bold mb-2">Firebase Debug Info:</p>
+            <p>API Key: {import.meta.env.VITE_FIREBASE_API_KEY ? '✅ Set' : '❌ Missing'}</p>
+            <p>Project ID: {import.meta.env.VITE_FIREBASE_PROJECT_ID ? '✅ Set' : '❌ Missing'}</p>
+            <p>Auth Domain: {import.meta.env.VITE_FIREBASE_AUTH_DOMAIN ? '✅ Set' : '❌ Missing'}</p>
+            <p>Storage Bucket: {import.meta.env.VITE_FIREBASE_STORAGE_BUCKET ? '✅ Set' : '❌ Missing'}</p>
+            <p className="mt-2 text-amber-400">Make sure you redeployed after adding env vars in Vercel!</p>
+          </div>
+        )}
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-3">
             {firebaseConfigured ? (
