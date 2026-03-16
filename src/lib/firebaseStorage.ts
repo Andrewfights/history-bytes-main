@@ -214,9 +214,17 @@ export async function uploadFile(
           const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
           onProgress?.(progress);
         },
-        (error) => {
-          console.error('[Storage] Upload error:', error);
-          // Fall back to localStorage on error
+        (error: { code?: string; message?: string }) => {
+          console.error('[Storage] ❌ Upload error:', error);
+
+          // Check for permission errors
+          if (error.code === 'storage/unauthorized') {
+            console.error('[Storage] 🔒 PERMISSION DENIED - Update Firebase Storage rules!');
+            console.error('[Storage] Go to Firebase Console > Storage > Rules and allow writes');
+          }
+
+          // Fall back to localStorage on error (WARNING: data URLs won't work for other users!)
+          console.warn('[Storage] ⚠️ Falling back to localStorage - URLs will NOT work for other users!');
           uploadToLocalStorage(file, onProgress)
             .then(resolve)
             .catch(reject);
