@@ -22,15 +22,15 @@ function StatCard({ title, value, icon: Icon, color }: StatCardProps) {
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-card border border-border rounded-xl p-4"
+      className="bg-card border border-border rounded-xl p-3 sm:p-4"
     >
-      <div className="flex items-center gap-3">
-        <div className={`w-10 h-10 rounded-lg ${color} flex items-center justify-center`}>
-          <Icon size={20} className="text-white" />
+      <div className="flex items-center gap-2 sm:gap-3">
+        <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg ${color} flex items-center justify-center flex-shrink-0`}>
+          <Icon size={16} className="sm:w-5 sm:h-5 text-white" />
         </div>
-        <div>
-          <p className="text-2xl font-bold">{value}</p>
-          <p className="text-xs text-muted-foreground">{title}</p>
+        <div className="min-w-0">
+          <p className="text-xl sm:text-2xl font-bold">{value}</p>
+          <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{title}</p>
         </div>
       </div>
     </motion.div>
@@ -48,19 +48,19 @@ function QuickLink({ to, title, description, icon: Icon }: QuickLinkProps) {
   return (
     <Link
       to={to}
-      className="bg-card border border-border rounded-xl p-4 hover:border-primary/50 transition-colors group"
+      className="bg-card border border-border rounded-xl p-3 sm:p-4 hover:border-primary/50 transition-colors group active:scale-[0.98]"
     >
-      <div className="flex items-start justify-between">
-        <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
             <Icon size={20} className="text-primary" />
           </div>
-          <div>
-            <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">{title}</h3>
-            <p className="text-sm text-muted-foreground mt-1">{description}</p>
+          <div className="min-w-0">
+            <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors text-sm sm:text-base">{title}</h3>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1 line-clamp-1">{description}</p>
           </div>
         </div>
-        <ArrowRight size={18} className="text-muted-foreground group-hover:text-primary transition-colors mt-2" />
+        <ArrowRight size={18} className="text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0" />
       </div>
     </Link>
   );
@@ -105,22 +105,22 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="max-w-5xl">
+    <div className="max-w-5xl mx-auto">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="font-editorial text-3xl font-bold text-foreground">Dashboard</h1>
-        <p className="text-muted-foreground mt-1">Manage your History Bytes content</p>
+      <div className="mb-6 sm:mb-8">
+        <h1 className="font-editorial text-2xl sm:text-3xl font-bold text-foreground">Dashboard</h1>
+        <p className="text-muted-foreground mt-1 text-sm sm:text-base">Manage your History Bytes content</p>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
         <StatCard title="Journey Arcs" value={arcs.length} icon={Map} color="bg-primary" />
         <StatCard title="Chapters" value={totalChapters} icon={Layers} color="bg-emerald-500" />
         <StatCard title="Nodes" value={totalNodes} icon={FileText} color="bg-blue-500" />
         <StatCard title="Spirit Guides" value={spiritGuides.length} icon={Users} color="bg-purple-500" />
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
         <StatCard title="Courses" value={courses.length} icon={BookOpen} color="bg-orange-500" />
         <StatCard title="Units" value={units.length} icon={Layers} color="bg-cyan-500" />
         <StatCard title="Lessons" value={lessons.length} icon={FileText} color="bg-rose-500" />
@@ -128,8 +128,8 @@ export default function AdminDashboard() {
       </div>
 
       {/* Quick Links */}
-      <h2 className="text-lg font-semibold text-foreground mb-4">Content Editors</h2>
-      <div className="grid md:grid-cols-2 gap-4">
+      <h2 className="text-base sm:text-lg font-semibold text-foreground mb-3 sm:mb-4">Content Editors</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
         <QuickLink
           to="/admin/journeys"
           title="Journey Editor"

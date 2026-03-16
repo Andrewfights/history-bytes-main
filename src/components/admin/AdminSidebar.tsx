@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Map, BookOpen, Gamepad2, ArrowLeft, Image, Mic, Wand2, Users, HelpCircle, Compass, Shield, Trophy, Grid3X3, MousePointer2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { LayoutDashboard, Map, BookOpen, Gamepad2, ArrowLeft, Image, Mic, Wand2, Users, HelpCircle, Compass, Shield, Trophy, Grid3X3, MousePointer2, X } from 'lucide-react';
 
 const navItems = [
   { path: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -18,17 +19,31 @@ const navItems = [
   { path: '/admin/voices', label: 'Voices', icon: Mic, end: false },
 ];
 
-export function AdminSidebar() {
-  return (
-    <aside className="w-64 bg-card border-r border-border min-h-screen flex flex-col">
+interface AdminSidebarProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
+  const sidebarContent = (
+    <>
       {/* Header */}
-      <div className="p-4 border-b border-border">
-        <h1 className="font-editorial text-xl font-bold text-foreground">Admin Panel</h1>
-        <p className="text-xs text-muted-foreground mt-1">Content Management</p>
+      <div className="p-4 border-b border-border flex items-center justify-between">
+        <div>
+          <h1 className="font-editorial text-xl font-bold text-foreground">Admin Panel</h1>
+          <p className="text-xs text-muted-foreground mt-1">Content Management</p>
+        </div>
+        {/* Close button - mobile only */}
+        <button
+          onClick={onClose}
+          className="lg:hidden p-2 -mr-2 rounded-lg hover:bg-muted transition-colors"
+        >
+          <X size={20} />
+        </button>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-3 space-y-1">
+      <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
         {navItems.map((item) => {
           const Icon = item.icon;
           return (
@@ -36,6 +51,7 @@ export function AdminSidebar() {
               key={item.path}
               to={item.path}
               end={item.end}
+              onClick={onClose}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                   isActive
@@ -55,12 +71,49 @@ export function AdminSidebar() {
       <div className="p-3 border-t border-border">
         <NavLink
           to="/"
+          onClick={onClose}
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
         >
           <ArrowLeft size={18} />
           Back to App
         </NavLink>
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Desktop Sidebar - always visible */}
+      <aside className="hidden lg:flex w-64 bg-card border-r border-border min-h-screen flex-col">
+        {sidebarContent}
+      </aside>
+
+      {/* Mobile Sidebar - slide-out drawer */}
+      <AnimatePresence>
+        {isOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={onClose}
+              className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+            />
+
+            {/* Drawer */}
+            <motion.aside
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="fixed inset-y-0 left-0 w-72 bg-card border-r border-border z-50 flex flex-col lg:hidden"
+            >
+              {sidebarContent}
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+    </>
   );
 }

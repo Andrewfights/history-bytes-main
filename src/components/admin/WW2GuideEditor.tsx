@@ -292,10 +292,10 @@ export default function WW2GuideEditor() {
       {!isLoading && (
         <>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <div className="flex items-center gap-3">
-            <h1 className="font-editorial text-3xl font-bold text-foreground">WW2 Guide Editor</h1>
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <h1 className="font-editorial text-2xl sm:text-3xl font-bold text-foreground">WW2 Guide Editor</h1>
             {isFirebaseEnabled ? (
               <span className="flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-green-500/20 text-green-400">
                 <Cloud size={12} />
@@ -308,20 +308,18 @@ export default function WW2GuideEditor() {
               </span>
             )}
           </div>
-          <p className="text-muted-foreground mt-1">
-            Manage WW2 era guides - drag to reorder, upload images and videos
+          <p className="text-muted-foreground mt-1 text-sm sm:text-base">
+            Manage WW2 era guides - tap to select, upload images and videos
           </p>
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={handleSaveAll}
-            disabled={isSaving}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
-          >
-            {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-            Save All
-          </button>
-        </div>
+        <button
+          onClick={handleSaveAll}
+          disabled={isSaving}
+          className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 w-full sm:w-auto"
+        >
+          {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+          Save All
+        </button>
       </div>
 
       {/* Reorderable Host Grid */}
@@ -360,7 +358,7 @@ export default function WW2GuideEditor() {
             className="bg-card border border-border rounded-xl"
           >
             {/* Editor Header */}
-            <div className="flex items-center justify-between p-4 border-b border-border">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 border-b border-border">
               <div className="flex items-center gap-3">
                 <span className="text-3xl">{selectedHost.avatar}</span>
                 <div>
@@ -371,15 +369,15 @@ export default function WW2GuideEditor() {
               <button
                 onClick={handleSave}
                 disabled={isSaving}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 w-full sm:w-auto"
               >
                 {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                 Save Guide
               </button>
             </div>
 
-            <div className="p-6">
-              <div className="grid md:grid-cols-3 gap-6">
+            <div className="p-4 sm:p-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Image Section */}
                 <div className="space-y-4">
                   <label className="text-sm font-medium text-foreground block">Portrait Image</label>
