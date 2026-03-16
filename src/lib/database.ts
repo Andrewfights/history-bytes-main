@@ -860,6 +860,9 @@ import {
   saveEraTileOverride as firestoreSaveEraTileOverride,
   deleteEraTileOverride as firestoreDeleteEraTileOverride,
   subscribeToEraTileOverrides,
+  getEraOrder as firestoreGetEraOrder,
+  saveEraOrder as firestoreSaveEraOrder,
+  subscribeToEraOrder,
   getGameThumbnails as firestoreGetGameThumbnails,
   saveGameThumbnail as firestoreSaveGameThumbnail,
   subscribeToGameThumbnails,
@@ -903,6 +906,7 @@ export type {
 // Re-export subscription functions for real-time updates
 export {
   subscribeToEraTileOverrides,
+  subscribeToEraOrder,
   subscribeToGameThumbnails,
   subscribeToArcadeItems,
   subscribeToTriviaSets,
@@ -912,6 +916,7 @@ export {
 };
 
 const ERA_TILE_OVERRIDES_KEY = 'hb_admin_era_tile_overrides';
+const ERA_ORDER_KEY = 'hb_admin_era_order';
 const GAME_THUMBNAILS_KEY = 'hb_admin_game_thumbnails';
 const VOICE_SETTINGS_KEY = 'hb_admin_voice_settings';
 
@@ -1007,6 +1012,42 @@ export async function deleteEraTileOverride(eraId: string): Promise<boolean> {
   const existing = loadFromStorage<EraTileOverride[]>(ERA_TILE_OVERRIDES_KEY, []);
   const filtered = existing.filter(o => o.id !== eraId);
   return saveToStorage(ERA_TILE_OVERRIDES_KEY, filtered);
+}
+
+// ============ Era Order ============
+
+export async function loadEraOrder(): Promise<string[] | null> {
+  if (isFirebaseConfigured()) {
+    try {
+      const order = await firestoreGetEraOrder();
+      if (order) {
+        saveToStorage(ERA_ORDER_KEY, order);
+        return order;
+      }
+    } catch (err) {
+      console.error('[loadEraOrder] Firestore error:', err);
+    }
+  }
+  return loadFromStorage<string[] | null>(ERA_ORDER_KEY, null);
+}
+
+export async function saveEraOrder(order: string[]): Promise<boolean> {
+  // Always save to localStorage
+  saveToStorage(ERA_ORDER_KEY, order);
+
+  if (isFirebaseConfigured()) {
+    try {
+      const success = await firestoreSaveEraOrder(order);
+      if (success) {
+        console.log('[saveEraOrder] Saved to Firestore:', order.length, 'eras');
+        return true;
+      }
+    } catch (err) {
+      console.error('[saveEraOrder] Firestore error:', err);
+    }
+  }
+
+  return true; // localStorage save succeeded
 }
 
 // ============ Game Thumbnails ============

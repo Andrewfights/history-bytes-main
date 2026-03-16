@@ -514,7 +514,7 @@ export async function batchSaveDocuments<T extends Record<string, unknown>>(
 ): Promise<boolean> {
   if (!isFirebaseConfigured()) {
     console.warn('[Firestore] batchSaveDocuments: Firebase not configured');
-    return false;
+    throw new Error('Firebase not configured - check environment variables');
   }
 
   console.log(`[Firestore] batchSaveDocuments: Saving ${documents.length} docs to ${collectionName}${retryCount > 0 ? ` (retry ${retryCount})` : ''}`);
@@ -538,14 +538,14 @@ export async function batchSaveDocuments<T extends Record<string, unknown>>(
     const error = err as { code?: string; message?: string };
     console.error(`[Firestore] ❌ Batch save error for ${collectionName}:`, err);
 
-    // Check for common Firebase errors
+    // Check for common Firebase errors and throw descriptive messages
     if (error.code === 'permission-denied') {
       console.error(`[Firestore] 🔒 PERMISSION DENIED - Check Firestore security rules!`);
       console.error(`[Firestore] Rules should allow write access to '${collectionName}' collection`);
-      return false; // Don't retry permission errors
+      throw new Error('Permission denied - update Firestore security rules to allow writes');
     } else if (error.code === 'unauthenticated') {
       console.error(`[Firestore] 🔑 UNAUTHENTICATED - User must be signed in to write`);
-      return false; // Don't retry auth errors
+      throw new Error('Authentication required - sign in to save');
     } else if (isRetryableError(error.code)) {
       console.warn(`[Firestore] 📡 Retryable error: ${error.code}`);
 
@@ -557,9 +557,11 @@ export async function batchSaveDocuments<T extends Record<string, unknown>>(
         return batchSaveDocuments(collectionName, documents, retryCount + 1);
       }
       console.error(`[Firestore] Max retries exceeded for ${collectionName}`);
+      throw new Error(`Network error after ${MAX_RETRIES} retries - check your connection`);
     }
 
-    return false;
+    // Re-throw with error message for any other errors
+    throw new Error(error.message || 'Unknown Firestore error');
   }
 }
 
@@ -786,6 +788,45 @@ export async function deleteEraTileOverride(eraId: string): Promise<boolean> {
 
 export function subscribeToEraTileOverrides(callback: (overrides: FirestoreEraTileOverride[]) => void): Unsubscribe {
   return subscribeToCollection<FirestoreEraTileOverride>('eraTileOverrides', callback);
+}
+
+// ============ Era Order Operations ============
+
+export interface FirestoreEraOrder {
+  id: string; // Always 'default'
+  order: string[]; // Array of era IDs in display order
+  updatedAt?: ReturnType<typeof serverTimestamp>;
+}
+
+export async function getEraOrder(): Promise<string[] | null> {
+  const doc = await getDocument<FirestoreEraOrder>('appSettings', 'eraOrder');
+  return doc?.order || null;
+}
+
+export async function saveEraOrder(order: string[]): Promise<boolean> {
+  return setDocument('appSettings', 'eraOrder', {
+    id: 'default',
+    order,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export function subscribeToEraOrder(callback: (order: string[] | null) => void): Unsubscribe {
+  return onSnapshot(
+    doc(db, 'appSettings', 'eraOrder'),
+    (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data() as FirestoreEraOrder;
+        callback(data.order);
+      } else {
+        callback(null);
+      }
+    },
+    (error) => {
+      console.error('[Firestore] Era order subscription error:', error);
+      callback(null);
+    }
+  );
 }
 
 // ============ Game Thumbnail Operations ============

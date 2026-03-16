@@ -9,6 +9,8 @@ import {
   loadEraTileOverrides as dbLoadEraTileOverrides,
   saveEraTileOverride as dbSaveEraTileOverride,
   deleteEraTileOverride as dbDeleteEraTileOverride,
+  loadEraOrder as dbLoadEraOrder,
+  saveEraOrder as dbSaveEraOrder,
   type EraTileOverride,
 } from '@/lib/database';
 
@@ -394,4 +396,77 @@ export async function getEraTileOverridesAsync(): Promise<EraTileOverrides> {
     console.error('[historicalEras] Failed to load from Firestore:', error);
     return getEraTileOverrides();
   }
+}
+
+// ============ Era Order Functions ============
+
+const ERA_ORDER_STORAGE_KEY = 'hb-era-order';
+
+/**
+ * Get stored era order (async, loads from Firestore)
+ */
+export async function getStoredEraOrder(): Promise<string[] | null> {
+  try {
+    const order = await dbLoadEraOrder();
+    if (order) {
+      localStorage.setItem(ERA_ORDER_STORAGE_KEY, JSON.stringify(order));
+      return order;
+    }
+  } catch (error) {
+    console.error('[historicalEras] Failed to load era order:', error);
+  }
+
+  // Fall back to localStorage
+  try {
+    const stored = localStorage.getItem(ERA_ORDER_STORAGE_KEY);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch {
+    // Ignore parse errors
+  }
+
+  return null;
+}
+
+/**
+ * Save era order (async, saves to Firestore)
+ */
+export async function saveStoredEraOrder(order: string[]): Promise<boolean> {
+  // Save to localStorage first for immediate access
+  localStorage.setItem(ERA_ORDER_STORAGE_KEY, JSON.stringify(order));
+
+  try {
+    const success = await dbSaveEraOrder(order);
+    if (success) {
+      console.log('[historicalEras] Saved era order:', order.length, 'eras');
+    }
+    return success;
+  } catch (error) {
+    console.error('[historicalEras] Failed to save era order:', error);
+    return false;
+  }
+}
+
+/**
+ * Get eras sorted by stored order (synchronous, uses localStorage cache)
+ */
+export function getErasSortedByStoredOrder(): HistoricalEra[] {
+  try {
+    const stored = localStorage.getItem(ERA_ORDER_STORAGE_KEY);
+    if (stored) {
+      const order: string[] = JSON.parse(stored);
+      const orderMap = new Map(order.map((id, idx) => [id, idx]));
+      return [...HISTORICAL_ERAS].sort((a, b) => {
+        const orderA = orderMap.has(a.id) ? orderMap.get(a.id)! : 999;
+        const orderB = orderMap.has(b.id) ? orderMap.get(b.id)! : 999;
+        return orderA - orderB;
+      });
+    }
+  } catch {
+    // Ignore parse errors
+  }
+
+  // Fall back to default order
+  return getAllEras();
 }

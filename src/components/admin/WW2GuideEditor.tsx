@@ -63,7 +63,7 @@ function isLocalDataUrl(url?: string): boolean {
 }
 
 // Save hosts to localStorage (always) and Firestore (if configured)
-async function saveStoredHostsAsync(hosts: EditableWW2Host[]): Promise<{ success: boolean; hasLocalUrls: boolean }> {
+async function saveStoredHostsAsync(hosts: EditableWW2Host[]): Promise<{ success: boolean; hasLocalUrls: boolean; error?: string }> {
   // Check for local data URLs that won't work for other users
   const localUrlWarnings: string[] = [];
   for (const host of hosts) {
@@ -115,15 +115,17 @@ async function saveStoredHostsAsync(hosts: EditableWW2Host[]): Promise<{ success
         return { success: true, hasLocalUrls: localUrlWarnings.length > 0 };
       } else {
         console.error('[WW2GuideEditor] ❌ Firestore save returned false');
+        return { success: false, hasLocalUrls: localUrlWarnings.length > 0, error: 'Firestore save failed' };
       }
     } catch (e) {
-      console.error('[WW2GuideEditor] ❌ Error saving to Firestore:', e);
+      const error = e as Error;
+      console.error('[WW2GuideEditor] ❌ Error saving to Firestore:', error);
+      return { success: false, hasLocalUrls: localUrlWarnings.length > 0, error: error.message };
     }
   } else {
     console.log('[WW2GuideEditor] Firebase NOT configured');
+    return { success: false, hasLocalUrls: localUrlWarnings.length > 0, error: 'Firebase not configured - check .env file' };
   }
-
-  return { success: false, hasLocalUrls: localUrlWarnings.length > 0 };
 }
 
 export default function WW2GuideEditor() {
@@ -135,13 +137,20 @@ export default function WW2GuideEditor() {
   const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
   const [mediaPickerType, setMediaPickerType] = useState<'introVideo' | 'welcomeVideo' | 'image'>('introVideo');
   const [previewingVideo, setPreviewingVideo] = useState<string | null>(null);
-  const [isFirebaseEnabled] = useState(isFirebaseConfigured());
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Check Firebase config on each render (not stale state)
+  const isFirebaseEnabled = isFirebaseConfigured();
 
   const selectedHost = hosts.find(h => h.id === selectedId);
 
   // Load hosts on mount
   useEffect(() => {
+    // Debug: log Firebase configuration status
+    console.log('[WW2GuideEditor] Firebase configured:', isFirebaseConfigured());
+    console.log('[WW2GuideEditor] API Key present:', !!import.meta.env.VITE_FIREBASE_API_KEY);
+    console.log('[WW2GuideEditor] Project ID present:', !!import.meta.env.VITE_FIREBASE_PROJECT_ID);
+
     const loadHosts = async () => {
       setIsLoading(true);
       const loadedHosts = await loadStoredHostsAsync();
@@ -242,12 +251,16 @@ export default function WW2GuideEditor() {
         });
       } else {
         toast.warning('Saved locally only', {
-          description: 'Cloud sync failed. Check Firebase configuration.',
+          description: result.error || 'Cloud sync failed. Check Firebase configuration.',
+          duration: 8000,
         });
       }
     } catch (error) {
       console.error('Save error:', error);
-      toast.error('Error saving guides');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      toast.error('Error saving guides', {
+        description: errorMessage,
+      });
     } finally {
       setIsSaving(false);
     }
@@ -268,12 +281,16 @@ export default function WW2GuideEditor() {
         });
       } else {
         toast.warning('Saved locally only', {
-          description: 'Cloud sync failed. Check Firebase configuration.',
+          description: result.error || 'Cloud sync failed. Check Firebase configuration.',
+          duration: 8000,
         });
       }
     } catch (error) {
       console.error('Save error:', error);
-      toast.error('Error saving guides');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      toast.error('Error saving guides', {
+        description: errorMessage,
+      });
     } finally {
       setIsSaving(false);
     }
@@ -302,7 +319,17 @@ export default function WW2GuideEditor() {
                 Cloud Sync
               </span>
             ) : (
-              <span className="flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-yellow-500/20 text-yellow-400">
+              <span
+                className="flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-yellow-500/20 text-yellow-400 cursor-help"
+                title={`Firebase not configured. Missing: ${
+                  [
+                    !import.meta.env.VITE_FIREBASE_API_KEY && 'API_KEY',
+                    !import.meta.env.VITE_FIREBASE_PROJECT_ID && 'PROJECT_ID',
+                    !import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID && 'SENDER_ID',
+                    !import.meta.env.VITE_FIREBASE_APP_ID && 'APP_ID',
+                  ].filter(Boolean).join(', ') || 'unknown'
+                }. Restart dev server after adding .env`}
+              >
                 <CloudOff size={12} />
                 Local Only
               </span>
