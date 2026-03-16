@@ -57,8 +57,25 @@ async function loadStoredHostsAsync(): Promise<EditableWW2Host[]> {
   return WW2_HOSTS.map((host, i) => ({ ...host, displayOrder: i }));
 }
 
+// Check if a URL is a local data URL (won't work for other users)
+function isLocalDataUrl(url?: string): boolean {
+  return !!url && (url.startsWith('data:') || url.startsWith('blob:'));
+}
+
 // Save hosts to localStorage (always) and Firestore (if configured)
-async function saveStoredHostsAsync(hosts: EditableWW2Host[]): Promise<boolean> {
+async function saveStoredHostsAsync(hosts: EditableWW2Host[]): Promise<{ success: boolean; hasLocalUrls: boolean }> {
+  // Check for local data URLs that won't work for other users
+  const localUrlWarnings: string[] = [];
+  for (const host of hosts) {
+    if (isLocalDataUrl(host.imageUrl)) localUrlWarnings.push(`${host.name}: portrait image`);
+    if (isLocalDataUrl(host.introVideoUrl)) localUrlWarnings.push(`${host.name}: intro video`);
+    if (isLocalDataUrl(host.welcomeVideoUrl)) localUrlWarnings.push(`${host.name}: welcome video`);
+  }
+
+  if (localUrlWarnings.length > 0) {
+    console.warn('[WW2GuideEditor] ⚠️ Local URLs detected (won\'t work for other users):', localUrlWarnings);
+  }
+
   // Always save to localStorage as backup
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(hosts));
@@ -86,11 +103,16 @@ async function saveStoredHostsAsync(hosts: EditableWW2Host[]): Promise<boolean> 
         description: h.description,
         displayOrder: i,
       }));
-      console.log('[WW2GuideEditor] Saving hosts:', firestoreHosts.map(h => ({ id: h.id, hasIntroVideo: !!h.introVideoUrl, hasWelcomeVideo: !!h.welcomeVideoUrl })));
+      console.log('[WW2GuideEditor] Saving hosts:', firestoreHosts.map(h => ({
+        id: h.id,
+        introVideo: h.introVideoUrl ? (isLocalDataUrl(h.introVideoUrl) ? '⚠️ LOCAL' : '✅ CLOUD') : '❌ NONE',
+        welcomeVideo: h.welcomeVideoUrl ? (isLocalDataUrl(h.welcomeVideoUrl) ? '⚠️ LOCAL' : '✅ CLOUD') : '❌ NONE',
+        image: h.imageUrl ? (isLocalDataUrl(h.imageUrl) ? '⚠️ LOCAL' : '✅ CLOUD') : '❌ NONE',
+      })));
       const success = await saveAllWW2Hosts(firestoreHosts);
       if (success) {
         console.log('[WW2GuideEditor] ✅ Saved to Firestore successfully!');
-        return true;
+        return { success: true, hasLocalUrls: localUrlWarnings.length > 0 };
       } else {
         console.error('[WW2GuideEditor] ❌ Firestore save returned false');
       }
@@ -101,7 +123,7 @@ async function saveStoredHostsAsync(hosts: EditableWW2Host[]): Promise<boolean> 
     console.log('[WW2GuideEditor] Firebase NOT configured');
   }
 
-  return false;
+  return { success: false, hasLocalUrls: localUrlWarnings.length > 0 };
 }
 
 export default function WW2GuideEditor() {
@@ -208,10 +230,21 @@ export default function WW2GuideEditor() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const savedToCloud = await saveStoredHostsAsync(hosts);
-      toast.success('WW2 guides saved', {
-        description: savedToCloud ? 'Synced to cloud.' : 'Saved locally (cloud not configured).',
-      });
+      const result = await saveStoredHostsAsync(hosts);
+      if (result.hasLocalUrls) {
+        toast.warning('Saved with local files', {
+          description: 'Some media uses local URLs that won\'t work for other users. Re-upload via Media Library.',
+          duration: 8000,
+        });
+      } else if (result.success) {
+        toast.success('WW2 guides saved', {
+          description: 'Synced to cloud - visible to all users.',
+        });
+      } else {
+        toast.warning('Saved locally only', {
+          description: 'Cloud sync failed. Check Firebase configuration.',
+        });
+      }
     } catch (error) {
       console.error('Save error:', error);
       toast.error('Error saving guides');
@@ -223,10 +256,21 @@ export default function WW2GuideEditor() {
   const handleSaveAll = async () => {
     setIsSaving(true);
     try {
-      const savedToCloud = await saveStoredHostsAsync(hosts);
-      toast.success('All WW2 guides saved', {
-        description: savedToCloud ? 'Synced to cloud - will deploy with app.' : 'Saved locally (cloud not configured).',
-      });
+      const result = await saveStoredHostsAsync(hosts);
+      if (result.hasLocalUrls) {
+        toast.warning('Saved with local files', {
+          description: 'Some media uses local URLs that won\'t work for other users. Re-upload via Media Library.',
+          duration: 8000,
+        });
+      } else if (result.success) {
+        toast.success('All WW2 guides saved', {
+          description: 'Synced to cloud - visible to all users.',
+        });
+      } else {
+        toast.warning('Saved locally only', {
+          description: 'Cloud sync failed. Check Firebase configuration.',
+        });
+      }
     } catch (error) {
       console.error('Save error:', error);
       toast.error('Error saving guides');
@@ -675,15 +719,37 @@ function HostCard({
         <p className="text-white/50 text-xs mt-1 truncate">{host.specialty}</p>
       </div>
 
-      {/* Video indicators */}
+      {/* Video indicators - yellow/orange = local (won't work for users), green/blue = cloud */}
       <div className="absolute bottom-2 right-2 flex gap-1">
         {host.introVideoUrl && (
-          <div className="w-5 h-5 rounded-full bg-green-500/80 flex items-center justify-center" title="Intro video set">
+          <div
+            className={`w-5 h-5 rounded-full flex items-center justify-center ${
+              host.introVideoUrl.startsWith('data:') || host.introVideoUrl.startsWith('blob:')
+                ? 'bg-orange-500/80'
+                : 'bg-green-500/80'
+            }`}
+            title={
+              host.introVideoUrl.startsWith('data:') || host.introVideoUrl.startsWith('blob:')
+                ? 'Intro video (LOCAL - re-upload needed)'
+                : 'Intro video (cloud)'
+            }
+          >
             <Video size={10} className="text-white" />
           </div>
         )}
         {host.welcomeVideoUrl && (
-          <div className="w-5 h-5 rounded-full bg-blue-500/80 flex items-center justify-center" title="Welcome video set">
+          <div
+            className={`w-5 h-5 rounded-full flex items-center justify-center ${
+              host.welcomeVideoUrl.startsWith('data:') || host.welcomeVideoUrl.startsWith('blob:')
+                ? 'bg-orange-500/80'
+                : 'bg-blue-500/80'
+            }`}
+            title={
+              host.welcomeVideoUrl.startsWith('data:') || host.welcomeVideoUrl.startsWith('blob:')
+                ? 'Welcome video (LOCAL - re-upload needed)'
+                : 'Welcome video (cloud)'
+            }
+          >
             <Video size={10} className="text-white" />
           </div>
         )}
