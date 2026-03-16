@@ -14,6 +14,8 @@ import {
   RefreshCw,
   HardDrive,
   Eye,
+  Cloud,
+  CloudOff,
 } from 'lucide-react';
 import {
   loadPearlHarborMedia,
@@ -26,6 +28,9 @@ import {
   initPearlHarborMediaCache,
 } from '@/lib/adminStorage';
 import { pearlHarborStory, PearlHarborNode } from '@/data/pearlHarborStory';
+import { uploadFile } from '@/lib/supabase';
+import { isFirebaseConfigured } from '@/lib/firebase';
+import { savePearlHarborMediaData, loadPearlHarborMediaData } from '@/lib/database';
 
 interface NodeEditorProps {
   node: PearlHarborNode;
@@ -53,10 +58,11 @@ function NodeEditor({ node, media, onUpdate, isExpanded, onToggle }: NodeEditorP
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Check file size - IndexedDB can handle much larger files (50MB limit for safety)
+    // Check file size - limit based on whether using Firebase or local
     const fileSizeMB = file.size / (1024 * 1024);
-    if (fileSizeMB > 50) {
-      setUploadError(`File too large (${fileSizeMB.toFixed(1)}MB). Max 50MB per file. Try compressing the video.`);
+    const maxSize = isFirebaseConfigured() ? 100 : 50; // 100MB for Firebase, 50MB for local
+    if (fileSizeMB > maxSize) {
+      setUploadError(`File too large (${fileSizeMB.toFixed(1)}MB). Max ${maxSize}MB per file. Try compressing the video.`);
       setTimeout(() => setUploadError(null), 5000);
       return;
     }
@@ -67,22 +73,43 @@ function NodeEditor({ node, media, onUpdate, isExpanded, onToggle }: NodeEditorP
     setUploadSuccess(null);
 
     try {
-      const dataUrl = await fileToDataUrl(file);
+      let mediaUrl: string;
+
+      // Try Firebase Storage first if configured
+      if (isFirebaseConfigured()) {
+        try {
+          const uploadResult = await uploadFile(file);
+          if (uploadResult?.url) {
+            mediaUrl = uploadResult.url;
+            console.log('[PearlHarborEditor] Uploaded to Firebase Storage:', type);
+          } else {
+            // Fall back to data URL
+            mediaUrl = await fileToDataUrl(file);
+          }
+        } catch (uploadError) {
+          console.error('[PearlHarborEditor] Firebase upload failed, using local:', uploadError);
+          mediaUrl = await fileToDataUrl(file);
+        }
+      } else {
+        // Use data URL for local storage
+        mediaUrl = await fileToDataUrl(file);
+      }
 
       let success = false;
       if (type === 'video') {
-        success = onUpdate(node.id, { videoUrl: dataUrl });
+        success = onUpdate(node.id, { videoUrl: mediaUrl });
       } else if (type === 'video2') {
-        success = onUpdate(node.id, { videoUrl2: dataUrl });
+        success = onUpdate(node.id, { videoUrl2: mediaUrl });
       } else if (type === 'image') {
-        success = onUpdate(node.id, { backgroundImage: dataUrl });
+        success = onUpdate(node.id, { backgroundImage: mediaUrl });
       } else if (type === 'thumbnail') {
-        success = onUpdate(node.id, { videoThumbnail: dataUrl });
+        success = onUpdate(node.id, { videoThumbnail: mediaUrl });
       }
 
       if (success) {
         const typeLabel = type === 'video2' ? 'Narration video' : type.charAt(0).toUpperCase() + type.slice(1);
-        setUploadSuccess(`${typeLabel} saved successfully!`);
+        const location = mediaUrl.startsWith('http') ? 'to cloud' : 'locally';
+        setUploadSuccess(`${typeLabel} saved ${location}!`);
         setTimeout(() => setUploadSuccess(null), 3000);
       }
     } catch (error) {
@@ -476,13 +503,45 @@ export function PearlHarborEditor() {
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [storageInfo, setStorageInfo] = useState({ used: '0 MB', available: 'Loading...' });
   const [isLoading, setIsLoading] = useState(true);
+  const [isSyncedToCloud, setIsSyncedToCloud] = useState(false);
 
-  // Load media config from IndexedDB on mount
+  // Load media config from Firestore (primary) or IndexedDB (fallback) on mount
   useEffect(() => {
     const init = async () => {
       await initPearlHarborMediaCache();
-      const config = await loadPearlHarborMediaAsync();
-      setMediaConfig(config);
+
+      // Try loading from Firestore first if configured
+      if (isFirebaseConfigured()) {
+        try {
+          const firestoreMedia = await loadPearlHarborMediaData();
+          // Merge with local config
+          const localConfig = await loadPearlHarborMediaAsync();
+          const mergedConfig: PearlHarborMediaConfig = {
+            nodes: { ...localConfig.nodes },
+            lastUpdated: new Date().toISOString(),
+          };
+
+          // Firestore data takes priority (cloud URLs)
+          Object.entries(firestoreMedia).forEach(([nodeId, media]) => {
+            mergedConfig.nodes[nodeId] = {
+              ...(mergedConfig.nodes[nodeId] || {}),
+              ...media,
+            } as PearlHarborNodeMedia;
+          });
+
+          setMediaConfig(mergedConfig);
+          setIsSyncedToCloud(true);
+          console.log('[PearlHarborEditor] Loaded from Firestore:', Object.keys(firestoreMedia).length, 'nodes');
+        } catch (error) {
+          console.error('[PearlHarborEditor] Firestore load failed:', error);
+          const config = await loadPearlHarborMediaAsync();
+          setMediaConfig(config);
+        }
+      } else {
+        const config = await loadPearlHarborMediaAsync();
+        setMediaConfig(config);
+      }
+
       const info = await getIndexedDBStorageInfo();
       setStorageInfo(info);
       setIsLoading(false);
@@ -501,12 +560,42 @@ export function PearlHarborEditor() {
     setSaveStatus('saving');
 
     try {
+      // Save to local IndexedDB first
       const success = updatePearlHarborNodeMedia(nodeId, media);
 
       if (success) {
         // Reload config
         const config = loadPearlHarborMedia();
         setMediaConfig(config);
+
+        // Also sync to Firestore if configured (only for cloud URLs)
+        if (isFirebaseConfigured()) {
+          // Filter to only include cloud URLs (not data: URLs which are too large)
+          const cloudMedia: Partial<PearlHarborNodeMedia> = {};
+          if (media.videoUrl && media.videoUrl.startsWith('http')) {
+            cloudMedia.videoUrl = media.videoUrl;
+          }
+          if (media.videoUrl2 && media.videoUrl2.startsWith('http')) {
+            cloudMedia.videoUrl2 = media.videoUrl2;
+          }
+          if (media.backgroundImage && media.backgroundImage.startsWith('http')) {
+            cloudMedia.backgroundImage = media.backgroundImage;
+          }
+          if (media.videoThumbnail && media.videoThumbnail.startsWith('http')) {
+            cloudMedia.videoThumbnail = media.videoThumbnail;
+          }
+
+          // Only sync if we have cloud URLs
+          if (Object.keys(cloudMedia).length > 0) {
+            savePearlHarborMediaData(nodeId, cloudMedia).then(firestoreSuccess => {
+              if (firestoreSuccess) {
+                console.log('[PearlHarborEditor] Synced to Firestore:', nodeId);
+                setIsSyncedToCloud(true);
+              }
+            });
+          }
+        }
+
         setSaveStatus('saved');
         setTimeout(() => setSaveStatus('idle'), 3000);
         return true;
@@ -557,7 +646,27 @@ export function PearlHarborEditor() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="font-editorial text-3xl font-bold">Pearl Harbor Editor</h1>
+              <div className="flex items-center gap-3">
+                <h1 className="font-editorial text-3xl font-bold">Pearl Harbor Editor</h1>
+                {/* Cloud sync status */}
+                <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-medium ${
+                  isSyncedToCloud
+                    ? 'bg-green-500/10 text-green-500'
+                    : 'bg-amber-500/10 text-amber-500'
+                }`}>
+                  {isSyncedToCloud ? (
+                    <>
+                      <Cloud size={12} />
+                      Cloud Enabled
+                    </>
+                  ) : (
+                    <>
+                      <CloudOff size={12} />
+                      Local Only
+                    </>
+                  )}
+                </div>
+              </div>
               <p className="text-muted-foreground">
                 Upload videos and images for the Pearl Harbor story experience
               </p>
@@ -611,7 +720,7 @@ export function PearlHarborEditor() {
                     className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 text-sm font-medium"
                   >
                     <CheckCircle2 size={16} />
-                    Saved to Browser
+                    {isSyncedToCloud ? 'Saved to Cloud' : 'Saved to Browser'}
                   </motion.div>
                 )}
                 {saveStatus === 'error' && (

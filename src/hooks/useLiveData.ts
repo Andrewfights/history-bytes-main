@@ -646,3 +646,189 @@ export function useLiveCourseData() {
 export function triggerDataRefresh(key: keyof typeof STORAGE_KEYS) {
   notifyStorageUpdate(STORAGE_KEYS[key]);
 }
+
+// ============ Era Tile Overrides Hook ============
+
+import {
+  subscribeToEraTileOverrides,
+  subscribeToGameThumbnails,
+  subscribeToPearlHarborMedia,
+  subscribeToGhostArmyMedia,
+} from '@/lib/firestore';
+import {
+  loadEraTileOverrides,
+  loadGameThumbnails,
+  loadPearlHarborMediaData,
+  loadGhostArmyMediaData,
+  type EraTileOverride,
+  type PearlHarborMediaData,
+  type GhostArmyMediaData,
+} from '@/lib/database';
+import {
+  getEraTileOverrides,
+  initEraTileOverridesCache,
+  type EraTileOverrides,
+} from '@/data/historicalEras';
+import {
+  loadGameThumbnails as loadLocalGameThumbnails,
+  initGameThumbnailsCache,
+} from '@/data/arcadeGames';
+
+export function useLiveEraTileOverrides(): EraTileOverrides {
+  const [overrides, setOverrides] = useState<EraTileOverrides>(() => {
+    return getEraTileOverrides();
+  });
+
+  useEffect(() => {
+    // Initialize from Firestore
+    const init = async () => {
+      try {
+        await initEraTileOverridesCache();
+        setOverrides(getEraTileOverrides());
+      } catch (error) {
+        console.error('Failed to init era tile overrides:', error);
+      }
+    };
+
+    if (isFirebaseConfigured()) {
+      init();
+
+      // Subscribe to real-time changes
+      const unsubscribe = subscribeToEraTileOverrides((firestoreOverrides) => {
+        const result: EraTileOverrides = {};
+        firestoreOverrides.forEach(o => {
+          if (o.isActive) {
+            result[o.id] = { imageUrl: o.imageUrl };
+          }
+        });
+        setOverrides(result);
+      });
+
+      return () => unsubscribe();
+    }
+  }, []);
+
+  return overrides;
+}
+
+// ============ Game Thumbnails Hook ============
+
+export function useLiveGameThumbnails(): Record<string, string> {
+  const [thumbnails, setThumbnails] = useState<Record<string, string>>(() => {
+    return loadLocalGameThumbnails();
+  });
+
+  useEffect(() => {
+    // Initialize from Firestore
+    const init = async () => {
+      try {
+        await initGameThumbnailsCache();
+        const fresh = await loadGameThumbnails();
+        setThumbnails(fresh);
+      } catch (error) {
+        console.error('Failed to init game thumbnails:', error);
+      }
+    };
+
+    if (isFirebaseConfigured()) {
+      init();
+
+      // Subscribe to real-time changes
+      const unsubscribe = subscribeToGameThumbnails((firestoreThumbnails) => {
+        const result: Record<string, string> = {};
+        firestoreThumbnails.forEach(t => {
+          result[t.id] = t.imageUrl;
+        });
+        setThumbnails(result);
+      });
+
+      return () => unsubscribe();
+    }
+  }, []);
+
+  return thumbnails;
+}
+
+// ============ Pearl Harbor Media Hook ============
+
+export function useLivePearlHarborMedia(): Record<string, PearlHarborMediaData> {
+  const [media, setMedia] = useState<Record<string, PearlHarborMediaData>>({});
+
+  useEffect(() => {
+    // Load from Firestore on mount
+    const init = async () => {
+      try {
+        const data = await loadPearlHarborMediaData();
+        setMedia(data);
+      } catch (error) {
+        console.error('Failed to load Pearl Harbor media:', error);
+      }
+    };
+
+    if (isFirebaseConfigured()) {
+      init();
+
+      // Subscribe to real-time changes
+      const unsubscribe = subscribeToPearlHarborMedia((items) => {
+        const result: Record<string, PearlHarborMediaData> = {};
+        items.forEach(item => {
+          result[item.id] = {
+            id: item.id,
+            videoUrl: item.videoUrl,
+            videoUrl2: item.videoUrl2,
+            videoThumbnail: item.videoThumbnail,
+            backgroundImage: item.backgroundImage,
+            additionalImages: item.additionalImages,
+          };
+        });
+        setMedia(result);
+      });
+
+      return () => unsubscribe();
+    }
+  }, []);
+
+  return media;
+}
+
+// ============ Ghost Army Media Hook ============
+
+export function useLiveGhostArmyMedia(): Record<string, GhostArmyMediaData> {
+  const [media, setMedia] = useState<Record<string, GhostArmyMediaData>>({});
+
+  useEffect(() => {
+    // Load from Firestore on mount
+    const init = async () => {
+      try {
+        const data = await loadGhostArmyMediaData();
+        setMedia(data);
+      } catch (error) {
+        console.error('Failed to load Ghost Army media:', error);
+      }
+    };
+
+    if (isFirebaseConfigured()) {
+      init();
+
+      // Subscribe to real-time changes
+      const unsubscribe = subscribeToGhostArmyMedia((items) => {
+        const result: Record<string, GhostArmyMediaData> = {};
+        items.forEach(item => {
+          result[item.id] = {
+            id: item.id,
+            videoUrl: item.videoUrl,
+            videoUrl2: item.videoUrl2,
+            videoThumbnail: item.videoThumbnail,
+            backgroundImage: item.backgroundImage,
+            additionalImages: item.additionalImages,
+          };
+        });
+        setMedia(result);
+      });
+
+      return () => unsubscribe();
+    }
+  }, []);
+
+  return media;
+}

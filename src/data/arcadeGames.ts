@@ -1,7 +1,15 @@
 /**
  * Arcade Games - Data definitions for all mini-games
  * Includes categories, default images, and helper functions
+ *
+ * Thumbnails are stored in Firestore with localStorage cache
  */
+
+import {
+  loadGameThumbnails as dbLoadGameThumbnails,
+  saveGameThumbnailUrl as dbSaveGameThumbnail,
+  type GameThumbnailData,
+} from '@/lib/database';
 
 export type GameCategory = 'word' | 'timeline' | 'geography' | 'trivia' | 'visual';
 
@@ -17,8 +25,12 @@ export interface ArcadeGame {
   accentColor: string;
 }
 
-// localStorage key for admin thumbnails
+// localStorage key for admin thumbnails (used as cache)
 export const GAME_THUMBNAILS_KEY = 'hb_arcade_game_thumbnails';
+
+// In-memory cache for thumbnails
+let thumbnailsCache: Record<string, string> = {};
+let thumbnailsCacheInitialized = false;
 
 // Map frontend game types to admin game types for thumbnails
 export const gameTypeToThumbnailKey: Record<string, string> = {
@@ -230,15 +242,88 @@ export function getDailyFeaturedGame(): ArcadeGame {
 }
 
 /**
- * Load game thumbnails from localStorage (admin overrides)
+ * Initialize thumbnails cache from Firestore (call on app start)
+ */
+export async function initGameThumbnailsCache(): Promise<void> {
+  try {
+    const thumbnails = await dbLoadGameThumbnails();
+    thumbnailsCache = thumbnails;
+    thumbnailsCacheInitialized = true;
+    // Update localStorage cache
+    localStorage.setItem(GAME_THUMBNAILS_KEY, JSON.stringify(thumbnails));
+    console.log('[arcadeGames] Loaded', Object.keys(thumbnails).length, 'game thumbnails from Firestore');
+  } catch (error) {
+    console.error('[arcadeGames] Failed to load from Firestore:', error);
+    // Fall back to localStorage
+    try {
+      const stored = localStorage.getItem(GAME_THUMBNAILS_KEY);
+      if (stored) {
+        thumbnailsCache = JSON.parse(stored);
+      }
+    } catch {
+      thumbnailsCache = {};
+    }
+    thumbnailsCacheInitialized = true;
+  }
+}
+
+/**
+ * Load game thumbnails (synchronous, uses cache)
  */
 export function loadGameThumbnails(): Record<string, string> {
+  if (thumbnailsCacheInitialized) {
+    return { ...thumbnailsCache };
+  }
+
+  // Fall back to localStorage if cache not initialized
   try {
     const stored = localStorage.getItem(GAME_THUMBNAILS_KEY);
     return stored ? JSON.parse(stored) : {};
   } catch {
     return {};
   }
+}
+
+/**
+ * Load game thumbnails async (fresh from Firestore)
+ */
+export async function loadGameThumbnailsAsync(): Promise<Record<string, string>> {
+  try {
+    const thumbnails = await dbLoadGameThumbnails();
+    thumbnailsCache = thumbnails;
+    thumbnailsCacheInitialized = true;
+    localStorage.setItem(GAME_THUMBNAILS_KEY, JSON.stringify(thumbnails));
+    return thumbnails;
+  } catch (error) {
+    console.error('[arcadeGames] Failed to load from Firestore:', error);
+    return loadGameThumbnails();
+  }
+}
+
+/**
+ * Save a game thumbnail (saves to Firestore with localStorage cache)
+ */
+export function saveGameThumbnail(gameType: string, imageUrl: string): void {
+  // Update cache immediately
+  thumbnailsCache[gameType] = imageUrl;
+
+  // Update localStorage cache
+  try {
+    localStorage.setItem(GAME_THUMBNAILS_KEY, JSON.stringify(thumbnailsCache));
+  } catch (error) {
+    console.error('[arcadeGames] Failed to update localStorage:', error);
+  }
+
+  // Save to Firestore (async)
+  dbSaveGameThumbnail(gameType, imageUrl).then(success => {
+    if (success) {
+      console.log('[arcadeGames] Saved game thumbnail to Firestore:', gameType);
+    } else {
+      console.warn('[arcadeGames] Failed to save to Firestore, using localStorage only');
+    }
+  }).catch(error => {
+    console.error('[arcadeGames] Firestore save error:', error);
+  });
 }
 
 /**

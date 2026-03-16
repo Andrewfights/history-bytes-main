@@ -3,9 +3,9 @@
  * Allows uploading custom images or resetting to defaults
  */
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Image, Upload, RotateCcw, Check, Loader2 } from 'lucide-react';
+import { Image, Upload, RotateCcw, Check, Loader2, CloudOff, Cloud } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   getAllEras,
@@ -13,11 +13,14 @@ import {
   saveEraTileOverride,
   resetEraTileToDefault,
   getEraTileOverrides,
+  getEraTileOverridesAsync,
+  initEraTileOverridesCache,
   HistoricalEra,
 } from '@/data/historicalEras';
 import { uploadFile } from '@/lib/supabase';
 import { MediaPicker } from './MediaPicker';
 import type { MediaFile } from '@/lib/supabase';
+import { isFirebaseConfigured } from '@/lib/firebase';
 
 export default function EraTileEditor() {
   const [eras] = useState<HistoricalEra[]>(getAllEras());
@@ -25,7 +28,23 @@ export default function EraTileEditor() {
   const [overrides, setOverrides] = useState(getEraTileOverrides());
   const [isUploading, setIsUploading] = useState(false);
   const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
+  const [isSyncedToCloud, setIsSyncedToCloud] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Initialize cache from Firestore on mount
+  useEffect(() => {
+    const loadOverrides = async () => {
+      try {
+        await initEraTileOverridesCache();
+        const freshOverrides = await getEraTileOverridesAsync();
+        setOverrides(freshOverrides);
+        setIsSyncedToCloud(isFirebaseConfigured());
+      } catch (error) {
+        console.error('Failed to load era overrides:', error);
+      }
+    };
+    loadOverrides();
+  }, []);
 
   const selectedEra = eras.find(e => e.id === selectedEraId);
 
@@ -90,6 +109,24 @@ export default function EraTileEditor() {
           <p className="text-muted-foreground mt-1">
             Customize the images displayed for each historical era on the home page
           </p>
+        </div>
+        {/* Cloud sync status */}
+        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${
+          isSyncedToCloud
+            ? 'bg-green-500/10 text-green-500'
+            : 'bg-amber-500/10 text-amber-500'
+        }`}>
+          {isSyncedToCloud ? (
+            <>
+              <Cloud size={14} />
+              Synced to Cloud
+            </>
+          ) : (
+            <>
+              <CloudOff size={14} />
+              Local Only
+            </>
+          )}
         </div>
       </div>
 

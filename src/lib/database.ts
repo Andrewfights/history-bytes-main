@@ -852,3 +852,473 @@ export async function checkDatabaseReady(): Promise<boolean> {
   }
   return false;
 }
+
+// ============ Era Tile Overrides ============
+
+import {
+  getEraTileOverrides as firestoreGetEraTileOverrides,
+  saveEraTileOverride as firestoreSaveEraTileOverride,
+  deleteEraTileOverride as firestoreDeleteEraTileOverride,
+  subscribeToEraTileOverrides,
+  getGameThumbnails as firestoreGetGameThumbnails,
+  saveGameThumbnail as firestoreSaveGameThumbnail,
+  subscribeToGameThumbnails,
+  getArcadeItems as firestoreGetArcadeItems,
+  saveArcadeItem as firestoreSaveArcadeItem,
+  deleteArcadeItem as firestoreDeleteArcadeItem,
+  subscribeToArcadeItems,
+  getTriviaSets as firestoreGetTriviaSets,
+  saveTriviaSet as firestoreSaveTriviaSet,
+  deleteTriviaSet as firestoreDeleteTriviaSet,
+  subscribeToTriviaSets,
+  getVoiceSettings as firestoreGetVoiceSettings,
+  saveVoiceSetting as firestoreSaveVoiceSetting,
+  subscribeToVoiceSettings,
+  getPearlHarborMediaItems as firestoreGetPearlHarborMedia,
+  savePearlHarborMediaItem as firestoreSavePearlHarborMedia,
+  subscribeToPearlHarborMedia,
+  getGhostArmyMediaItems as firestoreGetGhostArmyMedia,
+  saveGhostArmyMediaItem as firestoreSaveGhostArmyMedia,
+  subscribeToGhostArmyMedia,
+  type FirestoreEraTileOverride,
+  type FirestoreGameThumbnail,
+  type FirestoreArcadeItem,
+  type FirestoreTriviaSet,
+  type FirestoreVoiceSettings,
+  type FirestorePearlHarborMedia,
+  type FirestoreGhostArmyMedia,
+} from './firestore';
+
+// Re-export types
+export type {
+  FirestoreEraTileOverride,
+  FirestoreGameThumbnail,
+  FirestoreArcadeItem,
+  FirestoreTriviaSet,
+  FirestoreVoiceSettings,
+  FirestorePearlHarborMedia,
+  FirestoreGhostArmyMedia,
+};
+
+// Re-export subscription functions for real-time updates
+export {
+  subscribeToEraTileOverrides,
+  subscribeToGameThumbnails,
+  subscribeToArcadeItems,
+  subscribeToTriviaSets,
+  subscribeToVoiceSettings,
+  subscribeToPearlHarborMedia,
+  subscribeToGhostArmyMedia,
+};
+
+const ERA_TILE_OVERRIDES_KEY = 'hb_admin_era_tile_overrides';
+const GAME_THUMBNAILS_KEY = 'hb_admin_game_thumbnails';
+const VOICE_SETTINGS_KEY = 'hb_admin_voice_settings';
+
+export interface EraTileOverride {
+  id: string;
+  imageUrl: string;
+  isActive: boolean;
+}
+
+export interface GameThumbnailData {
+  [gameType: string]: string; // gameType -> imageUrl
+}
+
+export interface VoiceSettingsData {
+  voiceId: string;
+  stability: number;
+  similarity: number;
+  style: number;
+}
+
+// ============ Era Tile Overrides ============
+
+export async function loadEraTileOverrides(): Promise<EraTileOverride[]> {
+  if (isFirebaseConfigured()) {
+    try {
+      const overrides = await firestoreGetEraTileOverrides();
+      const result = overrides.map(o => ({
+        id: o.id,
+        imageUrl: o.imageUrl,
+        isActive: o.isActive,
+      }));
+      // Cache locally
+      saveToStorage(ERA_TILE_OVERRIDES_KEY, result);
+      return result;
+    } catch (err) {
+      console.error('[loadEraTileOverrides] Firestore error:', err);
+    }
+  }
+  return loadFromStorage<EraTileOverride[]>(ERA_TILE_OVERRIDES_KEY, []);
+}
+
+export async function saveEraTileOverride(override: EraTileOverride): Promise<boolean> {
+  if (isFirebaseConfigured()) {
+    try {
+      const success = await firestoreSaveEraTileOverride({
+        id: override.id,
+        imageUrl: override.imageUrl,
+        isActive: override.isActive,
+      });
+      if (success) {
+        // Update local cache
+        const existing = loadFromStorage<EraTileOverride[]>(ERA_TILE_OVERRIDES_KEY, []);
+        const index = existing.findIndex(o => o.id === override.id);
+        if (index >= 0) {
+          existing[index] = override;
+        } else {
+          existing.push(override);
+        }
+        saveToStorage(ERA_TILE_OVERRIDES_KEY, existing);
+        return true;
+      }
+    } catch (err) {
+      console.error('[saveEraTileOverride] Firestore error:', err);
+    }
+  }
+
+  // Fallback to localStorage
+  const existing = loadFromStorage<EraTileOverride[]>(ERA_TILE_OVERRIDES_KEY, []);
+  const index = existing.findIndex(o => o.id === override.id);
+  if (index >= 0) {
+    existing[index] = override;
+  } else {
+    existing.push(override);
+  }
+  return saveToStorage(ERA_TILE_OVERRIDES_KEY, existing);
+}
+
+export async function deleteEraTileOverride(eraId: string): Promise<boolean> {
+  if (isFirebaseConfigured()) {
+    try {
+      const success = await firestoreDeleteEraTileOverride(eraId);
+      if (success) {
+        const existing = loadFromStorage<EraTileOverride[]>(ERA_TILE_OVERRIDES_KEY, []);
+        const filtered = existing.filter(o => o.id !== eraId);
+        saveToStorage(ERA_TILE_OVERRIDES_KEY, filtered);
+        return true;
+      }
+    } catch (err) {
+      console.error('[deleteEraTileOverride] Firestore error:', err);
+    }
+  }
+
+  const existing = loadFromStorage<EraTileOverride[]>(ERA_TILE_OVERRIDES_KEY, []);
+  const filtered = existing.filter(o => o.id !== eraId);
+  return saveToStorage(ERA_TILE_OVERRIDES_KEY, filtered);
+}
+
+// ============ Game Thumbnails ============
+
+export async function loadGameThumbnails(): Promise<GameThumbnailData> {
+  if (isFirebaseConfigured()) {
+    try {
+      const thumbnails = await firestoreGetGameThumbnails();
+      const result: GameThumbnailData = {};
+      thumbnails.forEach(t => {
+        result[t.id] = t.imageUrl;
+      });
+      saveToStorage(GAME_THUMBNAILS_KEY, result);
+      return result;
+    } catch (err) {
+      console.error('[loadGameThumbnails] Firestore error:', err);
+    }
+  }
+  return loadFromStorage<GameThumbnailData>(GAME_THUMBNAILS_KEY, {});
+}
+
+export async function saveGameThumbnailUrl(gameType: string, imageUrl: string): Promise<boolean> {
+  if (isFirebaseConfigured()) {
+    try {
+      const success = await firestoreSaveGameThumbnail({
+        id: gameType,
+        imageUrl,
+      });
+      if (success) {
+        const existing = loadFromStorage<GameThumbnailData>(GAME_THUMBNAILS_KEY, {});
+        existing[gameType] = imageUrl;
+        saveToStorage(GAME_THUMBNAILS_KEY, existing);
+        return true;
+      }
+    } catch (err) {
+      console.error('[saveGameThumbnail] Firestore error:', err);
+    }
+  }
+
+  const existing = loadFromStorage<GameThumbnailData>(GAME_THUMBNAILS_KEY, {});
+  existing[gameType] = imageUrl;
+  return saveToStorage(GAME_THUMBNAILS_KEY, existing);
+}
+
+// ============ Arcade Items ============
+
+export async function loadArcadeItems(gameType?: string): Promise<FirestoreArcadeItem[]> {
+  if (isFirebaseConfigured()) {
+    try {
+      return await firestoreGetArcadeItems(gameType);
+    } catch (err) {
+      console.error('[loadArcadeItems] Firestore error:', err);
+    }
+  }
+  // Fallback: try to load from localStorage
+  const storageKey = `hb_admin_arcade_${gameType || 'all'}`;
+  return loadFromStorage<FirestoreArcadeItem[]>(storageKey, []);
+}
+
+export async function saveArcadeItemData(item: FirestoreArcadeItem): Promise<boolean> {
+  if (isFirebaseConfigured()) {
+    try {
+      const success = await firestoreSaveArcadeItem(item);
+      if (success) {
+        console.log('[saveArcadeItem] Saved to Firestore:', item.id);
+        return true;
+      }
+    } catch (err) {
+      console.error('[saveArcadeItem] Firestore error:', err);
+    }
+  }
+
+  // Fallback to localStorage
+  const storageKey = `hb_admin_arcade_${item.gameType}`;
+  const existing = loadFromStorage<FirestoreArcadeItem[]>(storageKey, []);
+  const index = existing.findIndex(i => i.id === item.id);
+  if (index >= 0) {
+    existing[index] = item;
+  } else {
+    existing.push(item);
+  }
+  return saveToStorage(storageKey, existing);
+}
+
+export async function deleteArcadeItemData(itemId: string, gameType: string): Promise<boolean> {
+  if (isFirebaseConfigured()) {
+    try {
+      const success = await firestoreDeleteArcadeItem(itemId);
+      if (success) {
+        console.log('[deleteArcadeItem] Deleted from Firestore:', itemId);
+        return true;
+      }
+    } catch (err) {
+      console.error('[deleteArcadeItem] Firestore error:', err);
+    }
+  }
+
+  const storageKey = `hb_admin_arcade_${gameType}`;
+  const existing = loadFromStorage<FirestoreArcadeItem[]>(storageKey, []);
+  const filtered = existing.filter(i => i.id !== itemId);
+  return saveToStorage(storageKey, filtered);
+}
+
+// ============ Trivia Sets ============
+
+export async function loadTriviaSetsData(): Promise<FirestoreTriviaSet[]> {
+  if (isFirebaseConfigured()) {
+    try {
+      return await firestoreGetTriviaSets();
+    } catch (err) {
+      console.error('[loadTriviaSets] Firestore error:', err);
+    }
+  }
+  return loadFromStorage<FirestoreTriviaSet[]>('hb_admin_trivia_sets', []);
+}
+
+export async function saveTriviaSetData(triviaSet: FirestoreTriviaSet): Promise<boolean> {
+  if (isFirebaseConfigured()) {
+    try {
+      const success = await firestoreSaveTriviaSet(triviaSet);
+      if (success) {
+        console.log('[saveTriviaSet] Saved to Firestore:', triviaSet.id);
+        return true;
+      }
+    } catch (err) {
+      console.error('[saveTriviaSet] Firestore error:', err);
+    }
+  }
+
+  const existing = loadFromStorage<FirestoreTriviaSet[]>('hb_admin_trivia_sets', []);
+  const index = existing.findIndex(s => s.id === triviaSet.id);
+  if (index >= 0) {
+    existing[index] = triviaSet;
+  } else {
+    existing.push(triviaSet);
+  }
+  return saveToStorage('hb_admin_trivia_sets', existing);
+}
+
+export async function deleteTriviaSetData(setId: string): Promise<boolean> {
+  if (isFirebaseConfigured()) {
+    try {
+      const success = await firestoreDeleteTriviaSet(setId);
+      if (success) return true;
+    } catch (err) {
+      console.error('[deleteTriviaSet] Firestore error:', err);
+    }
+  }
+
+  const existing = loadFromStorage<FirestoreTriviaSet[]>('hb_admin_trivia_sets', []);
+  const filtered = existing.filter(s => s.id !== setId);
+  return saveToStorage('hb_admin_trivia_sets', filtered);
+}
+
+// ============ Voice Settings ============
+
+export async function loadVoiceSettingsData(): Promise<Record<string, VoiceSettingsData>> {
+  if (isFirebaseConfigured()) {
+    try {
+      const settings = await firestoreGetVoiceSettings();
+      const result: Record<string, VoiceSettingsData> = {};
+      settings.forEach(s => {
+        result[s.id] = {
+          voiceId: s.voiceId,
+          stability: s.stability,
+          similarity: s.similarity,
+          style: s.style,
+        };
+      });
+      saveToStorage(VOICE_SETTINGS_KEY, result);
+      return result;
+    } catch (err) {
+      console.error('[loadVoiceSettings] Firestore error:', err);
+    }
+  }
+  return loadFromStorage<Record<string, VoiceSettingsData>>(VOICE_SETTINGS_KEY, {});
+}
+
+export async function saveVoiceSettingsData(id: string, settings: VoiceSettingsData): Promise<boolean> {
+  if (isFirebaseConfigured()) {
+    try {
+      const success = await firestoreSaveVoiceSetting({
+        id,
+        voiceId: settings.voiceId,
+        stability: settings.stability,
+        similarity: settings.similarity,
+        style: settings.style,
+      });
+      if (success) {
+        const existing = loadFromStorage<Record<string, VoiceSettingsData>>(VOICE_SETTINGS_KEY, {});
+        existing[id] = settings;
+        saveToStorage(VOICE_SETTINGS_KEY, existing);
+        return true;
+      }
+    } catch (err) {
+      console.error('[saveVoiceSettings] Firestore error:', err);
+    }
+  }
+
+  const existing = loadFromStorage<Record<string, VoiceSettingsData>>(VOICE_SETTINGS_KEY, {});
+  existing[id] = settings;
+  return saveToStorage(VOICE_SETTINGS_KEY, existing);
+}
+
+// ============ Pearl Harbor Media ============
+
+export interface PearlHarborMediaData {
+  id: string;
+  videoUrl?: string;
+  videoUrl2?: string;
+  videoThumbnail?: string;
+  backgroundImage?: string;
+  additionalImages?: string[];
+}
+
+export async function loadPearlHarborMediaData(): Promise<Record<string, PearlHarborMediaData>> {
+  if (isFirebaseConfigured()) {
+    try {
+      const items = await firestoreGetPearlHarborMedia();
+      const result: Record<string, PearlHarborMediaData> = {};
+      items.forEach(item => {
+        result[item.id] = {
+          id: item.id,
+          videoUrl: item.videoUrl,
+          videoUrl2: item.videoUrl2,
+          videoThumbnail: item.videoThumbnail,
+          backgroundImage: item.backgroundImage,
+          additionalImages: item.additionalImages,
+        };
+      });
+      return result;
+    } catch (err) {
+      console.error('[loadPearlHarborMedia] Firestore error:', err);
+    }
+  }
+  return {};
+}
+
+export async function savePearlHarborMediaData(nodeId: string, media: Partial<PearlHarborMediaData>): Promise<boolean> {
+  if (isFirebaseConfigured()) {
+    try {
+      const success = await firestoreSavePearlHarborMedia({
+        id: nodeId,
+        videoUrl: media.videoUrl,
+        videoUrl2: media.videoUrl2,
+        videoThumbnail: media.videoThumbnail,
+        backgroundImage: media.backgroundImage,
+        additionalImages: media.additionalImages,
+      });
+      if (success) {
+        console.log('[savePearlHarborMedia] Saved to Firestore:', nodeId);
+        return true;
+      }
+    } catch (err) {
+      console.error('[savePearlHarborMedia] Firestore error:', err);
+    }
+  }
+  return false;
+}
+
+// ============ Ghost Army Media ============
+
+export interface GhostArmyMediaData {
+  id: string;
+  videoUrl?: string;
+  videoUrl2?: string;
+  videoThumbnail?: string;
+  backgroundImage?: string;
+  additionalImages?: string[];
+}
+
+export async function loadGhostArmyMediaData(): Promise<Record<string, GhostArmyMediaData>> {
+  if (isFirebaseConfigured()) {
+    try {
+      const items = await firestoreGetGhostArmyMedia();
+      const result: Record<string, GhostArmyMediaData> = {};
+      items.forEach(item => {
+        result[item.id] = {
+          id: item.id,
+          videoUrl: item.videoUrl,
+          videoUrl2: item.videoUrl2,
+          videoThumbnail: item.videoThumbnail,
+          backgroundImage: item.backgroundImage,
+          additionalImages: item.additionalImages,
+        };
+      });
+      return result;
+    } catch (err) {
+      console.error('[loadGhostArmyMedia] Firestore error:', err);
+    }
+  }
+  return {};
+}
+
+export async function saveGhostArmyMediaData(nodeId: string, media: Partial<GhostArmyMediaData>): Promise<boolean> {
+  if (isFirebaseConfigured()) {
+    try {
+      const success = await firestoreSaveGhostArmyMedia({
+        id: nodeId,
+        videoUrl: media.videoUrl,
+        videoUrl2: media.videoUrl2,
+        videoThumbnail: media.videoThumbnail,
+        backgroundImage: media.backgroundImage,
+        additionalImages: media.additionalImages,
+      });
+      if (success) {
+        console.log('[saveGhostArmyMedia] Saved to Firestore:', nodeId);
+        return true;
+      }
+    } catch (err) {
+      console.error('[saveGhostArmyMedia] Firestore error:', err);
+    }
+  }
+  return false;
+}

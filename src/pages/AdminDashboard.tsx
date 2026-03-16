@@ -1,10 +1,14 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Map, BookOpen, Gamepad2, Users, FileText, Layers, ArrowRight, Wand2 } from 'lucide-react';
+import { Map, BookOpen, Gamepad2, Users, FileText, Layers, ArrowRight, Wand2, Cloud, CloudOff, Loader2, CheckCircle2 } from 'lucide-react';
 import { arcs } from '@/data/journeyData';
 import { courses, units, lessons } from '@/data/courseData';
 import { anachronismScenes, connectionsPuzzles, mapMysteries, artifactCases, causeEffectPairs } from '@/data/arcadeData';
 import { spiritGuides } from '@/data/spiritGuidesData';
+import { isFirebaseConfigured } from '@/lib/firebase';
+import { migrateAllToFirebase, type MigrationResult } from '@/lib/migrateToFirebase';
+import { toast } from 'sonner';
 
 interface StatCardProps {
   title: string;
@@ -63,6 +67,10 @@ function QuickLink({ to, title, description, icon: Icon }: QuickLinkProps) {
 }
 
 export default function AdminDashboard() {
+  const [isMigrating, setIsMigrating] = useState(false);
+  const [migrationResult, setMigrationResult] = useState<MigrationResult | null>(null);
+  const firebaseConfigured = isFirebaseConfigured();
+
   // Calculate stats
   const totalChapters = arcs.reduce((sum, arc) => sum + arc.chapters.length, 0);
   const totalNodes = arcs.reduce((sum, arc) =>
@@ -74,6 +82,27 @@ export default function AdminDashboard() {
     mapMysteries.length +
     artifactCases.length +
     causeEffectPairs.length;
+
+  const handleMigration = async () => {
+    setIsMigrating(true);
+    setMigrationResult(null);
+
+    try {
+      const result = await migrateAllToFirebase();
+      setMigrationResult(result);
+
+      if (result.success) {
+        toast.success('Migration completed successfully!');
+      } else {
+        toast.error(`Migration completed with ${result.errors.length} errors`);
+      }
+    } catch (error) {
+      console.error('Migration failed:', error);
+      toast.error('Migration failed. Check console for details.');
+    } finally {
+      setIsMigrating(false);
+    }
+  };
 
   return (
     <div className="max-w-5xl">
@@ -133,17 +162,98 @@ export default function AdminDashboard() {
         />
       </div>
 
-      {/* Info Banner */}
+      {/* Cloud Sync Status */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.3 }}
-        className="mt-8 bg-amber-500/10 border border-amber-500/30 rounded-xl p-4"
+        className={`mt-8 rounded-xl p-4 border ${
+          firebaseConfigured
+            ? 'bg-green-500/10 border-green-500/30'
+            : 'bg-amber-500/10 border-amber-500/30'
+        }`}
       >
-        <p className="text-sm text-amber-200">
-          <strong>Note:</strong> This is a demo admin panel. Changes are displayed in the UI but not persisted to a database.
-          Backend integration coming soon.
-        </p>
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-3">
+            {firebaseConfigured ? (
+              <Cloud size={20} className="text-green-400 mt-0.5" />
+            ) : (
+              <CloudOff size={20} className="text-amber-400 mt-0.5" />
+            )}
+            <div>
+              <p className={`text-sm font-medium ${firebaseConfigured ? 'text-green-300' : 'text-amber-200'}`}>
+                {firebaseConfigured ? 'Firebase Cloud Sync Enabled' : 'Local Storage Mode'}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {firebaseConfigured
+                  ? 'Changes are synced to Firebase and visible to all users immediately.'
+                  : 'Add Firebase environment variables to enable cloud sync.'}
+              </p>
+            </div>
+          </div>
+
+          {firebaseConfigured && (
+            <button
+              onClick={handleMigration}
+              disabled={isMigrating}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+            >
+              {isMigrating ? (
+                <>
+                  <Loader2 size={14} className="animate-spin" />
+                  Migrating...
+                </>
+              ) : (
+                <>
+                  <Cloud size={14} />
+                  Migrate Local Data
+                </>
+              )}
+            </button>
+          )}
+        </div>
+
+        {/* Migration Result */}
+        {migrationResult && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            className="mt-4 pt-4 border-t border-green-500/20"
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <CheckCircle2 size={14} className="text-green-400" />
+              <span className="text-sm text-green-300">Migration Complete</span>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+              <div className="bg-green-500/10 rounded px-2 py-1">
+                <span className="font-medium">{migrationResult.migratedItems.eraTileOverrides}</span>
+                <span className="text-muted-foreground ml-1">Era Tiles</span>
+              </div>
+              <div className="bg-green-500/10 rounded px-2 py-1">
+                <span className="font-medium">{migrationResult.migratedItems.gameThumbnails}</span>
+                <span className="text-muted-foreground ml-1">Game Thumbs</span>
+              </div>
+              <div className="bg-green-500/10 rounded px-2 py-1">
+                <span className="font-medium">{migrationResult.migratedItems.pearlHarborMedia}</span>
+                <span className="text-muted-foreground ml-1">PH Media</span>
+              </div>
+              <div className="bg-green-500/10 rounded px-2 py-1">
+                <span className="font-medium">{migrationResult.migratedItems.ghostArmyMedia}</span>
+                <span className="text-muted-foreground ml-1">GA Media</span>
+              </div>
+            </div>
+            {migrationResult.skippedDataUrls > 0 && (
+              <p className="text-xs text-amber-300 mt-2">
+                {migrationResult.skippedDataUrls} local files skipped (upload via editors to sync)
+              </p>
+            )}
+            {migrationResult.errors.length > 0 && (
+              <p className="text-xs text-red-300 mt-2">
+                {migrationResult.errors.length} errors occurred. Check console for details.
+              </p>
+            )}
+          </motion.div>
+        )}
       </motion.div>
     </div>
   );

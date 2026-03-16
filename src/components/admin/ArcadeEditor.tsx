@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Gamepad2, ChevronRight, ArrowLeft, Save, Plus, Trash2, Image, X,
-  HelpCircle, MapPin, Calendar, FileQuestion, Copy, GripVertical, Database, Upload, Wand2, Loader2
+  HelpCircle, MapPin, Calendar, FileQuestion, Copy, GripVertical, Database, Upload, Wand2, Loader2,
+  Cloud, CloudOff
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { MediaPicker } from './MediaPicker';
@@ -25,6 +26,13 @@ import {
   getArcadeImage,
   initArcadeMediaCache,
 } from '@/lib/adminStorage';
+import {
+  loadGameThumbnails,
+  loadGameThumbnailsAsync,
+  saveGameThumbnail,
+  initGameThumbnailsCache,
+} from '@/data/arcadeGames';
+import { isFirebaseConfigured } from '@/lib/firebase';
 
 type GameType = 'anachronism' | 'connections' | 'map-mystery' | 'artifact' | 'cause-effect' | 'geoguessr';
 type ViewMode = 'games' | 'items' | 'edit';
@@ -36,25 +44,6 @@ interface GameTypeInfo {
   thumbnailUrl?: string;
   color: string;
   items: any[];
-}
-
-const GAME_THUMBNAILS_KEY = 'hb_arcade_game_thumbnails';
-
-// Load saved game thumbnails from localStorage
-function loadGameThumbnails(): Record<string, string> {
-  try {
-    const stored = localStorage.getItem(GAME_THUMBNAILS_KEY);
-    return stored ? JSON.parse(stored) : {};
-  } catch {
-    return {};
-  }
-}
-
-// Save game thumbnails to localStorage and dispatch custom event for same-tab updates
-function saveGameThumbnails(thumbnails: Record<string, string>) {
-  localStorage.setItem(GAME_THUMBNAILS_KEY, JSON.stringify(thumbnails));
-  // Dispatch custom event so same-tab components can update (storage event only fires cross-tab)
-  window.dispatchEvent(new CustomEvent('arcade-thumbnails-updated', { detail: thumbnails }));
 }
 
 const defaultGameTypesMeta: Omit<GameTypeInfo, 'items' | 'thumbnailUrl'>[] = [
@@ -102,21 +91,27 @@ export default function ArcadeEditor() {
   const [selectedItemIndex, setSelectedItemIndex] = useState<number | null>(null);
   const [editedItem, setEditedItem] = useState<any>(null);
   const [mediaInitialized, setMediaInitialized] = useState(false);
+  const [isSyncedToCloud, setIsSyncedToCloud] = useState(false);
 
   // Game thumbnails state
   const [gameThumbnails, setGameThumbnails] = useState<Record<string, string>>(() => loadGameThumbnails());
   const [isGeneratingAll, setIsGeneratingAll] = useState(false);
   const [generationProgress, setGenerationProgress] = useState({ current: 0, total: 0 });
 
-  // Initialize IndexedDB cache for media
+  // Initialize IndexedDB cache for media and load thumbnails from Firestore
   useEffect(() => {
-    initArcadeMediaCache().then(() => setMediaInitialized(true));
-  }, []);
+    const init = async () => {
+      await initArcadeMediaCache();
+      setMediaInitialized(true);
 
-  // Save thumbnails when they change
-  useEffect(() => {
-    saveGameThumbnails(gameThumbnails);
-  }, [gameThumbnails]);
+      // Load thumbnails from Firestore
+      await initGameThumbnailsCache();
+      const freshThumbnails = await loadGameThumbnailsAsync();
+      setGameThumbnails(freshThumbnails);
+      setIsSyncedToCloud(isFirebaseConfigured());
+    };
+    init();
+  }, []);
 
   // Load data from localStorage or use defaults
   const [arcadeData, setArcadeData] = useState<{
@@ -201,6 +196,8 @@ export default function ArcadeEditor() {
 
           if (uploadResult) {
             newThumbnails[game.id] = uploadResult.url;
+            // Save to Firestore immediately
+            saveGameThumbnail(game.id, uploadResult.url);
             toast.success(`Generated art for "${game.title}"`, { id: `gen-${game.id}` });
           } else {
             toast.error(`Failed to upload art for "${game.title}"`, { id: `gen-${game.id}` });
@@ -331,7 +328,27 @@ export default function ArcadeEditor() {
           </button>
         )}
         <div className="flex-1">
-          <h1 className="font-editorial text-3xl font-bold text-foreground">Arcade Editor</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="font-editorial text-3xl font-bold text-foreground">Arcade Editor</h1>
+            {/* Cloud sync status */}
+            <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-medium ${
+              isSyncedToCloud
+                ? 'bg-green-500/10 text-green-500'
+                : 'bg-amber-500/10 text-amber-500'
+            }`}>
+              {isSyncedToCloud ? (
+                <>
+                  <Cloud size={12} />
+                  Synced
+                </>
+              ) : (
+                <>
+                  <CloudOff size={12} />
+                  Local
+                </>
+              )}
+            </div>
+          </div>
           <Breadcrumbs
             game={selectedGame}
             itemIndex={selectedItemIndex}

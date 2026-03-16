@@ -16,6 +16,8 @@ import {
   FileImage,
   RefreshCw,
   HardDrive,
+  Cloud,
+  CloudOff,
 } from 'lucide-react';
 import {
   loadGhostArmyMedia,
@@ -30,6 +32,9 @@ import {
   initGhostArmyMediaCache,
 } from '@/lib/adminStorage';
 import { ghostArmyStory, GhostArmyNode } from '@/data/ghostArmyStory';
+import { uploadFile } from '@/lib/supabase';
+import { isFirebaseConfigured } from '@/lib/firebase';
+import { saveGhostArmyMediaData, loadGhostArmyMediaData } from '@/lib/database';
 
 interface NodeEditorProps {
   node: GhostArmyNode;
@@ -57,10 +62,11 @@ function NodeEditor({ node, media, onUpdate, isExpanded, onToggle }: NodeEditorP
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Check file size - IndexedDB can handle much larger files (50MB limit for safety)
+    // Check file size - limit based on whether using Firebase or local
     const fileSizeMB = file.size / (1024 * 1024);
-    if (fileSizeMB > 50) {
-      setUploadError(`File too large (${fileSizeMB.toFixed(1)}MB). Max 50MB per file. Try compressing the video.`);
+    const maxSize = isFirebaseConfigured() ? 100 : 50;
+    if (fileSizeMB > maxSize) {
+      setUploadError(`File too large (${fileSizeMB.toFixed(1)}MB). Max ${maxSize}MB per file. Try compressing the video.`);
       setTimeout(() => setUploadError(null), 5000);
       return;
     }
@@ -71,22 +77,41 @@ function NodeEditor({ node, media, onUpdate, isExpanded, onToggle }: NodeEditorP
     setUploadSuccess(null);
 
     try {
-      const dataUrl = await fileToDataUrl(file);
+      let mediaUrl: string;
+
+      // Try Firebase Storage first if configured
+      if (isFirebaseConfigured()) {
+        try {
+          const uploadResult = await uploadFile(file);
+          if (uploadResult?.url) {
+            mediaUrl = uploadResult.url;
+            console.log('[GhostArmyEditor] Uploaded to Firebase Storage:', type);
+          } else {
+            mediaUrl = await fileToDataUrl(file);
+          }
+        } catch (uploadError) {
+          console.error('[GhostArmyEditor] Firebase upload failed, using local:', uploadError);
+          mediaUrl = await fileToDataUrl(file);
+        }
+      } else {
+        mediaUrl = await fileToDataUrl(file);
+      }
 
       let success = false;
       if (type === 'video') {
-        success = onUpdate(node.id, { videoUrl: dataUrl });
+        success = onUpdate(node.id, { videoUrl: mediaUrl });
       } else if (type === 'video2') {
-        success = onUpdate(node.id, { videoUrl2: dataUrl });
+        success = onUpdate(node.id, { videoUrl2: mediaUrl });
       } else if (type === 'image') {
-        success = onUpdate(node.id, { backgroundImage: dataUrl });
+        success = onUpdate(node.id, { backgroundImage: mediaUrl });
       } else if (type === 'thumbnail') {
-        success = onUpdate(node.id, { videoThumbnail: dataUrl });
+        success = onUpdate(node.id, { videoThumbnail: mediaUrl });
       }
 
       if (success) {
         const typeLabel = type === 'video2' ? 'Narration video' : type.charAt(0).toUpperCase() + type.slice(1);
-        setUploadSuccess(`${typeLabel} saved successfully!`);
+        const location = mediaUrl.startsWith('http') ? 'to cloud' : 'locally';
+        setUploadSuccess(`${typeLabel} saved ${location}!`);
         setTimeout(() => setUploadSuccess(null), 3000);
       }
     } catch (error) {
@@ -476,13 +501,44 @@ export function GhostArmyEditor() {
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [storageInfo, setStorageInfo] = useState({ used: '0 MB', available: 'Loading...' });
   const [isLoading, setIsLoading] = useState(true);
+  const [isSyncedToCloud, setIsSyncedToCloud] = useState(false);
 
-  // Load media config from IndexedDB on mount
+  // Load media config from Firestore (primary) or IndexedDB (fallback) on mount
   useEffect(() => {
     const init = async () => {
       await initGhostArmyMediaCache();
-      const config = await loadGhostArmyMediaAsync();
-      setMediaConfig(config);
+
+      // Try loading from Firestore first if configured
+      if (isFirebaseConfigured()) {
+        try {
+          const firestoreMedia = await loadGhostArmyMediaData();
+          const localConfig = await loadGhostArmyMediaAsync();
+          const mergedConfig: GhostArmyMediaConfig = {
+            nodes: { ...localConfig.nodes },
+            lastUpdated: new Date().toISOString(),
+          };
+
+          // Firestore data takes priority (cloud URLs)
+          Object.entries(firestoreMedia).forEach(([nodeId, media]) => {
+            mergedConfig.nodes[nodeId] = {
+              ...(mergedConfig.nodes[nodeId] || {}),
+              ...media,
+            } as GhostArmyNodeMedia;
+          });
+
+          setMediaConfig(mergedConfig);
+          setIsSyncedToCloud(true);
+          console.log('[GhostArmyEditor] Loaded from Firestore:', Object.keys(firestoreMedia).length, 'nodes');
+        } catch (error) {
+          console.error('[GhostArmyEditor] Firestore load failed:', error);
+          const config = await loadGhostArmyMediaAsync();
+          setMediaConfig(config);
+        }
+      } else {
+        const config = await loadGhostArmyMediaAsync();
+        setMediaConfig(config);
+      }
+
       const info = await getIndexedDBStorageInfo();
       setStorageInfo(info);
       setIsLoading(false);
@@ -501,12 +557,40 @@ export function GhostArmyEditor() {
     setSaveStatus('saving');
 
     try {
+      // Save to local IndexedDB first
       const success = updateGhostArmyNodeMedia(nodeId, media);
 
       if (success) {
         // Reload config
         const config = loadGhostArmyMedia();
         setMediaConfig(config);
+
+        // Also sync to Firestore if configured (only for cloud URLs)
+        if (isFirebaseConfigured()) {
+          const cloudMedia: Partial<GhostArmyNodeMedia> = {};
+          if (media.videoUrl && media.videoUrl.startsWith('http')) {
+            cloudMedia.videoUrl = media.videoUrl;
+          }
+          if (media.videoUrl2 && media.videoUrl2.startsWith('http')) {
+            cloudMedia.videoUrl2 = media.videoUrl2;
+          }
+          if (media.backgroundImage && media.backgroundImage.startsWith('http')) {
+            cloudMedia.backgroundImage = media.backgroundImage;
+          }
+          if (media.videoThumbnail && media.videoThumbnail.startsWith('http')) {
+            cloudMedia.videoThumbnail = media.videoThumbnail;
+          }
+
+          if (Object.keys(cloudMedia).length > 0) {
+            saveGhostArmyMediaData(nodeId, cloudMedia).then(firestoreSuccess => {
+              if (firestoreSuccess) {
+                console.log('[GhostArmyEditor] Synced to Firestore:', nodeId);
+                setIsSyncedToCloud(true);
+              }
+            });
+          }
+        }
+
         setSaveStatus('saved');
         setTimeout(() => setSaveStatus('idle'), 3000);
         return true;
@@ -557,7 +641,26 @@ export function GhostArmyEditor() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="font-editorial text-3xl font-bold">Ghost Army Editor</h1>
+              <div className="flex items-center gap-3">
+                <h1 className="font-editorial text-3xl font-bold">Ghost Army Editor</h1>
+                <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-medium ${
+                  isSyncedToCloud
+                    ? 'bg-green-500/10 text-green-500'
+                    : 'bg-amber-500/10 text-amber-500'
+                }`}>
+                  {isSyncedToCloud ? (
+                    <>
+                      <Cloud size={12} />
+                      Cloud Enabled
+                    </>
+                  ) : (
+                    <>
+                      <CloudOff size={12} />
+                      Local Only
+                    </>
+                  )}
+                </div>
+              </div>
               <p className="text-muted-foreground">
                 Upload videos and images for the Ghost Army story experience
               </p>
@@ -611,7 +714,7 @@ export function GhostArmyEditor() {
                     className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 text-sm font-medium"
                   >
                     <CheckCircle2 size={16} />
-                    Saved to Browser
+                    {isSyncedToCloud ? 'Saved to Cloud' : 'Saved to Browser'}
                   </motion.div>
                 )}
                 {saveStatus === 'error' && (

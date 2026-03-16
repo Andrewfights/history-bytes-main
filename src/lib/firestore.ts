@@ -639,3 +639,239 @@ export async function deleteWW2Host(hostId: string): Promise<boolean> {
 export function subscribeToWW2Hosts(callback: (hosts: FirestoreWW2Host[]) => void): Unsubscribe {
   return subscribeToCollection<FirestoreWW2Host>('ww2Hosts', callback, orderBy('displayOrder'));
 }
+
+// ============ Admin Content Types ============
+
+export interface FirestoreEraTileOverride {
+  id: string;           // Era ID
+  imageUrl: string;     // Override image URL
+  isActive: boolean;    // Whether override is active
+  updatedAt?: Timestamp;
+}
+
+export interface FirestoreGameThumbnail {
+  id: string;           // Game type (e.g., 'anachronism', 'connections')
+  imageUrl: string;     // Thumbnail URL
+  updatedAt?: Timestamp;
+}
+
+export interface FirestoreArcadeItem {
+  id: string;
+  gameType: string;     // 'anachronism' | 'connections' | 'cause-effect' | 'artifact' | 'map'
+  title?: string;
+  data: Record<string, unknown>; // Game-specific data
+  imageUrl?: string;
+  displayOrder: number;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
+}
+
+export interface FirestoreTriviaSet {
+  id: string;
+  title: string;
+  description?: string;
+  category?: string;
+  questions: Array<{
+    id: string;
+    question: string;
+    options: string[];
+    correctIndex: number;
+    explanation?: string;
+    videoUrl?: string;
+    imageUrl?: string;
+  }>;
+  displayOrder: number;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
+}
+
+export interface FirestoreVoiceSettings {
+  id: string;           // 'global' or guide ID
+  voiceId: string;
+  stability: number;
+  similarity: number;
+  style: number;
+  updatedAt?: Timestamp;
+}
+
+export interface FirestorePearlHarborMedia {
+  id: string;           // Node ID
+  videoUrl?: string;
+  videoUrl2?: string;
+  videoThumbnail?: string;
+  backgroundImage?: string;
+  additionalImages?: string[];
+  updatedAt?: Timestamp;
+}
+
+export interface FirestoreGhostArmyMedia {
+  id: string;           // Node ID
+  videoUrl?: string;
+  videoUrl2?: string;
+  videoThumbnail?: string;
+  backgroundImage?: string;
+  additionalImages?: string[];
+  updatedAt?: Timestamp;
+}
+
+// ============ Era Tile Override Operations ============
+
+export async function getEraTileOverrides(): Promise<FirestoreEraTileOverride[]> {
+  return getCollection<FirestoreEraTileOverride>('eraTileOverrides');
+}
+
+export async function getEraTileOverride(eraId: string): Promise<FirestoreEraTileOverride | null> {
+  return getDocument<FirestoreEraTileOverride>('eraTileOverrides', eraId);
+}
+
+export async function saveEraTileOverride(override: FirestoreEraTileOverride): Promise<boolean> {
+  return setDocument('eraTileOverrides', override.id, override);
+}
+
+export async function deleteEraTileOverride(eraId: string): Promise<boolean> {
+  return deleteDocument('eraTileOverrides', eraId);
+}
+
+export function subscribeToEraTileOverrides(callback: (overrides: FirestoreEraTileOverride[]) => void): Unsubscribe {
+  return subscribeToCollection<FirestoreEraTileOverride>('eraTileOverrides', callback);
+}
+
+// ============ Game Thumbnail Operations ============
+
+export async function getGameThumbnails(): Promise<FirestoreGameThumbnail[]> {
+  return getCollection<FirestoreGameThumbnail>('gameThumbnails');
+}
+
+export async function saveGameThumbnail(thumbnail: FirestoreGameThumbnail): Promise<boolean> {
+  return setDocument('gameThumbnails', thumbnail.id, thumbnail);
+}
+
+export async function deleteGameThumbnail(gameType: string): Promise<boolean> {
+  return deleteDocument('gameThumbnails', gameType);
+}
+
+export function subscribeToGameThumbnails(callback: (thumbnails: FirestoreGameThumbnail[]) => void): Unsubscribe {
+  return subscribeToCollection<FirestoreGameThumbnail>('gameThumbnails', callback);
+}
+
+// ============ Arcade Item Operations ============
+
+export async function getArcadeItems(gameType?: string): Promise<FirestoreArcadeItem[]> {
+  if (gameType) {
+    return getCollection<FirestoreArcadeItem>('arcadeItems', where('gameType', '==', gameType), orderBy('displayOrder'));
+  }
+  return getCollection<FirestoreArcadeItem>('arcadeItems', orderBy('displayOrder'));
+}
+
+export async function getArcadeItem(itemId: string): Promise<FirestoreArcadeItem | null> {
+  return getDocument<FirestoreArcadeItem>('arcadeItems', itemId);
+}
+
+export async function saveArcadeItem(item: FirestoreArcadeItem): Promise<boolean> {
+  const data = {
+    ...item,
+    createdAt: item.createdAt || serverTimestamp(),
+  };
+  return setDocument('arcadeItems', item.id, data);
+}
+
+export async function deleteArcadeItem(itemId: string): Promise<boolean> {
+  return deleteDocument('arcadeItems', itemId);
+}
+
+export function subscribeToArcadeItems(gameType: string, callback: (items: FirestoreArcadeItem[]) => void): Unsubscribe {
+  return subscribeToCollection<FirestoreArcadeItem>(
+    'arcadeItems',
+    callback,
+    where('gameType', '==', gameType),
+    orderBy('displayOrder')
+  );
+}
+
+// ============ Trivia Set Operations ============
+
+export async function getTriviaSets(): Promise<FirestoreTriviaSet[]> {
+  return getCollection<FirestoreTriviaSet>('triviaSets', orderBy('displayOrder'));
+}
+
+export async function getTriviaSet(setId: string): Promise<FirestoreTriviaSet | null> {
+  return getDocument<FirestoreTriviaSet>('triviaSets', setId);
+}
+
+export async function saveTriviaSet(triviaSet: FirestoreTriviaSet): Promise<boolean> {
+  const data = {
+    ...triviaSet,
+    createdAt: triviaSet.createdAt || serverTimestamp(),
+  };
+  return setDocument('triviaSets', triviaSet.id, data);
+}
+
+export async function deleteTriviaSet(setId: string): Promise<boolean> {
+  return deleteDocument('triviaSets', setId);
+}
+
+export function subscribeToTriviaSets(callback: (sets: FirestoreTriviaSet[]) => void): Unsubscribe {
+  return subscribeToCollection<FirestoreTriviaSet>('triviaSets', callback, orderBy('displayOrder'));
+}
+
+// ============ Voice Settings Operations ============
+
+export async function getVoiceSettings(): Promise<FirestoreVoiceSettings[]> {
+  return getCollection<FirestoreVoiceSettings>('voiceSettings');
+}
+
+export async function getVoiceSetting(id: string): Promise<FirestoreVoiceSettings | null> {
+  return getDocument<FirestoreVoiceSettings>('voiceSettings', id);
+}
+
+export async function saveVoiceSetting(settings: FirestoreVoiceSettings): Promise<boolean> {
+  return setDocument('voiceSettings', settings.id, settings);
+}
+
+export function subscribeToVoiceSettings(callback: (settings: FirestoreVoiceSettings[]) => void): Unsubscribe {
+  return subscribeToCollection<FirestoreVoiceSettings>('voiceSettings', callback);
+}
+
+// ============ Pearl Harbor Media Operations ============
+
+export async function getPearlHarborMediaItems(): Promise<FirestorePearlHarborMedia[]> {
+  return getCollection<FirestorePearlHarborMedia>('pearlHarborMedia');
+}
+
+export async function getPearlHarborMediaItem(nodeId: string): Promise<FirestorePearlHarborMedia | null> {
+  return getDocument<FirestorePearlHarborMedia>('pearlHarborMedia', nodeId);
+}
+
+export async function savePearlHarborMediaItem(media: FirestorePearlHarborMedia): Promise<boolean> {
+  return setDocument('pearlHarborMedia', media.id, media);
+}
+
+export async function deletePearlHarborMediaItem(nodeId: string): Promise<boolean> {
+  return deleteDocument('pearlHarborMedia', nodeId);
+}
+
+export function subscribeToPearlHarborMedia(callback: (items: FirestorePearlHarborMedia[]) => void): Unsubscribe {
+  return subscribeToCollection<FirestorePearlHarborMedia>('pearlHarborMedia', callback);
+}
+
+// ============ Ghost Army Media Operations ============
+
+export async function getGhostArmyMediaItems(): Promise<FirestoreGhostArmyMedia[]> {
+  return getCollection<FirestoreGhostArmyMedia>('ghostArmyMedia');
+}
+
+export async function getGhostArmyMediaItem(nodeId: string): Promise<FirestoreGhostArmyMedia | null> {
+  return getDocument<FirestoreGhostArmyMedia>('ghostArmyMedia', nodeId);
+}
+
+export async function saveGhostArmyMediaItem(media: FirestoreGhostArmyMedia): Promise<boolean> {
+  return setDocument('ghostArmyMedia', media.id, media);
+}
+
+export async function deleteGhostArmyMediaItem(nodeId: string): Promise<boolean> {
+  return deleteDocument('ghostArmyMedia', nodeId);
+}
+
+export function subscribeToGhostArmyMedia(callback: (items: FirestoreGhostArmyMedia[]) => void): Unsubscribe {
+  return subscribeToCollection<FirestoreGhostArmyMedia>('ghostArmyMedia', callback);
+}

@@ -1,7 +1,16 @@
 /**
  * Historical Eras - Data definitions for all historical time periods
  * Images are hard-coded defaults but can be overridden via admin settings
+ *
+ * Overrides are stored in Firestore (with localStorage cache for offline/fallback)
  */
+
+import {
+  loadEraTileOverrides as dbLoadEraTileOverrides,
+  saveEraTileOverride as dbSaveEraTileOverride,
+  deleteEraTileOverride as dbDeleteEraTileOverride,
+  type EraTileOverride,
+} from '@/lib/database';
 
 export interface HistoricalEra {
   id: string;
@@ -16,14 +25,47 @@ export interface HistoricalEra {
   order: number;            // Display order
 }
 
-// localStorage key for admin overrides
+// localStorage key for admin overrides (used as cache)
 export const ERA_TILES_STORAGE_KEY = 'hb-era-tiles';
 
 export interface EraTileOverrides {
   [eraId: string]: {
     imageUrl: string;
-    updatedAt: string;
+    updatedAt?: string;
   };
+}
+
+// In-memory cache for era overrides (populated from Firestore or localStorage)
+let overridesCache: EraTileOverrides = {};
+let cacheInitialized = false;
+
+// Initialize cache from Firestore (call on app start)
+export async function initEraTileOverridesCache(): Promise<void> {
+  try {
+    const overrides = await dbLoadEraTileOverrides();
+    overridesCache = {};
+    overrides.forEach(o => {
+      if (o.isActive) {
+        overridesCache[o.id] = { imageUrl: o.imageUrl };
+      }
+    });
+    cacheInitialized = true;
+    // Also update localStorage cache
+    localStorage.setItem(ERA_TILES_STORAGE_KEY, JSON.stringify(overridesCache));
+    console.log('[historicalEras] Loaded', Object.keys(overridesCache).length, 'era tile overrides from Firestore');
+  } catch (error) {
+    console.error('[historicalEras] Failed to load from Firestore, using localStorage:', error);
+    // Fall back to localStorage
+    try {
+      const stored = localStorage.getItem(ERA_TILES_STORAGE_KEY);
+      if (stored) {
+        overridesCache = JSON.parse(stored);
+      }
+    } catch {
+      overridesCache = {};
+    }
+    cacheInitialized = true;
+  }
 }
 
 export const HISTORICAL_ERAS: HistoricalEra[] = [
@@ -226,22 +268,30 @@ export function getAllEras(): HistoricalEra[] {
 
 /**
  * Get the effective image URL for an era (checks for admin overrides)
+ * Uses in-memory cache for fast synchronous access
  */
 export function getEraImageUrl(eraId: string): string {
   const era = getEraById(eraId);
   if (!era) return '';
 
-  // Check for admin override in localStorage
-  try {
-    const overridesJson = localStorage.getItem(ERA_TILES_STORAGE_KEY);
-    if (overridesJson) {
-      const overrides: EraTileOverrides = JSON.parse(overridesJson);
-      if (overrides[eraId]?.imageUrl) {
-        return overrides[eraId].imageUrl;
+  // Check in-memory cache first (populated from Firestore or localStorage)
+  if (overridesCache[eraId]?.imageUrl) {
+    return overridesCache[eraId].imageUrl;
+  }
+
+  // If cache not initialized, try localStorage directly as fallback
+  if (!cacheInitialized) {
+    try {
+      const overridesJson = localStorage.getItem(ERA_TILES_STORAGE_KEY);
+      if (overridesJson) {
+        const overrides: EraTileOverrides = JSON.parse(overridesJson);
+        if (overrides[eraId]?.imageUrl) {
+          return overrides[eraId].imageUrl;
+        }
       }
+    } catch {
+      // Fall back to default if localStorage parsing fails
     }
-  } catch {
-    // Fall back to default if localStorage parsing fails
   }
 
   return era.defaultImageUrl;
@@ -249,47 +299,99 @@ export function getEraImageUrl(eraId: string): string {
 
 /**
  * Save an era tile image override (admin function)
+ * Saves to Firestore with localStorage cache
  */
 export function saveEraTileOverride(eraId: string, imageUrl: string): void {
+  // Update in-memory cache immediately
+  overridesCache[eraId] = {
+    imageUrl,
+    updatedAt: new Date().toISOString(),
+  };
+
+  // Update localStorage cache
   try {
-    const overridesJson = localStorage.getItem(ERA_TILES_STORAGE_KEY);
-    const overrides: EraTileOverrides = overridesJson ? JSON.parse(overridesJson) : {};
-
-    overrides[eraId] = {
-      imageUrl,
-      updatedAt: new Date().toISOString(),
-    };
-
-    localStorage.setItem(ERA_TILES_STORAGE_KEY, JSON.stringify(overrides));
+    localStorage.setItem(ERA_TILES_STORAGE_KEY, JSON.stringify(overridesCache));
   } catch (error) {
-    console.error('Failed to save era tile override:', error);
+    console.error('Failed to update localStorage cache:', error);
   }
+
+  // Save to Firestore (async, fire and forget for immediate UI response)
+  dbSaveEraTileOverride({
+    id: eraId,
+    imageUrl,
+    isActive: true,
+  }).then(success => {
+    if (success) {
+      console.log('[historicalEras] Saved era tile override to Firestore:', eraId);
+    } else {
+      console.warn('[historicalEras] Failed to save to Firestore, using localStorage only');
+    }
+  }).catch(error => {
+    console.error('[historicalEras] Firestore save error:', error);
+  });
 }
 
 /**
  * Reset an era tile to its default image
  */
 export function resetEraTileToDefault(eraId: string): void {
+  // Update in-memory cache
+  delete overridesCache[eraId];
+
+  // Update localStorage cache
   try {
-    const overridesJson = localStorage.getItem(ERA_TILES_STORAGE_KEY);
-    if (overridesJson) {
-      const overrides: EraTileOverrides = JSON.parse(overridesJson);
-      delete overrides[eraId];
-      localStorage.setItem(ERA_TILES_STORAGE_KEY, JSON.stringify(overrides));
-    }
+    localStorage.setItem(ERA_TILES_STORAGE_KEY, JSON.stringify(overridesCache));
   } catch (error) {
-    console.error('Failed to reset era tile:', error);
+    console.error('Failed to update localStorage cache:', error);
   }
+
+  // Delete from Firestore (async)
+  dbDeleteEraTileOverride(eraId).then(success => {
+    if (success) {
+      console.log('[historicalEras] Deleted era tile override from Firestore:', eraId);
+    }
+  }).catch(error => {
+    console.error('[historicalEras] Firestore delete error:', error);
+  });
 }
 
 /**
- * Get all era tile overrides
+ * Get all era tile overrides (synchronous, uses cache)
  */
 export function getEraTileOverrides(): EraTileOverrides {
+  // Return from cache if initialized
+  if (cacheInitialized) {
+    return { ...overridesCache };
+  }
+
+  // Fall back to localStorage
   try {
     const overridesJson = localStorage.getItem(ERA_TILES_STORAGE_KEY);
     return overridesJson ? JSON.parse(overridesJson) : {};
   } catch {
     return {};
+  }
+}
+
+/**
+ * Async version to load fresh data from Firestore
+ */
+export async function getEraTileOverridesAsync(): Promise<EraTileOverrides> {
+  try {
+    const overrides = await dbLoadEraTileOverrides();
+    const result: EraTileOverrides = {};
+    overrides.forEach(o => {
+      if (o.isActive) {
+        result[o.id] = { imageUrl: o.imageUrl };
+      }
+    });
+    // Update cache
+    overridesCache = result;
+    cacheInitialized = true;
+    localStorage.setItem(ERA_TILES_STORAGE_KEY, JSON.stringify(result));
+    return result;
+  } catch (error) {
+    console.error('[historicalEras] Failed to load from Firestore:', error);
+    return getEraTileOverrides();
   }
 }
