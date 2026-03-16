@@ -413,7 +413,7 @@ const DEFAULT_JOURNEY_MEDIA: JourneyMediaConfig = {
 };
 
 const DB_NAME = 'history_bytes_media';
-const DB_VERSION = 4; // Version 4: added pearl_harbor_media store
+const DB_VERSION = 5; // Version 5: added ww2_hosts store
 const STORE_NAMES = {
   GHOST_ARMY: 'ghost_army_media',
   PEARL_HARBOR: 'pearl_harbor_media',
@@ -423,6 +423,7 @@ const STORE_NAMES = {
   JOURNEYS: 'journey_media',
   TRIVIA: 'trivia_data',
   WW2_MAP: 'ww2_map_data',
+  WW2_HOSTS: 'ww2_hosts',
 } as const;
 
 // Initialize IndexedDB
@@ -907,6 +908,106 @@ export function getJourneyImage(nodeId: string): string | null {
   return config.images[nodeId] || null;
 }
 
+// ============ WW2 Hosts (IndexedDB) ============
+
+export interface WW2HostData {
+  id: string;
+  name: string;
+  title: string;
+  era: string;
+  specialty: string;
+  imageUrl?: string;
+  introVideoUrl?: string;
+  welcomeVideoUrl?: string;
+  primaryColor: string;
+  avatar: string;
+  voiceStyle: string;
+  description: string;
+  displayOrder?: number;
+}
+
+export interface WW2HostsConfig {
+  hosts: WW2HostData[];
+  lastUpdated: string;
+}
+
+const DEFAULT_WW2_HOSTS: WW2HostsConfig = {
+  hosts: [],
+  lastUpdated: new Date().toISOString(),
+};
+
+let ww2HostsCache: WW2HostsConfig | null = null;
+let ww2HostsCacheInitialized = false;
+
+export async function initWW2HostsCache(): Promise<void> {
+  const data = await loadFromIndexedDBGeneric<WW2HostsConfig>(STORE_NAMES.WW2_HOSTS, 'ww2_hosts_config');
+  ww2HostsCache = data || DEFAULT_WW2_HOSTS;
+  ww2HostsCacheInitialized = true;
+  console.log('[AdminStorage] WW2 hosts cache initialized:', {
+    hostCount: ww2HostsCache.hosts.length,
+    hosts: ww2HostsCache.hosts.map(h => h.id),
+    lastUpdated: ww2HostsCache.lastUpdated,
+  });
+}
+
+export async function saveWW2HostsAsync(config: WW2HostsConfig): Promise<boolean> {
+  ww2HostsCache = config;
+  const result = await saveToIndexedDBGeneric(STORE_NAMES.WW2_HOSTS, 'ww2_hosts_config', config);
+  console.log('[AdminStorage] WW2 hosts saved to IndexedDB:', result ? 'success' : 'failed');
+  return result;
+}
+
+export function saveWW2Hosts(config: WW2HostsConfig): boolean {
+  ww2HostsCache = config;
+  saveToIndexedDBGeneric(STORE_NAMES.WW2_HOSTS, 'ww2_hosts_config', config).catch(console.error);
+  return true;
+}
+
+export function loadWW2Hosts(): WW2HostsConfig {
+  if (!ww2HostsCacheInitialized) {
+    initWW2HostsCache().catch(console.error);
+    return DEFAULT_WW2_HOSTS;
+  }
+  return ww2HostsCache || DEFAULT_WW2_HOSTS;
+}
+
+export async function loadWW2HostsAsync(): Promise<WW2HostsConfig> {
+  if (!ww2HostsCacheInitialized) {
+    await initWW2HostsCache();
+  }
+  return ww2HostsCache || DEFAULT_WW2_HOSTS;
+}
+
+export function updateWW2Host(hostId: string, data: Partial<WW2HostData>): boolean {
+  console.log(`[AdminStorage] Updating WW2 host ${hostId} with:`, Object.keys(data));
+  const config = loadWW2Hosts();
+  const hostIndex = config.hosts.findIndex(h => h.id === hostId);
+  if (hostIndex >= 0) {
+    config.hosts[hostIndex] = { ...config.hosts[hostIndex], ...data };
+  } else {
+    config.hosts.push({ ...data, id: hostId } as WW2HostData);
+  }
+  config.lastUpdated = new Date().toISOString();
+  const success = saveWW2Hosts(config);
+  console.log(`[AdminStorage] Save ${success ? 'succeeded' : 'FAILED'} for WW2 host ${hostId}`);
+  return success;
+}
+
+export function getWW2HostFromCache(hostId: string): WW2HostData | null {
+  const config = loadWW2Hosts();
+  return config.hosts.find(h => h.id === hostId) || null;
+}
+
+export function setWW2HostsFromFirestore(hosts: WW2HostData[]): void {
+  const config: WW2HostsConfig = {
+    hosts,
+    lastUpdated: new Date().toISOString(),
+  };
+  ww2HostsCache = config;
+  saveToIndexedDBGeneric(STORE_NAMES.WW2_HOSTS, 'ww2_hosts_config', config).catch(console.error);
+  console.log('[AdminStorage] WW2 hosts cache updated from Firestore:', hosts.length, 'hosts');
+}
+
 // ============ Initialize All Caches ============
 
 export async function initAllMediaCaches(): Promise<void> {
@@ -917,6 +1018,7 @@ export async function initAllMediaCaches(): Promise<void> {
     initArcadeMediaCache(),
     initLessonMediaCache(),
     initJourneyMediaCache(),
+    initWW2HostsCache(),
   ]);
   console.log('[AdminStorage] All media caches initialized');
 }

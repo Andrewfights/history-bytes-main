@@ -1,47 +1,96 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
-import { Shield, Save, Upload, Loader2, ImageIcon, GripVertical, Video, Play, Trash2, Plus, X, Cloud, CloudOff } from 'lucide-react';
+import { Shield, Save, Upload, Loader2, ImageIcon, GripVertical, Video, Play, Trash2, Plus, X, Cloud, CloudOff, HardDrive } from 'lucide-react';
 import { toast } from 'sonner';
 import { WW2_HOSTS } from '@/data/ww2Hosts';
 import { MediaPicker } from './MediaPicker';
 import { uploadFile, type MediaFile, isFirebaseConfigured } from '@/lib/supabase';
 import { saveAllWW2Hosts, getWW2Hosts, type FirestoreWW2Host } from '@/lib/firestore';
+import { loadWW2HostsAsync, saveWW2HostsAsync, type WW2HostData } from '@/lib/adminStorage';
 import type { WW2Host } from '@/types';
 
 type EditableWW2Host = WW2Host & { localImageUrl?: string; displayOrder?: number };
 
-// Load hosts from Firestore ONLY (no localStorage fallback for admin)
+// Load hosts from IndexedDB first (guaranteed), then Firestore for latest data
 async function loadStoredHostsAsync(): Promise<EditableWW2Host[]> {
-  if (!isFirebaseConfigured()) {
-    console.warn('[WW2GuideEditor] Firebase not configured - using defaults');
-    return WW2_HOSTS.map((host, i) => ({ ...host, displayOrder: i }));
+  // First, load from IndexedDB (this is the guaranteed persistence layer)
+  const indexedDBData = await loadWW2HostsAsync();
+  let hosts: EditableWW2Host[] = [];
+
+  if (indexedDBData.hosts && indexedDBData.hosts.length > 0) {
+    console.log('[WW2GuideEditor] Loaded from IndexedDB:', indexedDBData.hosts.length, 'hosts');
+    hosts = indexedDBData.hosts.map((h, i) => ({
+      id: h.id as WW2Host['id'],
+      name: h.name,
+      title: h.title,
+      era: h.era,
+      specialty: h.specialty,
+      imageUrl: h.imageUrl,
+      introVideoUrl: h.introVideoUrl,
+      welcomeVideoUrl: h.welcomeVideoUrl,
+      primaryColor: h.primaryColor,
+      avatar: h.avatar,
+      voiceStyle: h.voiceStyle,
+      description: h.description,
+      displayOrder: h.displayOrder ?? i,
+    }));
   }
 
-  try {
-    const firestoreHosts = await getWW2Hosts();
-    if (firestoreHosts && firestoreHosts.length > 0) {
-      console.log('[WW2GuideEditor] Loaded from Firestore:', firestoreHosts.length);
-      return firestoreHosts.map((h, i) => ({
-        id: h.id as WW2Host['id'],
-        name: h.name,
-        title: h.title,
-        era: h.era,
-        specialty: h.specialty,
-        imageUrl: h.imageUrl,
-        introVideoUrl: h.introVideoUrl,
-        welcomeVideoUrl: h.welcomeVideoUrl,
-        primaryColor: h.primaryColor,
-        avatar: h.avatar,
-        voiceStyle: h.voiceStyle,
-        description: h.description,
-        displayOrder: h.displayOrder ?? i,
-      }));
+  // If Firebase is configured, try to get latest from Firestore (for cross-device sync)
+  if (isFirebaseConfigured()) {
+    try {
+      const firestoreHosts = await getWW2Hosts();
+      if (firestoreHosts && firestoreHosts.length > 0) {
+        console.log('[WW2GuideEditor] Loaded from Firestore:', firestoreHosts.length, '- merging with IndexedDB');
+        hosts = firestoreHosts.map((h, i) => ({
+          id: h.id as WW2Host['id'],
+          name: h.name,
+          title: h.title,
+          era: h.era,
+          specialty: h.specialty,
+          imageUrl: h.imageUrl,
+          introVideoUrl: h.introVideoUrl,
+          welcomeVideoUrl: h.welcomeVideoUrl,
+          primaryColor: h.primaryColor,
+          avatar: h.avatar,
+          voiceStyle: h.voiceStyle,
+          description: h.description,
+          displayOrder: h.displayOrder ?? i,
+        }));
+        // Update IndexedDB cache with Firestore data
+        await saveWW2HostsAsync({
+          hosts: hosts.map(h => ({
+            id: h.id,
+            name: h.name,
+            title: h.title,
+            era: h.era,
+            specialty: h.specialty,
+            imageUrl: h.imageUrl,
+            introVideoUrl: h.introVideoUrl,
+            welcomeVideoUrl: h.welcomeVideoUrl,
+            primaryColor: h.primaryColor,
+            avatar: h.avatar,
+            voiceStyle: h.voiceStyle,
+            description: h.description,
+            displayOrder: h.displayOrder,
+          })),
+          lastUpdated: new Date().toISOString(),
+        });
+        console.log('[WW2GuideEditor] IndexedDB cache updated from Firestore');
+      }
+    } catch (e) {
+      console.error('[WW2GuideEditor] Error loading from Firestore (using IndexedDB data):', e);
+      // Continue with IndexedDB data - we have a fallback
     }
-  } catch (e) {
-    console.error('[WW2GuideEditor] Error loading from Firestore:', e);
+  }
+
+  // If we have hosts from either source, return them
+  if (hosts.length > 0) {
+    return hosts;
   }
 
   // Fall back to default hosts with display order
+  console.log('[WW2GuideEditor] No stored data found - using defaults');
   return WW2_HOSTS.map((host, i) => ({ ...host, displayOrder: i }));
 }
 
@@ -50,13 +99,8 @@ function isLocalDataUrl(url?: string): boolean {
   return !!url && (url.startsWith('data:') || url.startsWith('blob:'));
 }
 
-// Save hosts to Firestore ONLY (no localStorage - Firebase is required for admin)
-async function saveStoredHostsAsync(hosts: EditableWW2Host[]): Promise<{ success: boolean; error?: string }> {
-  // Firebase is required for admin operations
-  if (!isFirebaseConfigured()) {
-    return { success: false, error: 'Firebase not configured - admin requires Firebase. Check .env file and restart dev server.' };
-  }
-
+// Save hosts to IndexedDB first (guaranteed), then Firestore (for cross-device sync)
+async function saveStoredHostsAsync(hosts: EditableWW2Host[]): Promise<{ success: boolean; error?: string; savedLocally?: boolean }> {
   // Block saving if any URLs are local data URLs (they won't work for other users)
   const localUrlIssues: string[] = [];
   for (const host of hosts) {
@@ -70,8 +114,42 @@ async function saveStoredHostsAsync(hosts: EditableWW2Host[]): Promise<{ success
     return { success: false, error: `Local files detected: ${localUrlIssues[0]}. Upload to Firebase Storage first.` };
   }
 
-  // Save to Firestore
-  console.log('[WW2GuideEditor] Saving to Firestore...');
+  // Step 1: Save to IndexedDB first (guaranteed persistence)
+  console.log('[WW2GuideEditor] Saving to IndexedDB...');
+  const indexedDBHosts: WW2HostData[] = hosts.map((h, i) => ({
+    id: h.id,
+    name: h.name,
+    title: h.title,
+    era: h.era,
+    specialty: h.specialty,
+    primaryColor: h.primaryColor,
+    avatar: h.avatar,
+    voiceStyle: h.voiceStyle,
+    description: h.description,
+    displayOrder: i,
+    imageUrl: h.imageUrl,
+    introVideoUrl: h.introVideoUrl,
+    welcomeVideoUrl: h.welcomeVideoUrl,
+  }));
+
+  const indexedDBSuccess = await saveWW2HostsAsync({
+    hosts: indexedDBHosts,
+    lastUpdated: new Date().toISOString(),
+  });
+
+  if (!indexedDBSuccess) {
+    console.error('[WW2GuideEditor] ❌ Failed to save to IndexedDB');
+    return { success: false, error: 'Failed to save locally. Check browser storage.' };
+  }
+  console.log('[WW2GuideEditor] ✅ Saved to IndexedDB');
+
+  // Step 2: If Firebase is configured, sync to Firestore (for cross-device sync)
+  if (!isFirebaseConfigured()) {
+    console.log('[WW2GuideEditor] Firebase not configured - saved locally only');
+    return { success: true, savedLocally: true };
+  }
+
+  console.log('[WW2GuideEditor] Syncing to Firestore...');
   try {
     // Build hosts with only defined values (Firestore doesn't accept undefined)
     const firestoreHosts: FirestoreWW2Host[] = hosts.map((h, i) => {
@@ -94,17 +172,18 @@ async function saveStoredHostsAsync(hosts: EditableWW2Host[]): Promise<{ success
       return host;
     });
 
-    const success = await saveAllWW2Hosts(firestoreHosts);
-    if (success) {
-      console.log('[WW2GuideEditor] ✅ Saved to Firestore successfully!');
+    const firestoreSuccess = await saveAllWW2Hosts(firestoreHosts);
+    if (firestoreSuccess) {
+      console.log('[WW2GuideEditor] ✅ Synced to Firestore successfully!');
       return { success: true };
     } else {
-      return { success: false, error: 'Firestore save failed' };
+      console.warn('[WW2GuideEditor] ⚠️ Firestore sync failed - data saved locally');
+      return { success: true, savedLocally: true, error: 'Cloud sync failed, but saved locally' };
     }
   } catch (e) {
     const error = e as Error;
-    console.error('[WW2GuideEditor] ❌ Error saving to Firestore:', error);
-    return { success: false, error: error.message };
+    console.error('[WW2GuideEditor] ❌ Firestore sync error:', error);
+    return { success: true, savedLocally: true, error: `Cloud sync failed: ${error.message}` };
   }
 }
 
@@ -151,10 +230,18 @@ export default function WW2GuideEditor() {
     try {
       const result = await saveStoredHostsAsync(updatedHosts);
       if (result.success) {
-        toast.success('Saved to cloud', { duration: 2000 });
+        if (result.savedLocally) {
+          toast.success('Saved locally', {
+            description: result.error || 'Cloud sync unavailable',
+            duration: 3000,
+            icon: <HardDrive size={16} />,
+          });
+        } else {
+          toast.success('Saved to cloud', { duration: 2000 });
+        }
       } else {
         toast.error('Auto-save failed', {
-          description: result.error || 'Check Firebase configuration.',
+          description: result.error || 'Unknown error.',
           duration: 5000,
         });
       }
@@ -265,12 +352,19 @@ export default function WW2GuideEditor() {
     try {
       const result = await saveStoredHostsAsync(hosts);
       if (result.success) {
-        toast.success('WW2 guides saved', {
-          description: 'Synced to Firebase - visible to all users.',
-        });
+        if (result.savedLocally) {
+          toast.success('Saved locally', {
+            description: result.error || 'Data persisted - cloud sync unavailable.',
+            icon: <HardDrive size={16} />,
+          });
+        } else {
+          toast.success('WW2 guides saved', {
+            description: 'Synced to Firebase - visible to all users.',
+          });
+        }
       } else {
         toast.error('Save failed', {
-          description: result.error || 'Check Firebase configuration.',
+          description: result.error || 'Unknown error.',
           duration: 8000,
         });
       }
@@ -290,12 +384,19 @@ export default function WW2GuideEditor() {
     try {
       const result = await saveStoredHostsAsync(hosts);
       if (result.success) {
-        toast.success('All WW2 guides saved', {
-          description: 'Synced to Firebase - visible to all users.',
-        });
+        if (result.savedLocally) {
+          toast.success('Saved locally', {
+            description: result.error || 'Data persisted - cloud sync unavailable.',
+            icon: <HardDrive size={16} />,
+          });
+        } else {
+          toast.success('All WW2 guides saved', {
+            description: 'Synced to Firebase - visible to all users.',
+          });
+        }
       } else {
         toast.error('Save failed', {
-          description: result.error || 'Check Firebase configuration.',
+          description: result.error || 'Unknown error.',
           duration: 8000,
         });
       }
