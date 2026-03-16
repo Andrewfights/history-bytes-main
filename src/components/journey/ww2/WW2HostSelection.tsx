@@ -6,10 +6,16 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Volume2, VolumeX, Play } from 'lucide-react';
-import { getStoredWW2Hosts, loadWW2HostsFromFirestore } from '@/data/ww2Hosts';
+import { getStoredWW2Hosts, loadWW2HostsFromFirestore, WW2_HOSTS } from '@/data/ww2Hosts';
 import { subscribeToWW2Hosts } from '@/lib/firestore';
 import { isFirebaseConfigured } from '@/lib/firebase';
 import { WW2Host } from '@/types';
+
+// Helper to get default video URL for a host (fallback when Firestore doesn't have one)
+function getDefaultVideoUrl(hostId: string, type: 'intro' | 'welcome'): string | undefined {
+  const defaultHost = WW2_HOSTS.find(h => h.id === hostId);
+  return type === 'intro' ? defaultHost?.introVideoUrl : defaultHost?.welcomeVideoUrl;
+}
 import {
   Carousel,
   CarouselContent,
@@ -55,8 +61,13 @@ export function WW2HostSelection({ onSelectHost }: WW2HostSelectionProps) {
             era: h.era,
             specialty: h.specialty,
             imageUrl: h.imageUrl,
-            introVideoUrl: h.introVideoUrl,
-            welcomeVideoUrl: h.welcomeVideoUrl,
+            // Use Firestore URL if valid (not local data URL), otherwise fall back to default
+            introVideoUrl: (h.introVideoUrl && !h.introVideoUrl.startsWith('data:') && !h.introVideoUrl.startsWith('blob:'))
+              ? h.introVideoUrl
+              : getDefaultVideoUrl(h.id, 'intro'),
+            welcomeVideoUrl: (h.welcomeVideoUrl && !h.welcomeVideoUrl.startsWith('data:') && !h.welcomeVideoUrl.startsWith('blob:'))
+              ? h.welcomeVideoUrl
+              : getDefaultVideoUrl(h.id, 'welcome'),
             primaryColor: h.primaryColor,
             avatar: h.avatar,
             voiceStyle: h.voiceStyle,

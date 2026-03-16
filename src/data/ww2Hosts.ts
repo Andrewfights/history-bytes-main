@@ -23,8 +23,8 @@ export const WW2_HOSTS: WW2Host[] = [
     avatar: '🪖',
     voiceStyle: 'determined',
     description: 'A seasoned soldier who fought across the Pacific and European theaters. Experience the war through the eyes of someone who was there in the trenches.',
-    introVideoUrl: undefined, // User will provide: host-soldier-intro.mp4
-    welcomeVideoUrl: undefined, // User will provide: host-soldier-welcome.mp4
+    introVideoUrl: '/assets/ww2-guides/soldier-intro.mp4',
+    welcomeVideoUrl: undefined,
   },
   {
     id: 'journalist',
@@ -36,8 +36,8 @@ export const WW2_HOSTS: WW2Host[] = [
     avatar: '📰',
     voiceStyle: 'empathetic',
     description: 'See the war through the lens of those who documented it. Hear the human stories from the frontlines - the courage, the fear, the sacrifice, and the hope.',
-    introVideoUrl: undefined, // User will provide: host-journalist-intro.mp4
-    welcomeVideoUrl: undefined, // User will provide: host-journalist-welcome.mp4
+    introVideoUrl: '/assets/ww2-guides/journalist-intro.mp4',
+    welcomeVideoUrl: undefined,
   },
   {
     id: 'codebreaker',
@@ -49,8 +49,8 @@ export const WW2_HOSTS: WW2Host[] = [
     avatar: '🔬',
     voiceStyle: 'analytical',
     description: 'Discover the hidden war fought in the shadows. From Enigma to espionage, uncover the intelligence operations that changed the course of history.',
-    introVideoUrl: undefined, // User will provide: host-codebreaker-intro.mp4
-    welcomeVideoUrl: undefined, // User will provide: host-codebreaker-welcome.mp4
+    introVideoUrl: '/assets/ww2-guides/codebreaker-intro.mp4',
+    welcomeVideoUrl: undefined,
   },
 ];
 
