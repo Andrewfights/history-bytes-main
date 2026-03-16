@@ -62,12 +62,14 @@ async function saveStoredHostsAsync(hosts: EditableWW2Host[]): Promise<boolean> 
   // Always save to localStorage as backup
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(hosts));
+    console.log('[WW2GuideEditor] Saved to localStorage');
   } catch (e) {
     console.error('Error saving WW2 hosts to localStorage:', e);
   }
 
   // Save to Firestore if configured
   if (isFirebaseConfigured()) {
+    console.log('[WW2GuideEditor] Firebase configured, attempting Firestore save...');
     try {
       const firestoreHosts: FirestoreWW2Host[] = hosts.map((h, i) => ({
         id: h.id,
@@ -84,14 +86,19 @@ async function saveStoredHostsAsync(hosts: EditableWW2Host[]): Promise<boolean> 
         description: h.description,
         displayOrder: i,
       }));
+      console.log('[WW2GuideEditor] Saving hosts:', firestoreHosts.map(h => ({ id: h.id, hasIntroVideo: !!h.introVideoUrl, hasWelcomeVideo: !!h.welcomeVideoUrl })));
       const success = await saveAllWW2Hosts(firestoreHosts);
       if (success) {
-        console.log('[WW2GuideEditor] Saved to Firestore');
+        console.log('[WW2GuideEditor] ✅ Saved to Firestore successfully!');
         return true;
+      } else {
+        console.error('[WW2GuideEditor] ❌ Firestore save returned false');
       }
     } catch (e) {
-      console.error('[WW2GuideEditor] Error saving to Firestore:', e);
+      console.error('[WW2GuideEditor] ❌ Error saving to Firestore:', e);
     }
+  } else {
+    console.log('[WW2GuideEditor] Firebase NOT configured');
   }
 
   return false;

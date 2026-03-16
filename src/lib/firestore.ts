@@ -490,7 +490,12 @@ export async function batchSaveDocuments<T extends Record<string, unknown>>(
   collectionName: string,
   documents: Array<{ id: string; data: T }>
 ): Promise<boolean> {
-  if (!isFirebaseConfigured()) return false;
+  if (!isFirebaseConfigured()) {
+    console.warn('[Firestore] batchSaveDocuments: Firebase not configured');
+    return false;
+  }
+
+  console.log(`[Firestore] batchSaveDocuments: Saving ${documents.length} docs to ${collectionName}`);
 
   try {
     const batch = writeBatch(db);
@@ -503,10 +508,24 @@ export async function batchSaveDocuments<T extends Record<string, unknown>>(
       }, { merge: true });
     }
 
+    console.log(`[Firestore] batchSaveDocuments: Committing batch...`);
     await batch.commit();
+    console.log(`[Firestore] batchSaveDocuments: ✅ Batch committed successfully to ${collectionName}`);
     return true;
-  } catch (err) {
-    console.error(`[Firestore] Batch save error for ${collectionName}:`, err);
+  } catch (err: unknown) {
+    const error = err as { code?: string; message?: string };
+    console.error(`[Firestore] ❌ Batch save error for ${collectionName}:`, err);
+
+    // Check for common Firebase errors
+    if (error.code === 'permission-denied') {
+      console.error(`[Firestore] 🔒 PERMISSION DENIED - Check Firestore security rules!`);
+      console.error(`[Firestore] Rules should allow write access to '${collectionName}' collection`);
+    } else if (error.code === 'unauthenticated') {
+      console.error(`[Firestore] 🔑 UNAUTHENTICATED - User must be signed in to write`);
+    } else if (error.code === 'unavailable') {
+      console.error(`[Firestore] 📡 UNAVAILABLE - Network or Firestore service issue`);
+    }
+
     return false;
   }
 }

@@ -29,10 +29,14 @@ export function WW2HostSelection({ onSelectHost }: WW2HostSelectionProps) {
   // Load hosts from storage (includes admin edits) on mount and subscribe to updates
   useEffect(() => {
     // Initial load - sync first, then async
-    setHosts(getStoredWW2Hosts());
+    const initialHosts = getStoredWW2Hosts();
+    console.log('[WW2HostSelection] Initial hosts from storage:', initialHosts.map(h => ({ id: h.id, hasIntroVideo: !!h.introVideoUrl })));
+    setHosts(initialHosts);
 
     // Then load from Firestore async to get latest data
+    console.log('[WW2HostSelection] Firebase configured:', isFirebaseConfigured());
     loadWW2HostsFromFirestore().then(hosts => {
+      console.log('[WW2HostSelection] Loaded from Firestore:', hosts.map(h => ({ id: h.id, hasIntroVideo: !!h.introVideoUrl })));
       if (hosts.length > 0) {
         setHosts(hosts);
       }
@@ -40,7 +44,9 @@ export function WW2HostSelection({ onSelectHost }: WW2HostSelectionProps) {
 
     // Subscribe to Firestore updates so we get real-time changes
     if (isFirebaseConfigured()) {
+      console.log('[WW2HostSelection] Setting up Firestore subscription...');
       const unsubscribe = subscribeToWW2Hosts((firestoreHosts) => {
+        console.log('[WW2HostSelection] 🔥 Firestore update received:', firestoreHosts?.length, 'hosts');
         if (firestoreHosts && firestoreHosts.length > 0) {
           const mappedHosts: WW2Host[] = firestoreHosts.map(h => ({
             id: h.id as WW2Host['id'],
@@ -56,6 +62,7 @@ export function WW2HostSelection({ onSelectHost }: WW2HostSelectionProps) {
             voiceStyle: h.voiceStyle,
             description: h.description,
           }));
+          console.log('[WW2HostSelection] Updated hosts with videos:', mappedHosts.map(h => ({ id: h.id, introVideo: h.introVideoUrl?.substring(0, 50) })));
           setHosts(mappedHosts);
         }
       });
