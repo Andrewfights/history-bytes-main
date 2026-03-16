@@ -59,7 +59,7 @@ export interface BadgeCheckContext {
 export const RARITY_CONFIG: Record<BadgeRarity, { color: string; bgColor: string; label: string }> = {
   common: { color: 'text-slate-400', bgColor: 'bg-slate-500/20', label: 'Common' },
   uncommon: { color: 'text-green-400', bgColor: 'bg-green-500/20', label: 'Uncommon' },
-  rare: { color: 'text-blue-400', bgColor: 'bg-blue-500/20', label: 'Rare' },
+  rare: { color: 'text-amber-400', bgColor: 'bg-amber-500/20', label: 'Rare' },
   epic: { color: 'text-purple-400', bgColor: 'bg-purple-500/20', label: 'Epic' },
   legendary: { color: 'text-amber-400', bgColor: 'bg-amber-500/20', label: 'Legendary' },
 };

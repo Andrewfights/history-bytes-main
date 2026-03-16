@@ -10,8 +10,8 @@ interface ThisDayCardProps {
 
 const categoryColors: Record<HistoricalEvent['category'], string> = {
   warfare: 'text-red-400',
-  politics: 'text-blue-400',
-  science: 'text-cyan-400',
+  politics: 'text-slate-400',
+  science: 'text-amber-400',
   culture: 'text-purple-400',
   exploration: 'text-emerald-400',
   revolution: 'text-orange-400',

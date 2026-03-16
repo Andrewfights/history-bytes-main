@@ -66,15 +66,15 @@ export function GuideChatModal({ isOpen, onClose }: GuideChatModalProps) {
     }
   }, [isOpen]);
 
+  // History Channel colors: gold (amber), red, black, white - no blue
   const colorMap: Record<string, { bg: string; border: string; text: string; msgBg: string }> = {
-    blue: { bg: 'bg-blue-500/10', border: 'border-blue-500/30', text: 'text-blue-400', msgBg: 'bg-blue-500/20' },
-    slate: { bg: 'bg-slate-500/10', border: 'border-slate-400/30', text: 'text-slate-300', msgBg: 'bg-slate-500/20' },
+    gold: { bg: 'bg-amber-500/10', border: 'border-amber-500/30', text: 'text-amber-400', msgBg: 'bg-amber-500/20' },
     amber: { bg: 'bg-amber-500/10', border: 'border-amber-500/30', text: 'text-amber-400', msgBg: 'bg-amber-500/20' },
-    purple: { bg: 'bg-purple-500/10', border: 'border-purple-500/30', text: 'text-purple-400', msgBg: 'bg-purple-500/20' },
-    emerald: { bg: 'bg-emerald-500/10', border: 'border-emerald-500/30', text: 'text-emerald-400', msgBg: 'bg-emerald-500/20' },
     red: { bg: 'bg-red-500/10', border: 'border-red-500/30', text: 'text-red-400', msgBg: 'bg-red-500/20' },
+    slate: { bg: 'bg-slate-500/10', border: 'border-slate-400/30', text: 'text-slate-300', msgBg: 'bg-slate-500/20' },
+    emerald: { bg: 'bg-emerald-500/10', border: 'border-emerald-500/30', text: 'text-emerald-400', msgBg: 'bg-emerald-500/20' },
+    purple: { bg: 'bg-purple-500/10', border: 'border-purple-500/30', text: 'text-purple-400', msgBg: 'bg-purple-500/20' },
     rose: { bg: 'bg-rose-500/10', border: 'border-rose-500/30', text: 'text-rose-400', msgBg: 'bg-rose-500/20' },
-    cyan: { bg: 'bg-cyan-500/10', border: 'border-cyan-500/30', text: 'text-cyan-400', msgBg: 'bg-cyan-500/20' },
   };
 
   const colors = guide ? (colorMap[guide.primaryColor] || colorMap.amber) : colorMap.amber;

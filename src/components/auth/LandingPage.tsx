@@ -326,7 +326,7 @@ export function LandingPage({ onAuthSuccess }: LandingPageProps) {
                 whileTap={{ scale: 0.98 }}
                 onClick={() => handleDemoLogin('existing')}
                 disabled={isLoading}
-                className="w-full py-3 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-400 font-medium text-sm flex items-center justify-center gap-2 hover:bg-blue-500/20 transition-colors disabled:opacity-50"
+                className="w-full py-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 font-medium text-sm flex items-center justify-center gap-2 hover:bg-amber-500/20 transition-colors disabled:opacity-50"
               >
                 <User size={16} />
                 Demo: Returning User

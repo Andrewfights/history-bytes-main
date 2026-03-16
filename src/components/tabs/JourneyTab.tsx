@@ -804,7 +804,7 @@ export function JourneyTab() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
                 onClick={handleOpenWorldMap}
-                className="fixed bottom-24 right-4 z-30 flex items-center gap-2 px-4 py-3 rounded-full bg-gradient-to-r from-blue-600 to-blue-700 text-white font-bold shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-shadow"
+                className="fixed bottom-24 right-4 z-30 flex items-center gap-2 px-4 py-3 rounded-full bg-gradient-to-r from-hc-red to-hc-red-dark text-white font-bold shadow-lg shadow-red-500/30 hover:shadow-red-500/50 transition-shadow"
               >
                 <Globe size={20} />
                 <span>Explore Map</span>

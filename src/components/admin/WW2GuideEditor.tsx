@@ -784,7 +784,7 @@ function HostCard({
             className={`w-5 h-5 rounded-full flex items-center justify-center ${
               host.welcomeVideoUrl.startsWith('data:') || host.welcomeVideoUrl.startsWith('blob:')
                 ? 'bg-orange-500/80'
-                : 'bg-blue-500/80'
+                : 'bg-emerald-500/80'
             }`}
             title={
               host.welcomeVideoUrl.startsWith('data:') || host.welcomeVideoUrl.startsWith('blob:')

@@ -38,15 +38,15 @@ export function GuideSection({
     return null;
   }
 
+  // History Channel colors: gold (amber), red, black, white - no blue
   const colorMap: Record<string, { bg: string; border: string; text: string; glow: string; gradient: string }> = {
-    blue: { bg: 'bg-blue-500/10', border: 'border-blue-500/30', text: 'text-blue-400', glow: 'shadow-blue-500/20', gradient: 'from-blue-500/20 to-blue-900/40' },
-    slate: { bg: 'bg-slate-500/10', border: 'border-slate-400/30', text: 'text-slate-300', glow: 'shadow-slate-400/20', gradient: 'from-slate-500/20 to-slate-900/40' },
+    gold: { bg: 'bg-amber-500/10', border: 'border-amber-500/30', text: 'text-amber-400', glow: 'shadow-amber-500/20', gradient: 'from-amber-500/20 to-amber-900/40' },
     amber: { bg: 'bg-amber-500/10', border: 'border-amber-500/30', text: 'text-amber-400', glow: 'shadow-amber-500/20', gradient: 'from-amber-500/20 to-amber-900/40' },
-    purple: { bg: 'bg-purple-500/10', border: 'border-purple-500/30', text: 'text-purple-400', glow: 'shadow-purple-500/20', gradient: 'from-purple-500/20 to-purple-900/40' },
-    emerald: { bg: 'bg-emerald-500/10', border: 'border-emerald-500/30', text: 'text-emerald-400', glow: 'shadow-emerald-500/20', gradient: 'from-emerald-500/20 to-emerald-900/40' },
     red: { bg: 'bg-red-500/10', border: 'border-red-500/30', text: 'text-red-400', glow: 'shadow-red-500/20', gradient: 'from-red-500/20 to-red-900/40' },
+    slate: { bg: 'bg-slate-500/10', border: 'border-slate-400/30', text: 'text-slate-300', glow: 'shadow-slate-400/20', gradient: 'from-slate-500/20 to-slate-900/40' },
+    emerald: { bg: 'bg-emerald-500/10', border: 'border-emerald-500/30', text: 'text-emerald-400', glow: 'shadow-emerald-500/20', gradient: 'from-emerald-500/20 to-emerald-900/40' },
+    purple: { bg: 'bg-purple-500/10', border: 'border-purple-500/30', text: 'text-purple-400', glow: 'shadow-purple-500/20', gradient: 'from-purple-500/20 to-purple-900/40' },
     rose: { bg: 'bg-rose-500/10', border: 'border-rose-500/30', text: 'text-rose-400', glow: 'shadow-rose-500/20', gradient: 'from-rose-500/20 to-rose-900/40' },
-    cyan: { bg: 'bg-cyan-500/10', border: 'border-cyan-500/30', text: 'text-cyan-400', glow: 'shadow-cyan-500/20', gradient: 'from-cyan-500/20 to-cyan-900/40' },
   };
 
   const colors = colorMap[guide.primaryColor] || colorMap.amber;

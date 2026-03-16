@@ -416,7 +416,7 @@ function ActSelectView({ onSelectAct }: { onSelectAct: (act: Act) => void }) {
         <div className="px-5 pt-4 pb-5 relative">
           <p className="text-[9px] uppercase tracking-[0.35em] font-bold text-primary/70 font-mono">Story Mode</p>
           <h1 className="font-display text-[26px] font-black tracking-wide uppercase leading-none mt-1">Your Campaign</h1>
-          <div className="flex items-center gap-3 mt-3 text-[11px] text-muted-foreground">
+          <div className="flex items-center gap-3 mt-3 text-sm text-muted-foreground">
             <span className="text-foreground font-semibold">{user.xp.toLocaleString()} XP</span>
             <span className="opacity-30">·</span>
             <span className="text-primary font-semibold">{rank}</span>
@@ -494,7 +494,7 @@ function ActSelectView({ onSelectAct }: { onSelectAct: (act: Act) => void }) {
                 <p className="font-display text-sm font-black uppercase tracking-wide">
                   Act {inProgressAct.number} — {inProgressAct.title}
                 </p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">Next: {getNextNodeTitle(inProgressAct)}</p>
+                <p className="text-sm text-muted-foreground mt-0.5">Next: {getNextNodeTitle(inProgressAct)}</p>
               </div>
               <span className="text-xs font-bold flex items-center gap-1 text-primary">Resume <ChevronRight size={14} /></span>
             </div>
@@ -539,14 +539,14 @@ function ActSelectView({ onSelectAct }: { onSelectAct: (act: Act) => void }) {
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5 mb-1.5">
-                        <p className="font-display text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+                        <p className="font-display text-sm font-black uppercase tracking-[0.2em] text-muted-foreground">
                           Act {act.number}
                         </p>
-                        <span className="text-border/60 text-[10px]">·</span>
+                        <span className="text-border/60 text-xs">·</span>
                         <span className="text-[9px] uppercase tracking-[0.15em] font-bold" style={{ color: locked ? 'hsl(var(--muted-foreground))' : eraColor }}>
                           {getActEraLabel(act.number)}
                         </span>
-                        <span className="text-border/60 text-[10px]">·</span>
+                        <span className="text-border/60 text-xs">·</span>
                         <span className={`text-[9px] uppercase tracking-wider font-bold ${diff.color} flex items-center gap-0.5`}>
                           <Signal size={9} />{diff.label}
                         </span>
@@ -559,7 +559,7 @@ function ActSelectView({ onSelectAct }: { onSelectAct: (act: Act) => void }) {
                       </div>
 
                       <h2 className="font-display text-[15px] font-black uppercase tracking-wide leading-tight">{act.title}</h2>
-                      <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug line-clamp-1">{act.subtitle}</p>
+                      <p className="text-sm text-muted-foreground mt-0.5 leading-snug line-clamp-1">{act.subtitle}</p>
                     </div>
 
                     {/* Right badge */}
@@ -574,7 +574,7 @@ function ActSelectView({ onSelectAct }: { onSelectAct: (act: Act) => void }) {
                           <span className="text-[9px] font-bold" style={{ color: eraColor }}>{crowned}</span>
                         </div>
                       ) : hasProgress ? (
-                        <div className="w-8 h-8 rounded-full border-2 flex items-center justify-center text-[10px] font-bold" style={{ borderColor: eraColor, color: eraColor }}>
+                        <div className="w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-bold" style={{ borderColor: eraColor, color: eraColor }}>
                           {played}
                         </div>
                       ) : (
@@ -592,14 +592,14 @@ function ActSelectView({ onSelectAct }: { onSelectAct: (act: Act) => void }) {
                       className="mt-2.5 pl-3 border-l-2 border-border/40"
                     >
                       <p className="text-[9px] uppercase tracking-[0.12em] font-bold text-muted-foreground/50">Host: {hostTeaser.name}</p>
-                      <p className="text-[11px] text-muted-foreground/70 italic leading-snug mt-0.5 line-clamp-1" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+                      <p className="text-sm text-muted-foreground/70 italic leading-snug mt-0.5 line-clamp-1" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
                         "{hostTeaser.quote}"
                       </p>
                     </motion.div>
                   )}
 
                   {locked && (
-                    <p className="text-[10px] text-muted-foreground/50 mt-2 flex items-center gap-1">
+                    <p className="text-xs text-muted-foreground/50 mt-2 flex items-center gap-1">
                       <Lock size={9} /> Complete Act {act.number - 1} to unlock
                     </p>
                   )}
@@ -727,7 +727,7 @@ function NodeCircle({ node, mastery, onTap }: { node: ExploreNode; mastery: Mast
           initial={{ opacity: 0, y: 4 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="mt-2 bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full"
+          className="mt-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full"
         >
           Start
         </motion.div>
@@ -756,7 +756,7 @@ function NodeCircle({ node, mastery, onTap }: { node: ExploreNode; mastery: Mast
           />
         )}
         <span
-          className={`text-[11px] font-semibold leading-tight text-center max-w-[90px] ${
+          className={`text-sm font-semibold leading-tight text-center max-w-[90px] ${
             locked
               ? 'text-muted-foreground/60'
               : mastery === 'crowned'
@@ -815,7 +815,7 @@ function NodeBoardView({ act, onBack }: { act: Act; onBack: () => void }) {
             <span>All Acts</span>
           </button>
           <div className="text-center">
-            <p className="text-[10px] uppercase tracking-[0.25em] font-bold text-muted-foreground">
+            <p className="text-xs uppercase tracking-[0.25em] font-bold text-muted-foreground">
               Act {act.number}
             </p>
             <h1 className="font-editorial text-[22px] font-bold leading-tight mt-1">{act.title}</h1>
@@ -846,7 +846,7 @@ function NodeBoardView({ act, onBack }: { act: Act; onBack: () => void }) {
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ delay: 0.4 }}
-                      className="text-[10px] uppercase tracking-[0.2em] font-bold text-primary mb-4"
+                      className="text-xs uppercase tracking-[0.2em] font-bold text-primary mb-4"
                     >
                       Choose your path
                     </motion.p>
