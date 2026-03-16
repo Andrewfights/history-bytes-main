@@ -11,9 +11,9 @@ import { Loader2, ShieldX } from 'lucide-react';
 // Admin email whitelist - add your admin emails here
 // In production, you might want to store this in Firestore or use Firebase custom claims
 const ADMIN_EMAILS = [
+  'andrewfights@gmail.com',
   'admin@historybytes.com',
   'andrew@historybytes.com',
-  // Add more admin emails as needed
 ];
 
 // Also allow access in development mode for easier testing
