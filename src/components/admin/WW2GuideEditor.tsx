@@ -145,20 +145,61 @@ export default function WW2GuideEditor() {
     setMediaPickerOpen(true);
   };
 
-  const handleMediaSelect = (file: MediaFile) => {
+  // Auto-save function that saves directly without waiting for state
+  const autoSaveHosts = async (updatedHosts: EditableWW2Host[]) => {
+    console.log('[WW2GuideEditor] Auto-saving...');
+    try {
+      const result = await saveStoredHostsAsync(updatedHosts);
+      if (result.success) {
+        toast.success('Saved to cloud', { duration: 2000 });
+      } else {
+        toast.error('Auto-save failed', {
+          description: result.error || 'Check Firebase configuration.',
+          duration: 5000,
+        });
+      }
+    } catch (error) {
+      console.error('[WW2GuideEditor] Auto-save error:', error);
+      toast.error('Auto-save error', {
+        description: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  };
+
+  const handleMediaSelect = async (file: MediaFile) => {
     if (!selectedId) return;
     const field = mediaPickerType === 'introVideo' ? 'introVideoUrl'
       : mediaPickerType === 'welcomeVideo' ? 'welcomeVideoUrl'
       : 'imageUrl';
-    handleUpdateHost(field as keyof EditableWW2Host, file.url);
-    toast.success(`${mediaPickerType === 'image' ? 'Image' : mediaPickerType.replace('Video', ' video')} set`);
+
+    // Update hosts and auto-save
+    const updatedHosts = hosts.map(h =>
+      h.id === selectedId ? { ...h, [field]: file.url } : h
+    );
+    setHosts(updatedHosts);
+
+    // Auto-save immediately
+    toast.loading('Saving...', { id: 'autosave' });
+    await autoSaveHosts(updatedHosts);
+    toast.dismiss('autosave');
   };
 
-  const clearMedia = (type: 'introVideo' | 'welcomeVideo' | 'image') => {
+  const clearMedia = async (type: 'introVideo' | 'welcomeVideo' | 'image') => {
+    if (!selectedId) return;
     const field = type === 'introVideo' ? 'introVideoUrl'
       : type === 'welcomeVideo' ? 'welcomeVideoUrl'
       : 'imageUrl';
-    handleUpdateHost(field as keyof EditableWW2Host, undefined);
+
+    // Update hosts and auto-save
+    const updatedHosts = hosts.map(h =>
+      h.id === selectedId ? { ...h, [field]: undefined } : h
+    );
+    setHosts(updatedHosts);
+
+    // Auto-save immediately
+    toast.loading('Saving...', { id: 'autosave' });
+    await autoSaveHosts(updatedHosts);
+    toast.dismiss('autosave');
   };
 
   const handleSelectHost = (id: string) => {
@@ -172,8 +213,11 @@ export default function WW2GuideEditor() {
     ));
   };
 
-  const handleReorder = (newOrder: EditableWW2Host[]) => {
-    setHosts(newOrder.map((h, i) => ({ ...h, displayOrder: i })));
+  const handleReorder = async (newOrder: EditableWW2Host[]) => {
+    const updatedHosts = newOrder.map((h, i) => ({ ...h, displayOrder: i }));
+    setHosts(updatedHosts);
+    // Auto-save after reorder
+    await autoSaveHosts(updatedHosts);
   };
 
   const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -196,10 +240,15 @@ export default function WW2GuideEditor() {
     const uploadResult = await uploadFile(file);
 
     if (uploadResult?.url) {
-      setHosts(prev => prev.map(h =>
+      // Update hosts with the cloud URL
+      const updatedHosts = hosts.map(h =>
         h.id === selectedId ? { ...h, imageUrl: uploadResult.url, localImageUrl: undefined } : h
-      ));
-      toast.success('Image uploaded to cloud', { id: 'upload' });
+      );
+      setHosts(updatedHosts);
+      toast.success('Uploaded! Saving...', { id: 'upload' });
+
+      // Auto-save to Firestore
+      await autoSaveHosts(updatedHosts);
     } else {
       // Clear the local preview since we can't save it
       setHosts(prev => prev.map(h =>
@@ -209,7 +258,7 @@ export default function WW2GuideEditor() {
     }
 
     if (fileInputRef.current) fileInputRef.current.value = '';
-  }, [selectedId]);
+  }, [selectedId, hosts]);
 
   const handleSave = async () => {
     setIsSaving(true);
