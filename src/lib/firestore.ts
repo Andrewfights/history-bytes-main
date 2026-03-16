@@ -486,16 +486,38 @@ export async function deleteLessonContent(contentId: string): Promise<boolean> {
 
 // ============ Batch Operations ============
 
+// Retry configuration
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 1000;
+
+// Check if error is retryable (network issues, service unavailable)
+function isRetryableError(code?: string): boolean {
+  return code === 'unavailable' || code === 'deadline-exceeded' || code === 'resource-exhausted';
+}
+
+// Sleep helper for retry delays
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+export interface BatchSaveResult {
+  success: boolean;
+  error?: string;
+  errorCode?: string;
+  retryable?: boolean;
+}
+
 export async function batchSaveDocuments<T extends Record<string, unknown>>(
   collectionName: string,
-  documents: Array<{ id: string; data: T }>
+  documents: Array<{ id: string; data: T }>,
+  retryCount = 0
 ): Promise<boolean> {
   if (!isFirebaseConfigured()) {
     console.warn('[Firestore] batchSaveDocuments: Firebase not configured');
     return false;
   }
 
-  console.log(`[Firestore] batchSaveDocuments: Saving ${documents.length} docs to ${collectionName}`);
+  console.log(`[Firestore] batchSaveDocuments: Saving ${documents.length} docs to ${collectionName}${retryCount > 0 ? ` (retry ${retryCount})` : ''}`);
 
   try {
     const batch = writeBatch(db);
@@ -520,10 +542,21 @@ export async function batchSaveDocuments<T extends Record<string, unknown>>(
     if (error.code === 'permission-denied') {
       console.error(`[Firestore] 🔒 PERMISSION DENIED - Check Firestore security rules!`);
       console.error(`[Firestore] Rules should allow write access to '${collectionName}' collection`);
+      return false; // Don't retry permission errors
     } else if (error.code === 'unauthenticated') {
       console.error(`[Firestore] 🔑 UNAUTHENTICATED - User must be signed in to write`);
-    } else if (error.code === 'unavailable') {
-      console.error(`[Firestore] 📡 UNAVAILABLE - Network or Firestore service issue`);
+      return false; // Don't retry auth errors
+    } else if (isRetryableError(error.code)) {
+      console.warn(`[Firestore] 📡 Retryable error: ${error.code}`);
+
+      // Retry with exponential backoff
+      if (retryCount < MAX_RETRIES) {
+        const delay = RETRY_DELAY_MS * Math.pow(2, retryCount);
+        console.log(`[Firestore] Retrying in ${delay}ms... (attempt ${retryCount + 1}/${MAX_RETRIES})`);
+        await sleep(delay);
+        return batchSaveDocuments(collectionName, documents, retryCount + 1);
+      }
+      console.error(`[Firestore] Max retries exceeded for ${collectionName}`);
     }
 
     return false;

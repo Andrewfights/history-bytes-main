@@ -222,6 +222,44 @@ export function getStoredWW2Hosts(): WW2Host[] {
   return WW2_HOSTS;
 }
 
+// Helper to map Firestore host to WW2Host with displayOrder
+function mapFirestoreHostToWW2Host(h: {
+  id: string;
+  name: string;
+  title: string;
+  era: string;
+  specialty: string;
+  imageUrl?: string;
+  introVideoUrl?: string;
+  welcomeVideoUrl?: string;
+  primaryColor: string;
+  avatar: string;
+  voiceStyle: string;
+  description: string;
+  displayOrder?: number;
+}): WW2Host & { displayOrder?: number } {
+  return {
+    id: h.id as WW2Host['id'],
+    name: h.name,
+    title: h.title,
+    era: h.era,
+    specialty: h.specialty,
+    imageUrl: h.imageUrl,
+    introVideoUrl: h.introVideoUrl,
+    welcomeVideoUrl: h.welcomeVideoUrl,
+    primaryColor: h.primaryColor,
+    avatar: h.avatar,
+    voiceStyle: h.voiceStyle,
+    description: h.description,
+    displayOrder: h.displayOrder,
+  };
+}
+
+// Sort hosts by displayOrder
+function sortHostsByOrder<T extends { displayOrder?: number }>(hosts: T[]): T[] {
+  return [...hosts].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+}
+
 /**
  * Initialize Firestore subscription for WW2 hosts.
  * Call this once when the app starts (e.g., in AppContext or main.tsx).
@@ -235,21 +273,12 @@ export function initWW2HostsSubscription(): () => void {
 
   const unsubscribe = subscribeToWW2Hosts((hosts) => {
     if (hosts && hosts.length > 0) {
-      firestoreHostsCache = hosts.map(h => ({
-        id: h.id as WW2Host['id'],
-        name: h.name,
-        title: h.title,
-        era: h.era,
-        specialty: h.specialty,
-        imageUrl: h.imageUrl,
-        introVideoUrl: h.introVideoUrl,
-        welcomeVideoUrl: h.welcomeVideoUrl,
-        primaryColor: h.primaryColor,
-        avatar: h.avatar,
-        voiceStyle: h.voiceStyle,
-        description: h.description,
-      }));
-      console.log('[WW2Hosts] Loaded from Firestore:', firestoreHostsCache.length);
+      // Map and sort by displayOrder
+      firestoreHostsCache = sortHostsByOrder(hosts.map(mapFirestoreHostToWW2Host));
+      console.log('[WW2Hosts] Cache updated from Firestore:', firestoreHostsCache.map(h => ({
+        id: h.id,
+        order: (h as { displayOrder?: number }).displayOrder
+      })));
     }
   });
 
@@ -271,20 +300,9 @@ export async function loadWW2HostsFromFirestore(): Promise<WW2Host[]> {
   try {
     const hosts = await getFirestoreWW2Hosts();
     if (hosts && hosts.length > 0) {
-      firestoreHostsCache = hosts.map(h => ({
-        id: h.id as WW2Host['id'],
-        name: h.name,
-        title: h.title,
-        era: h.era,
-        specialty: h.specialty,
-        imageUrl: h.imageUrl,
-        introVideoUrl: h.introVideoUrl,
-        welcomeVideoUrl: h.welcomeVideoUrl,
-        primaryColor: h.primaryColor,
-        avatar: h.avatar,
-        voiceStyle: h.voiceStyle,
-        description: h.description,
-      }));
+      // Map and sort by displayOrder
+      firestoreHostsCache = sortHostsByOrder(hosts.map(mapFirestoreHostToWW2Host));
+      console.log('[WW2Hosts] Loaded from Firestore:', firestoreHostsCache.length, 'hosts');
       return firestoreHostsCache;
     }
   } catch (e) {
