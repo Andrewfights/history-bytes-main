@@ -8,6 +8,7 @@ import { BadgeShowcase } from '@/components/badges/BadgeShowcase';
 import { StudyNotes } from './StudyNotes';
 import { ApiKeySettings } from './ApiKeySettings';
 import { usePantheonProgress, TierBadge, PantheonRoom } from '@/components/journey/pantheon';
+import { isAdminUser } from '@/components/admin/AdminRoute';
 
 
 const avatarOptions = ['👤', '🧑‍🎓', '🦉', '🏛️', '⚔️', '🌍', '🎭', '📜', '🔺', '👑'];
@@ -375,19 +376,21 @@ export function ProfileSettings() {
           <span className="font-medium">Sign Out</span>
         </motion.button>
 
-        {/* Admin Panel Link */}
-        <Link to="/admin">
-          <motion.div
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.15 }}
-            whileTap={{ scale: 0.98 }}
-            className="w-full lesson-card flex items-center gap-3 text-primary"
-          >
-            <Settings size={20} />
-            <span className="font-medium">Admin Panel</span>
-          </motion.div>
-        </Link>
+        {/* Admin Panel Link - Only shown to admin users */}
+        {isAdminUser(userEmail) && (
+          <Link to="/admin">
+            <motion.div
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.15 }}
+              whileTap={{ scale: 0.98 }}
+              className="w-full lesson-card flex items-center gap-3 text-primary"
+            >
+              <Settings size={20} />
+              <span className="font-medium">Admin Panel</span>
+            </motion.div>
+          </Link>
+        )}
       </div>
 
       {/* Pantheon Modal */}

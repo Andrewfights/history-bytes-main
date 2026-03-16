@@ -1,3 +1,4 @@
+import { Suspense, lazy } from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -5,27 +6,43 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/context/AuthContext";
+import { Loader2 } from 'lucide-react';
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
-import AdminDashboard from "./pages/AdminDashboard";
-import { AdminLayout } from "./components/admin/AdminLayout";
-import JourneyEditor from "./components/admin/JourneyEditor";
-import CourseEditor from "./components/admin/CourseEditor";
-import ArcadeEditor from "./components/admin/ArcadeEditor";
-import MediaLibrary from "./components/admin/MediaLibrary";
-import MediaStudio from "./components/admin/MediaStudio";
-import VoicesEditor from "./components/admin/VoicesEditor";
-import GuideEditor from "./components/admin/GuideEditor";
-import WW2GuideEditor from "./components/admin/WW2GuideEditor";
-import { GhostArmyEditor } from "./components/admin/GhostArmyEditor";
-import { PearlHarborEditor } from "./components/admin/PearlHarborEditor";
-import { TriviaEditor } from "./components/admin/TriviaEditor";
-import { JourneyManagement } from "./components/admin/journey-management";
-import PantheonEditor from "./components/admin/PantheonEditor";
-import EraTileEditor from "./components/admin/EraTileEditor";
-import MapEditor from "./components/admin/MapEditor";
+
+// Lazy load admin components to reduce initial bundle size
+const AdminLayout = lazy(() => import('./components/admin/AdminLayout').then(m => ({ default: m.AdminLayout })));
+const AdminRoute = lazy(() => import('./components/admin/AdminRoute').then(m => ({ default: m.AdminRoute })));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const JourneyEditor = lazy(() => import('./components/admin/JourneyEditor'));
+const CourseEditor = lazy(() => import('./components/admin/CourseEditor'));
+const ArcadeEditor = lazy(() => import('./components/admin/ArcadeEditor'));
+const MediaLibrary = lazy(() => import('./components/admin/MediaLibrary'));
+const MediaStudio = lazy(() => import('./components/admin/MediaStudio'));
+const VoicesEditor = lazy(() => import('./components/admin/VoicesEditor'));
+const GuideEditor = lazy(() => import('./components/admin/GuideEditor'));
+const WW2GuideEditor = lazy(() => import('./components/admin/WW2GuideEditor'));
+const GhostArmyEditor = lazy(() => import('./components/admin/GhostArmyEditor').then(m => ({ default: m.GhostArmyEditor })));
+const PearlHarborEditor = lazy(() => import('./components/admin/PearlHarborEditor').then(m => ({ default: m.PearlHarborEditor })));
+const TriviaEditor = lazy(() => import('./components/admin/TriviaEditor').then(m => ({ default: m.TriviaEditor })));
+const JourneyManagement = lazy(() => import('./components/admin/journey-management').then(m => ({ default: m.JourneyManagement })));
+const PantheonEditor = lazy(() => import('./components/admin/PantheonEditor'));
+const EraTileEditor = lazy(() => import('./components/admin/EraTileEditor'));
+const MapEditor = lazy(() => import('./components/admin/MapEditor'));
 
 const queryClient = new QueryClient();
+
+// Loading fallback for lazy-loaded components
+function AdminLoadingFallback() {
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="text-center">
+        <Loader2 className="animate-spin mx-auto mb-4" size={32} />
+        <p className="text-muted-foreground">Loading admin panel...</p>
+      </div>
+    </div>
+  );
+}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -37,24 +54,33 @@ const App = () => (
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<Index />} />
-              {/* Admin Routes */}
-              <Route path="/admin" element={<AdminLayout />}>
-                <Route index element={<AdminDashboard />} />
-                <Route path="journeys" element={<JourneyEditor />} />
-                <Route path="journey-management" element={<JourneyManagement />} />
-                <Route path="courses" element={<CourseEditor />} />
-                <Route path="arcade" element={<ArcadeEditor />} />
-                <Route path="studio" element={<MediaStudio />} />
-                <Route path="media" element={<MediaLibrary />} />
-                <Route path="voices" element={<VoicesEditor />} />
-                <Route path="guides" element={<GuideEditor />} />
-                <Route path="ww2-guides" element={<WW2GuideEditor />} />
-                <Route path="era-tiles" element={<EraTileEditor />} />
-                <Route path="maps" element={<MapEditor />} />
-                <Route path="ghost-army" element={<GhostArmyEditor />} />
-                <Route path="pearl-harbor" element={<PearlHarborEditor />} />
-                <Route path="trivia" element={<TriviaEditor />} />
-                <Route path="pantheon" element={<PantheonEditor />} />
+              {/* Admin Routes - Protected and Lazy Loaded */}
+              <Route
+                path="/admin"
+                element={
+                  <Suspense fallback={<AdminLoadingFallback />}>
+                    <AdminRoute>
+                      <AdminLayout />
+                    </AdminRoute>
+                  </Suspense>
+                }
+              >
+                <Route index element={<Suspense fallback={<AdminLoadingFallback />}><AdminDashboard /></Suspense>} />
+                <Route path="journeys" element={<Suspense fallback={<AdminLoadingFallback />}><JourneyEditor /></Suspense>} />
+                <Route path="journey-management" element={<Suspense fallback={<AdminLoadingFallback />}><JourneyManagement /></Suspense>} />
+                <Route path="courses" element={<Suspense fallback={<AdminLoadingFallback />}><CourseEditor /></Suspense>} />
+                <Route path="arcade" element={<Suspense fallback={<AdminLoadingFallback />}><ArcadeEditor /></Suspense>} />
+                <Route path="studio" element={<Suspense fallback={<AdminLoadingFallback />}><MediaStudio /></Suspense>} />
+                <Route path="media" element={<Suspense fallback={<AdminLoadingFallback />}><MediaLibrary /></Suspense>} />
+                <Route path="voices" element={<Suspense fallback={<AdminLoadingFallback />}><VoicesEditor /></Suspense>} />
+                <Route path="guides" element={<Suspense fallback={<AdminLoadingFallback />}><GuideEditor /></Suspense>} />
+                <Route path="ww2-guides" element={<Suspense fallback={<AdminLoadingFallback />}><WW2GuideEditor /></Suspense>} />
+                <Route path="era-tiles" element={<Suspense fallback={<AdminLoadingFallback />}><EraTileEditor /></Suspense>} />
+                <Route path="maps" element={<Suspense fallback={<AdminLoadingFallback />}><MapEditor /></Suspense>} />
+                <Route path="ghost-army" element={<Suspense fallback={<AdminLoadingFallback />}><GhostArmyEditor /></Suspense>} />
+                <Route path="pearl-harbor" element={<Suspense fallback={<AdminLoadingFallback />}><PearlHarborEditor /></Suspense>} />
+                <Route path="trivia" element={<Suspense fallback={<AdminLoadingFallback />}><TriviaEditor /></Suspense>} />
+                <Route path="pantheon" element={<Suspense fallback={<AdminLoadingFallback />}><PantheonEditor /></Suspense>} />
               </Route>
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
