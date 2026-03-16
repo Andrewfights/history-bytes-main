@@ -73,21 +73,26 @@ async function saveStoredHostsAsync(hosts: EditableWW2Host[]): Promise<{ success
   // Save to Firestore
   console.log('[WW2GuideEditor] Saving to Firestore...');
   try {
-    const firestoreHosts: FirestoreWW2Host[] = hosts.map((h, i) => ({
-      id: h.id,
-      name: h.name,
-      title: h.title,
-      era: h.era,
-      specialty: h.specialty,
-      imageUrl: h.imageUrl,
-      introVideoUrl: h.introVideoUrl,
-      welcomeVideoUrl: h.welcomeVideoUrl,
-      primaryColor: h.primaryColor,
-      avatar: h.avatar,
-      voiceStyle: h.voiceStyle,
-      description: h.description,
-      displayOrder: i,
-    }));
+    // Build hosts with only defined values (Firestore doesn't accept undefined)
+    const firestoreHosts: FirestoreWW2Host[] = hosts.map((h, i) => {
+      const host: FirestoreWW2Host = {
+        id: h.id,
+        name: h.name,
+        title: h.title,
+        era: h.era,
+        specialty: h.specialty,
+        primaryColor: h.primaryColor,
+        avatar: h.avatar,
+        voiceStyle: h.voiceStyle,
+        description: h.description,
+        displayOrder: i,
+      };
+      // Only add optional fields if they have values
+      if (h.imageUrl) host.imageUrl = h.imageUrl;
+      if (h.introVideoUrl) host.introVideoUrl = h.introVideoUrl;
+      if (h.welcomeVideoUrl) host.welcomeVideoUrl = h.welcomeVideoUrl;
+      return host;
+    });
 
     const success = await saveAllWW2Hosts(firestoreHosts);
     if (success) {
