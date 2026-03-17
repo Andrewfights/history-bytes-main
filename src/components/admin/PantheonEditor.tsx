@@ -18,10 +18,20 @@ import type { Souvenir, SouvenirTier, PantheonWorld } from '@/types';
 import { SOUVENIR_TIER_NAMES, SOUVENIR_TIER_COLORS } from '@/types';
 import { PANTHEON_WORLDS, PANTHEON_SOUVENIRS } from '@/data/pantheonSouvenirs';
 import { TierBadge, DisplayCase } from '@/components/journey/pantheon';
-
-// Storage key for admin-managed souvenirs
-const ADMIN_SOUVENIRS_KEY = 'hb_admin_souvenirs';
-const ADMIN_SOUVENIR_IMAGES_KEY = 'hb_admin_souvenir_images';
+import { isFirebaseConfigured } from '@/lib/firebase';
+import {
+  getPantheonSouvenirs,
+  savePantheonSouvenir,
+  deletePantheonSouvenir,
+  getPantheonSouvenirImages,
+  savePantheonSouvenirImages,
+  deletePantheonSouvenirImages,
+  subscribeToPantheonSouvenirs,
+  subscribeToPantheonSouvenirImages,
+  type FirestorePantheonSouvenir,
+  type FirestorePantheonSouvenirImages,
+} from '@/lib/firestore';
+import { uploadFile } from '@/lib/supabase';
 
 interface AdminSouvenir extends Souvenir {
   isCustom?: boolean;
@@ -31,6 +41,39 @@ interface SouvenirImages {
   [souvenirId: string]: {
     [tier in SouvenirTier]?: string;
   };
+}
+
+// Convert Firestore souvenir to AdminSouvenir
+function firestoreToAdminSouvenir(fs: FirestorePantheonSouvenir): AdminSouvenir {
+  // Find the default souvenir for placeholder images
+  const defaultSouvenir = PANTHEON_SOUVENIRS.find(s => s.worldId === fs.worldId);
+  return {
+    id: fs.id,
+    worldId: fs.worldId,
+    name: fs.name,
+    description: fs.description,
+    significance: fs.significance,
+    images: defaultSouvenir?.images || {
+      gray: '/assets/pantheon/placeholder.png',
+      bronze: '/assets/pantheon/placeholder.png',
+      silver: '/assets/pantheon/placeholder.png',
+      gold: '/assets/pantheon/placeholder.png',
+    },
+    isCustom: fs.isCustom,
+  };
+}
+
+// Convert Firestore images to SouvenirImages
+function firestoreToSouvenirImages(fsImages: FirestorePantheonSouvenirImages[]): SouvenirImages {
+  const result: SouvenirImages = {};
+  for (const img of fsImages) {
+    result[img.id] = {};
+    if (img.gray) result[img.id].gray = img.gray;
+    if (img.bronze) result[img.id].bronze = img.bronze;
+    if (img.silver) result[img.id].silver = img.silver;
+    if (img.gold) result[img.id].gold = img.gold;
+  }
+  return result;
 }
 
 // Preset prompts for generating souvenir images at each tier
@@ -60,14 +103,14 @@ const SOUVENIR_TIER_PROMPTS: Record<SouvenirTier, (name: string, description: st
     warm golden aura, masterpiece presentation, 8K detail`,
 };
 
-// World-specific souvenir suggestions
+// World-specific souvenir suggestions (keyed by era ID from HISTORICAL_ERAS)
 const WORLD_SOUVENIR_SUGGESTIONS: Record<string, { name: string; description: string; significance: string }[]> = {
   'ww2': [
     { name: 'M1 Combat Helmet', description: 'The iconic "steel pot" worn by every American GI from Normandy to Okinawa', significance: 'Symbol of the American soldier across every theater' },
     { name: 'Dog Tags', description: 'Military identification tags worn by all service members', significance: 'Personal identity in the chaos of war' },
     { name: 'Purple Heart Medal', description: 'Military decoration awarded to those wounded or killed in service', significance: 'Honor and sacrifice' },
   ],
-  'revolutionary-war': [
+  'american-revolution': [
     { name: 'Flintlock Musket', description: 'The weapon that won American independence', significance: 'Symbol of the citizen soldier' },
     { name: 'Tricorn Hat', description: 'Iconic three-cornered hat of the Revolutionary era', significance: 'Spirit of 1776' },
     { name: 'Liberty Bell', description: 'Iconic symbol of American independence', significance: 'Freedom and democracy' },
@@ -82,65 +125,126 @@ const WORLD_SOUVENIR_SUGGESTIONS: Record<string, { name: string; description: st
     { name: 'Laurel Wreath', description: 'Crown of victory worn by emperors and champions', significance: 'Glory and triumph' },
     { name: 'SPQR Eagle Standard', description: 'The sacred eagle carried by Roman legions', significance: 'Roman identity and honor' },
   ],
-  'viking-age': [
-    { name: 'Viking Helmet', description: 'Iconic Norse warrior headgear', significance: 'Warrior spirit and exploration' },
-    { name: 'Thor\'s Hammer', description: 'Mjolnir pendant worn by Norse warriors', significance: 'Divine protection in battle' },
-    { name: 'Rune Stone', description: 'Carved stone with Norse runic inscriptions', significance: 'Ancient wisdom and fate' },
+  'civil-war': [
+    { name: 'Union Kepi', description: 'The distinctive cap worn by Union soldiers', significance: 'Unity and preservation' },
+    { name: 'Cavalry Saber', description: 'The curved sword of mounted troops', significance: 'Honor and duty' },
+    { name: 'Hardtack', description: 'The simple cracker that sustained armies', significance: 'Endurance and sacrifice' },
+  ],
+  'ancient-greece': [
+    { name: 'Corinthian Helmet', description: 'Bronze helmet worn by Greek hoplites', significance: 'Courage and democracy' },
+    { name: 'Olive Wreath', description: 'Crown awarded to Olympic victors', significance: 'Athletic excellence' },
+    { name: 'Athenian Owl Coin', description: 'Silver tetradrachm of Athens', significance: 'Wisdom and trade' },
+  ],
+  'medieval': [
+    { name: 'Crusader Sword', description: 'Longsword carried to the Holy Land', significance: 'Faith and chivalry' },
+    { name: 'Chain Mail', description: 'Interlocking rings of protective armor', significance: 'Knightly defense' },
+    { name: 'Castle Key', description: 'Iron key to a medieval fortress', significance: 'Power and security' },
+  ],
+  'renaissance': [
+    { name: "Da Vinci's Compass", description: 'Mathematical instrument of the masters', significance: 'Art meets science' },
+    { name: 'Quill Pen', description: 'The writing instrument of scholars', significance: 'Knowledge and creation' },
+    { name: 'Globe', description: 'Model of the newly mapped world', significance: 'Discovery and understanding' },
+  ],
+  'french-revolution': [
+    { name: 'Tricolor Cockade', description: 'Revolutionary rosette of the people', significance: 'Liberty, equality, fraternity' },
+    { name: 'Bastille Key', description: 'Key from the fallen prison fortress', significance: 'End of tyranny' },
+    { name: 'Phrygian Cap', description: 'Red cap of freed slaves and revolution', significance: 'Freedom and liberation' },
+  ],
+  'industrial-revolution': [
+    { name: 'Steam Engine Gear', description: 'Iron gear powering the machines', significance: 'Innovation and progress' },
+    { name: 'Spinning Jenny Spool', description: 'Thread from the textile revolution', significance: 'Industry and labor' },
+    { name: 'Railroad Spike', description: 'The spike connecting the nation', significance: 'Transportation and expansion' },
+  ],
+  'exploration': [
+    { name: "Navigator's Compass", description: 'Instrument guiding ships across oceans', significance: 'Discovery and courage' },
+    { name: 'Spyglass', description: 'Telescope scanning distant horizons', significance: 'Vision and exploration' },
+    { name: 'Astrolabe', description: 'Ancient navigation device', significance: 'Stars and navigation' },
+  ],
+  'vikings': [
+    { name: 'Viking Helmet', description: 'Spectacle-guard helmet of Norse warriors', significance: 'Warrior spirit' },
+    { name: "Thor's Hammer", description: 'Mjolnir pendant worn by warriors', significance: 'Divine protection' },
+    { name: 'Rune Stone', description: 'Carved stone with runic inscriptions', significance: 'Ancient wisdom' },
+  ],
+  'ww1': [
+    { name: 'Brodie Helmet', description: 'Steel helmet of the trenches', significance: 'Endurance in the mud' },
+    { name: 'Gas Mask', description: 'Protection from chemical warfare', significance: 'Survival and horror' },
+    { name: 'Trench Whistle', description: 'Signal whistle for the charge', significance: 'Courage under fire' },
+  ],
+  'cold-war': [
+    { name: 'CIA Star Badge', description: 'Intelligence service insignia', significance: 'Espionage and secrets' },
+    { name: 'Berlin Wall Fragment', description: 'Piece of the divided city', significance: 'Freedom vs tyranny' },
+    { name: 'Space Race Medal', description: 'Achievement in the cosmic race', significance: 'Innovation and rivalry' },
+  ],
+  'mesopotamia': [
+    { name: 'Cuneiform Tablet', description: 'Clay tablet with the first writing', significance: 'Dawn of civilization' },
+    { name: 'Cylinder Seal', description: 'Personal seal for documents', significance: 'Identity and authority' },
+    { name: 'Ziggurat Brick', description: 'Brick from the great temples', significance: 'Faith and architecture' },
   ],
 };
 
-function loadAdminSouvenirs(): AdminSouvenir[] {
-  try {
-    const stored = localStorage.getItem(ADMIN_SOUVENIRS_KEY);
-    if (stored) {
-      return JSON.parse(stored);
-    }
-  } catch (e) {
-    console.error('Failed to load admin souvenirs:', e);
-  }
-  return [...PANTHEON_SOUVENIRS];
-}
-
-function saveAdminSouvenirs(souvenirs: AdminSouvenir[]) {
-  localStorage.setItem(ADMIN_SOUVENIRS_KEY, JSON.stringify(souvenirs));
-}
-
-function loadSouvenirImages(): SouvenirImages {
-  try {
-    const stored = localStorage.getItem(ADMIN_SOUVENIR_IMAGES_KEY);
-    if (stored) {
-      return JSON.parse(stored);
-    }
-  } catch (e) {
-    console.error('Failed to load souvenir images:', e);
-  }
-  return {};
-}
-
-function saveSouvenirImages(images: SouvenirImages) {
-  localStorage.setItem(ADMIN_SOUVENIR_IMAGES_KEY, JSON.stringify(images));
-}
 
 export default function PantheonEditor() {
-  const [souvenirs, setSouvenirs] = useState<AdminSouvenir[]>(() => loadAdminSouvenirs());
-  const [souvenirImages, setSouvenirImages] = useState<SouvenirImages>(() => loadSouvenirImages());
+  const [souvenirs, setSouvenirs] = useState<AdminSouvenir[]>([...PANTHEON_SOUVENIRS]);
+  const [souvenirImages, setSouvenirImages] = useState<SouvenirImages>({});
   const [selectedWorldId, setSelectedWorldId] = useState<string | null>(null);
   const [editingSouvenir, setEditingSouvenir] = useState<AdminSouvenir | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [generatingTier, setGeneratingTier] = useState<SouvenirTier | null>(null);
   const [previewTier, setPreviewTier] = useState<SouvenirTier>('gold');
   const [showPreview, setShowPreview] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSyncedToCloud, setIsSyncedToCloud] = useState(false);
 
   const geminiConfigured = isGeminiConfigured();
 
-  // Auto-save
+  // Load from Firebase and subscribe to updates
   useEffect(() => {
-    saveAdminSouvenirs(souvenirs);
-  }, [souvenirs]);
+    let unsubSouvenirs: (() => void) | undefined;
+    let unsubImages: (() => void) | undefined;
 
-  useEffect(() => {
-    saveSouvenirImages(souvenirImages);
-  }, [souvenirImages]);
+    const loadData = async () => {
+      setIsLoading(true);
+
+      if (isFirebaseConfigured()) {
+        setIsSyncedToCloud(true);
+
+        // Load initial data
+        try {
+          const [fsSouvenirs, fsImages] = await Promise.all([
+            getPantheonSouvenirs(),
+            getPantheonSouvenirImages(),
+          ]);
+
+          if (fsSouvenirs.length > 0) {
+            setSouvenirs(fsSouvenirs.map(firestoreToAdminSouvenir));
+          }
+          setSouvenirImages(firestoreToSouvenirImages(fsImages));
+        } catch (error) {
+          console.error('Failed to load from Firestore:', error);
+        }
+
+        // Subscribe to real-time updates
+        unsubSouvenirs = subscribeToPantheonSouvenirs((fsSouvenirs) => {
+          if (fsSouvenirs.length > 0) {
+            setSouvenirs(fsSouvenirs.map(firestoreToAdminSouvenir));
+          }
+        });
+
+        unsubImages = subscribeToPantheonSouvenirImages((fsImages) => {
+          setSouvenirImages(firestoreToSouvenirImages(fsImages));
+        });
+      }
+
+      setIsLoading(false);
+    };
+
+    loadData();
+
+    return () => {
+      if (unsubSouvenirs) unsubSouvenirs();
+      if (unsubImages) unsubImages();
+    };
+  }, []);
 
   const selectedWorld = PANTHEON_WORLDS.find(w => w.id === selectedWorldId);
   const selectedSouvenir = selectedWorld
@@ -156,10 +260,15 @@ export default function PantheonEditor() {
     return souvenir?.images[tier] || '/assets/pantheon/placeholder.png';
   };
 
-  // Generate image for a specific tier
+  // Generate image for a specific tier - saves to Firebase
   const handleGenerateImage = async (souvenir: AdminSouvenir, tier: SouvenirTier) => {
     if (!geminiConfigured) {
       toast.error('Gemini API not configured. Add your key in Profile Settings.');
+      return;
+    }
+
+    if (!isSyncedToCloud) {
+      toast.error('Firebase not configured. Cannot save images.');
       return;
     }
 
@@ -178,15 +287,31 @@ export default function PantheonEditor() {
       if (result) {
         const dataUrl = base64ToDataUrl(result.base64Data, result.mimeType);
 
-        setSouvenirImages(prev => ({
-          ...prev,
-          [souvenir.id]: {
-            ...prev[souvenir.id],
-            [tier]: dataUrl,
-          },
-        }));
+        // Upload to Firebase Storage
+        let imageUrl = dataUrl;
+        try {
+          const response = await fetch(dataUrl);
+          const blob = await response.blob();
+          const file = new File([blob], `pantheon-${souvenir.id}-${tier}.png`, { type: result.mimeType });
+          const uploadResult = await uploadFile(file);
+          if (uploadResult?.url) {
+            imageUrl = uploadResult.url;
+          }
+        } catch (uploadError) {
+          console.error('Upload error:', uploadError);
+          toast.error('Failed to upload to cloud storage', { id: 'generating' });
+          return;
+        }
 
-        toast.success(`${SOUVENIR_TIER_NAMES[tier]} image generated!`, { id: 'generating' });
+        // Save to Firestore
+        const currentImages = souvenirImages[souvenir.id] || {};
+        await savePantheonSouvenirImages({
+          id: souvenir.id,
+          ...currentImages,
+          [tier]: imageUrl,
+        });
+
+        toast.success(`${SOUVENIR_TIER_NAMES[tier]} image generated and saved!`, { id: 'generating' });
       } else {
         toast.error('Failed to generate image', { id: 'generating' });
       }
@@ -209,21 +334,36 @@ export default function PantheonEditor() {
     }
   };
 
-  // Handle image upload
-  const handleImageUpload = (souvenirId: string, tier: SouvenirTier, file: File) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const dataUrl = e.target?.result as string;
-      setSouvenirImages(prev => ({
-        ...prev,
-        [souvenirId]: {
-          ...prev[souvenirId],
-          [tier]: dataUrl,
-        },
-      }));
-      toast.success(`${SOUVENIR_TIER_NAMES[tier]} image uploaded!`);
-    };
-    reader.readAsDataURL(file);
+  // Handle image upload - saves to Firebase
+  const handleImageUpload = async (souvenirId: string, tier: SouvenirTier, file: File) => {
+    if (!isSyncedToCloud) {
+      toast.error('Firebase not configured. Cannot save images.');
+      return;
+    }
+
+    toast.loading('Uploading image...', { id: 'upload' });
+
+    try {
+      // Upload to Firebase Storage
+      const uploadResult = await uploadFile(file);
+      if (!uploadResult?.url) {
+        toast.error('Failed to upload to cloud storage', { id: 'upload' });
+        return;
+      }
+
+      // Save to Firestore
+      const currentImages = souvenirImages[souvenirId] || {};
+      await savePantheonSouvenirImages({
+        id: souvenirId,
+        ...currentImages,
+        [tier]: uploadResult.url,
+      });
+
+      toast.success(`${SOUVENIR_TIER_NAMES[tier]} image uploaded!`, { id: 'upload' });
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error('Failed to upload image', { id: 'upload' });
+    }
   };
 
   // Download image
@@ -237,8 +377,13 @@ export default function PantheonEditor() {
     }
   };
 
-  // Create new souvenir
-  const handleCreateSouvenir = (worldId: string, suggestion?: typeof WORLD_SOUVENIR_SUGGESTIONS['ww2'][0]) => {
+  // Create new souvenir - saves to Firebase
+  const handleCreateSouvenir = async (worldId: string, suggestion?: typeof WORLD_SOUVENIR_SUGGESTIONS['ww2'][0]) => {
+    if (!isSyncedToCloud) {
+      toast.error('Firebase not configured. Cannot create souvenirs.');
+      return;
+    }
+
     const newSouvenir: AdminSouvenir = {
       id: `${worldId}-${Date.now()}`,
       worldId,
@@ -254,40 +399,98 @@ export default function PantheonEditor() {
       isCustom: true,
     };
 
-    setSouvenirs(prev => [...prev, newSouvenir]);
-    setEditingSouvenir(newSouvenir);
-    setIsCreating(false);
-    toast.success('Souvenir created');
+    try {
+      await savePantheonSouvenir({
+        id: newSouvenir.id,
+        worldId: newSouvenir.worldId,
+        name: newSouvenir.name,
+        description: newSouvenir.description,
+        significance: newSouvenir.significance,
+        isCustom: true,
+      });
+
+      setEditingSouvenir(newSouvenir);
+      setIsCreating(false);
+      toast.success('Souvenir created');
+    } catch (error) {
+      console.error('Failed to create souvenir:', error);
+      toast.error('Failed to create souvenir');
+    }
   };
 
-  // Update souvenir
-  const handleUpdateSouvenir = (updated: AdminSouvenir) => {
-    setSouvenirs(prev => prev.map(s => s.id === updated.id ? updated : s));
-    setEditingSouvenir(null);
-    toast.success('Souvenir updated');
+  // Update souvenir - saves to Firebase
+  const handleUpdateSouvenir = async (updated: AdminSouvenir) => {
+    if (!isSyncedToCloud) {
+      toast.error('Firebase not configured. Cannot update souvenirs.');
+      return;
+    }
+
+    try {
+      await savePantheonSouvenir({
+        id: updated.id,
+        worldId: updated.worldId,
+        name: updated.name,
+        description: updated.description,
+        significance: updated.significance,
+        isCustom: updated.isCustom,
+      });
+
+      setEditingSouvenir(null);
+      toast.success('Souvenir updated');
+    } catch (error) {
+      console.error('Failed to update souvenir:', error);
+      toast.error('Failed to update souvenir');
+    }
   };
 
-  // Delete souvenir
-  const handleDeleteSouvenir = (souvenirId: string) => {
-    setSouvenirs(prev => prev.filter(s => s.id !== souvenirId));
-    // Also delete images
-    setSouvenirImages(prev => {
-      const next = { ...prev };
-      delete next[souvenirId];
-      return next;
-    });
-    setEditingSouvenir(null);
-    toast.success('Souvenir deleted');
+  // Delete souvenir - removes from Firebase
+  const handleDeleteSouvenir = async (souvenirId: string) => {
+    if (!isSyncedToCloud) {
+      toast.error('Firebase not configured. Cannot delete souvenirs.');
+      return;
+    }
+
+    try {
+      await Promise.all([
+        deletePantheonSouvenir(souvenirId),
+        deletePantheonSouvenirImages(souvenirId),
+      ]);
+
+      setEditingSouvenir(null);
+      toast.success('Souvenir deleted');
+    } catch (error) {
+      console.error('Failed to delete souvenir:', error);
+      toast.error('Failed to delete souvenir');
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="max-w-6xl flex items-center justify-center py-12">
+        <Loader2 className="animate-spin mr-2" size={24} />
+        <span className="text-muted-foreground">Loading souvenirs...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="font-editorial text-3xl font-bold text-foreground flex items-center gap-3">
-          <Trophy className="text-amber-400" />
-          Pantheon Editor
-        </h1>
+        <div className="flex items-center gap-3 mb-1">
+          <h1 className="font-editorial text-3xl font-bold text-foreground flex items-center gap-3">
+            <Trophy className="text-amber-400" />
+            Pantheon Editor
+          </h1>
+          {/* Cloud sync status */}
+          <span className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full ${
+            isSyncedToCloud
+              ? 'bg-green-500/20 text-green-400'
+              : 'bg-yellow-500/20 text-yellow-400'
+          }`}>
+            {isSyncedToCloud ? '☁️ Cloud Sync' : '⚠️ Local Only'}
+          </span>
+        </div>
         <p className="text-muted-foreground mt-1">
           Manage souvenirs and generate tier images with Nano Banana (Gemini)
         </p>
@@ -616,13 +819,14 @@ export default function PantheonEditor() {
                   </div>
 
                   {/* Preview */}
-                  <AnimatePresence>
+                  <AnimatePresence mode="wait">
                     {showPreview && (
                       <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="bg-card border border-border rounded-xl p-4 overflow-hidden"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: 0.2, ease: "easeOut" }}
+                        className="bg-card border border-border rounded-xl p-4"
                       >
                         <div className="flex items-center justify-between mb-4">
                           <h3 className="font-semibold text-foreground flex items-center gap-2">

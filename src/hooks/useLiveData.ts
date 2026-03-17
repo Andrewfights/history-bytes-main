@@ -832,3 +832,54 @@ export function useLiveGhostArmyMedia(): Record<string, GhostArmyMediaData> {
 
   return media;
 }
+
+// ============ Pantheon Souvenirs Hook ============
+
+import {
+  initPantheonCache,
+  subscribeToPantheonUpdates,
+  getSouvenirById as getSouvenirByIdWithCache,
+} from '@/data/pantheonSouvenirs';
+import type { Souvenir } from '@/types';
+
+export function useLivePantheonSouvenirs(): {
+  isReady: boolean;
+  getSouvenirById: (id: string) => Souvenir | undefined;
+} {
+  const [isReady, setIsReady] = useState(false);
+  const [, forceUpdate] = useState(0);
+
+  useEffect(() => {
+    // Initialize from Firestore
+    const init = async () => {
+      try {
+        await initPantheonCache();
+        setIsReady(true);
+      } catch (error) {
+        console.error('Failed to init Pantheon cache:', error);
+        setIsReady(true); // Still set ready so defaults work
+      }
+    };
+
+    init();
+
+    // Subscribe to real-time changes
+    if (isFirebaseConfigured()) {
+      const unsubscribe = subscribeToPantheonUpdates();
+      // Force component updates when data changes
+      const interval = setInterval(() => {
+        forceUpdate(n => n + 1);
+      }, 1000);
+
+      return () => {
+        unsubscribe();
+        clearInterval(interval);
+      };
+    }
+  }, []);
+
+  return {
+    isReady,
+    getSouvenirById: getSouvenirByIdWithCache,
+  };
+}

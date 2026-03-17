@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Volume2, VolumeX, Play } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Volume2, VolumeX, Play, X } from 'lucide-react';
 import { getStoredWW2Hosts, loadWW2HostsFromFirestore, WW2_HOSTS } from '@/data/ww2Hosts';
 import { subscribeToWW2Hosts } from '@/lib/firestore';
 import { isFirebaseConfigured } from '@/lib/firebase';
@@ -25,6 +25,7 @@ import {
 
 interface WW2HostSelectionProps {
   onSelectHost: (hostId: string) => void;
+  onClose?: () => void;
 }
 
 // Helper to map Firestore hosts to WW2Host with proper video fallbacks
@@ -70,7 +71,7 @@ function sortByDisplayOrder<T extends { displayOrder?: number }>(hosts: T[]): T[
   return [...hosts].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
 }
 
-export function WW2HostSelection({ onSelectHost }: WW2HostSelectionProps) {
+export function WW2HostSelection({ onSelectHost, onClose }: WW2HostSelectionProps) {
   const [api, setApi] = useState<CarouselApi>();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [hosts, setHosts] = useState<WW2Host[]>([]);
@@ -160,8 +161,16 @@ export function WW2HostSelection({ onSelectHost }: WW2HostSelectionProps) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex flex-col bg-gradient-to-b from-slate-900 via-slate-950 to-black overflow-hidden"
+      className="fixed inset-0 z-50 flex flex-col bg-gradient-to-b from-black via-neutral-950 to-black overflow-hidden"
     >
+      {/* Red/gold accent gradient overlay */}
+      <div
+        className="absolute inset-0 opacity-30 pointer-events-none"
+        style={{
+          background: 'radial-gradient(ellipse at top, rgba(196,18,48,0.15) 0%, transparent 50%), radial-gradient(ellipse at bottom right, rgba(198,162,79,0.1) 0%, transparent 40%)'
+        }}
+      />
+
       {/* Film grain overlay */}
       <div
         className="absolute inset-0 opacity-10 pointer-events-none"
@@ -171,13 +180,24 @@ export function WW2HostSelection({ onSelectHost }: WW2HostSelectionProps) {
       />
 
       <div className="relative z-10 flex-1 flex flex-col">
-        {/* Header */}
+        {/* Header with close button */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="text-center pt-4 sm:pt-6 pb-2 px-4"
+          className="relative text-center pt-4 sm:pt-6 pb-2 px-4"
         >
+          {/* Close/Back button */}
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="absolute left-4 top-4 sm:top-6 w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+              aria-label="Go back"
+            >
+              <X size={20} />
+            </button>
+          )}
+
           <h1 className="font-editorial text-2xl sm:text-3xl font-bold text-white mb-2">
             Choose Your Guide
           </h1>
@@ -323,7 +343,7 @@ function HostCarouselCard({ host, isActive, isSelected, onClick }: HostCarouselC
       }`}
     >
       {/* Image/Video Container */}
-      <div className="relative aspect-[4/5] bg-gradient-to-b from-slate-800 to-slate-900">
+      <div className="relative aspect-[4/5] bg-gradient-to-b from-neutral-800 to-neutral-900">
         {/* Portrait Image or Video */}
         {host.introVideoUrl && isActive && !videoEnded ? (
           <>

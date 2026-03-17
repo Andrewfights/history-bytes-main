@@ -511,7 +511,7 @@ export function JourneyTab() {
 
   // Render WW2 Host Selection if showing
   if (showWW2HostSelection) {
-    return <WW2HostSelection onSelectHost={handleWW2HostSelected} />;
+    return <WW2HostSelection onSelectHost={handleWW2HostSelected} onClose={() => setShowWW2HostSelection(false)} />;
   }
 
   // Render WW2 Welcome Video after host selection
@@ -866,7 +866,7 @@ export function JourneyTab() {
 
         {/* Guard: If ww2-theaters or pearl-harbor views but no host, show host selection */}
         {(view === 'ww2-theaters' || view === 'pearl-harbor' || view === 'pearl-harbor-journey' || view === 'pearl-harbor-lesson') && !selectedHostId && (
-          <WW2HostSelection onSelectHost={handleWW2HostSelected} />
+          <WW2HostSelection onSelectHost={handleWW2HostSelected} onClose={() => setView('eras')} />
         )}
 
         {view === 'pearl-harbor' && selectedHostId && (

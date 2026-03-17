@@ -1,12 +1,14 @@
 /**
  * EraTile - Individual clickable era tile with key art image
  * Shows era name, date range, and "Coming Soon" badge if not available
+ * Uses Firebase for admin-uploaded images with live updates
  */
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Lock } from 'lucide-react';
 import { HistoricalEra, getEraImageUrl } from '@/data/historicalEras';
+import { useLiveEraTileOverrides } from '@/hooks/useLiveData';
 
 interface EraTileProps {
   era: HistoricalEra;
@@ -22,7 +24,10 @@ const sizeClasses = {
 
 export function EraTile({ era, size = 'md', onClick }: EraTileProps) {
   const [imageError, setImageError] = useState(false);
-  const imageUrl = getEraImageUrl(era.id);
+  // Use live data from Firebase for admin-uploaded images
+  const liveOverrides = useLiveEraTileOverrides();
+  // Get image URL - check live Firebase data first, then fall back to cache/default
+  const imageUrl = liveOverrides[era.id]?.imageUrl || getEraImageUrl(era.id);
 
   return (
     <motion.button

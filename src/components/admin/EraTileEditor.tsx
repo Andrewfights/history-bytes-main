@@ -5,8 +5,9 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, Reorder } from 'framer-motion';
-import { Image, Upload, RotateCcw, Loader2, CloudOff, Cloud, GripVertical, Save } from 'lucide-react';
+import { Image, Upload, RotateCcw, Loader2, CloudOff, Cloud, GripVertical, Save, Wand2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { generateImage, base64ToDataUrl, isGeminiConfigured, buildHistoricalPrompt } from '@/lib/gemini';
 import {
   getAllEras,
   getEraImageUrl,
@@ -32,6 +33,7 @@ export default function EraTileEditor() {
   const [overrides, setOverrides] = useState(getEraTileOverrides());
   const [isUploading, setIsUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
   const [isSyncedToCloud, setIsSyncedToCloud] = useState(false);
   const [hasOrderChanges, setHasOrderChanges] = useState(false);
@@ -151,6 +153,67 @@ export default function EraTileEditor() {
     resetEraTileToDefault(eraId);
     setOverrides(getEraTileOverrides());
     toast.success('Reset to default image');
+  };
+
+  const handleGenerateImage = async () => {
+    if (!selectedEraId) return;
+    const era = eras.find(e => e.id === selectedEraId);
+    if (!era) return;
+
+    setIsGenerating(true);
+    toast.info('Generating era tile image...', { description: 'This may take a moment' });
+
+    try {
+      // Build a historical prompt for the era
+      const prompt = buildHistoricalPrompt(
+        era.name,
+        `${era.dateRange} - ${era.subtitle}`,
+        `Key events and scenes from ${era.name}. Show iconic imagery representing this historical period.`
+      );
+
+      const result = await generateImage({
+        prompt,
+        aspectRatio: '3:4', // Era tiles are portrait orientation
+        style: 'cinematic'
+      });
+
+      if (result) {
+        const dataUrl = base64ToDataUrl(result.base64Data, result.mimeType);
+
+        // Try to upload to cloud storage
+        try {
+          // Convert base64 to blob for upload
+          const response = await fetch(dataUrl);
+          const blob = await response.blob();
+          const file = new File([blob], `era-${selectedEraId}-ai.png`, { type: result.mimeType });
+
+          const uploadResult = await uploadFile(file);
+
+          if (uploadResult?.url) {
+            saveEraTileOverride(selectedEraId, uploadResult.url);
+            setOverrides(getEraTileOverrides());
+            toast.success('AI image generated and uploaded!');
+          } else {
+            // Fall back to data URL
+            saveEraTileOverride(selectedEraId, dataUrl);
+            setOverrides(getEraTileOverrides());
+            toast.success('AI image generated!', { description: 'Saved locally' });
+          }
+        } catch (uploadError) {
+          console.error('Upload error, using data URL:', uploadError);
+          saveEraTileOverride(selectedEraId, dataUrl);
+          setOverrides(getEraTileOverrides());
+          toast.success('AI image generated!', { description: 'Saved locally' });
+        }
+      } else {
+        toast.error('Failed to generate image', { description: 'Check your Gemini API key in settings' });
+      }
+    } catch (error) {
+      console.error('Generation error:', error);
+      toast.error('Error generating image');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const hasCustomImage = (eraId: string) => {
@@ -363,6 +426,19 @@ export default function EraTileEditor() {
                     >
                       <Image size={18} />
                       Select from Media Library
+                    </button>
+
+                    <button
+                      onClick={handleGenerateImage}
+                      disabled={isGenerating || !isGeminiConfigured()}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-purple-600 text-white hover:bg-purple-700 transition-colors disabled:opacity-50"
+                    >
+                      {isGenerating ? (
+                        <Loader2 size={18} className="animate-spin" />
+                      ) : (
+                        <Wand2 size={18} />
+                      )}
+                      {isGenerating ? 'Generating...' : 'Generate with AI'}
                     </button>
 
                     {hasCustomImage(selectedEra.id) && (

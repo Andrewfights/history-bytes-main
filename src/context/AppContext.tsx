@@ -32,6 +32,9 @@ import {
   FunnelState,
   GhostArmyProgress,
 } from '@/lib/storage';
+import { initEraTileOverridesCache } from '@/data/historicalEras';
+import { initPantheonCache, subscribeToPantheonUpdates } from '@/data/pantheonSouvenirs';
+import { subscribeToEraTileOverrides } from '@/lib/firestore';
 import { EarnedBadge } from '@/types/badges';
 
 export interface JourneyViewState {
@@ -302,8 +305,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
     let unsubscribeCourses: (() => void) | null = null;
     let unsubscribeUnits: (() => void) | null = null;
     let unsubscribeLessons: (() => void) | null = null;
+    let unsubscribeEraTiles: (() => void) | null = null;
+    let unsubscribePantheon: (() => void) | null = null;
 
     if (isFirebaseConfigured()) {
+      // Initialize caches for admin-controlled content
+      initEraTileOverridesCache().catch(err => console.error('Failed to init era tile cache:', err));
+      initPantheonCache().catch(err => console.error('Failed to init pantheon cache:', err));
+
+      // Subscribe to era tile updates (so images update in real-time)
+      unsubscribeEraTiles = subscribeToEraTileOverrides(() => {
+        // Re-initialize cache when era tiles change
+        initEraTileOverridesCache().catch(err => console.error('Era tile cache update failed:', err));
+      });
+
+      // Subscribe to pantheon updates
+      unsubscribePantheon = subscribeToPantheonUpdates();
       unsubscribeCourses = subscribeToCourses((firestoreCourses) => {
         if (firestoreCourses && firestoreCourses.length > 0) {
           const converted: Course[] = firestoreCourses.map(c => ({
@@ -386,6 +403,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       unsubscribeCourses?.();
       unsubscribeUnits?.();
       unsubscribeLessons?.();
+      unsubscribeEraTiles?.();
+      unsubscribePantheon?.();
     };
   }, []);
 

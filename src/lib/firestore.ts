@@ -968,3 +968,74 @@ export async function deleteGhostArmyMediaItem(nodeId: string): Promise<boolean>
 export function subscribeToGhostArmyMedia(callback: (items: FirestoreGhostArmyMedia[]) => void): Unsubscribe {
   return subscribeToCollection<FirestoreGhostArmyMedia>('ghostArmyMedia', callback);
 }
+
+// ============ Pantheon Souvenir Types ============
+
+export interface FirestorePantheonSouvenir {
+  id: string;              // Souvenir ID
+  worldId: string;         // Era/world ID (matches HISTORICAL_ERAS id)
+  name: string;
+  description: string;
+  significance: string;
+  isCustom?: boolean;
+  updatedAt?: Timestamp;
+}
+
+export interface FirestorePantheonSouvenirImages {
+  id: string;              // Souvenir ID
+  gray?: string;           // Gray tier image URL
+  bronze?: string;         // Bronze tier image URL
+  silver?: string;         // Silver tier image URL
+  gold?: string;           // Gold tier image URL
+  updatedAt?: Timestamp;
+}
+
+// ============ Pantheon Souvenir Operations ============
+
+export async function getPantheonSouvenirs(): Promise<FirestorePantheonSouvenir[]> {
+  return getCollection<FirestorePantheonSouvenir>('pantheonSouvenirs');
+}
+
+export async function getPantheonSouvenir(souvenirId: string): Promise<FirestorePantheonSouvenir | null> {
+  return getDocument<FirestorePantheonSouvenir>('pantheonSouvenirs', souvenirId);
+}
+
+export async function savePantheonSouvenir(souvenir: FirestorePantheonSouvenir): Promise<boolean> {
+  return setDocument('pantheonSouvenirs', souvenir.id, {
+    ...souvenir,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function deletePantheonSouvenir(souvenirId: string): Promise<boolean> {
+  return deleteDocument('pantheonSouvenirs', souvenirId);
+}
+
+export function subscribeToPantheonSouvenirs(callback: (souvenirs: FirestorePantheonSouvenir[]) => void): Unsubscribe {
+  return subscribeToCollection<FirestorePantheonSouvenir>('pantheonSouvenirs', callback);
+}
+
+// ============ Pantheon Souvenir Images Operations ============
+
+export async function getPantheonSouvenirImages(): Promise<FirestorePantheonSouvenirImages[]> {
+  return getCollection<FirestorePantheonSouvenirImages>('pantheonSouvenirImages');
+}
+
+export async function getPantheonSouvenirImage(souvenirId: string): Promise<FirestorePantheonSouvenirImages | null> {
+  return getDocument<FirestorePantheonSouvenirImages>('pantheonSouvenirImages', souvenirId);
+}
+
+export async function savePantheonSouvenirImages(images: FirestorePantheonSouvenirImages): Promise<boolean> {
+  return setDocument('pantheonSouvenirImages', images.id, {
+    ...images,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function deletePantheonSouvenirImages(souvenirId: string): Promise<boolean> {
+  return deleteDocument('pantheonSouvenirImages', souvenirId);
+}
+
+export function subscribeToPantheonSouvenirImages(callback: (images: FirestorePantheonSouvenirImages[]) => void): Unsubscribe {
+  return subscribeToCollection<FirestorePantheonSouvenirImages>('pantheonSouvenirImages', callback);
+}
