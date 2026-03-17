@@ -19,9 +19,6 @@ import {
 } from '@/data/arcadeData';
 import { historicalScenes as defaultHistoricalScenes, HistoricalScene, Clue } from '@/data/geoguessrData';
 import {
-  saveArcadeData,
-  loadStoredArcadeData,
-  type StoredArcadeData,
   setArcadeImage,
   getArcadeImage,
   initArcadeMediaCache,
@@ -33,6 +30,13 @@ import {
   initGameThumbnailsCache,
 } from '@/data/arcadeGames';
 import { isFirebaseConfigured } from '@/lib/firebase';
+import {
+  getArcadeGameContent,
+  getAllArcadeGameContent,
+  saveArcadeGameContent,
+  subscribeToArcadeGameContent,
+  type FirestoreArcadeGameContent,
+} from '@/lib/firestore';
 
 type GameType = 'anachronism' | 'connections' | 'map-mystery' | 'artifact' | 'cause-effect' | 'geoguessr';
 type ViewMode = 'games' | 'items' | 'edit';
@@ -98,22 +102,7 @@ export default function ArcadeEditor() {
   const [isGeneratingAll, setIsGeneratingAll] = useState(false);
   const [generationProgress, setGenerationProgress] = useState({ current: 0, total: 0 });
 
-  // Initialize IndexedDB cache for media and load thumbnails from Firestore
-  useEffect(() => {
-    const init = async () => {
-      await initArcadeMediaCache();
-      setMediaInitialized(true);
-
-      // Load thumbnails from Firestore
-      await initGameThumbnailsCache();
-      const freshThumbnails = await loadGameThumbnailsAsync();
-      setGameThumbnails(freshThumbnails);
-      setIsSyncedToCloud(isFirebaseConfigured());
-    };
-    init();
-  }, []);
-
-  // Load data from localStorage or use defaults
+  // Arcade game content state
   const [arcadeData, setArcadeData] = useState<{
     geoguessr: any[];
     anachronism: any[];
@@ -121,17 +110,107 @@ export default function ArcadeEditor() {
     mapMystery: any[];
     artifact: any[];
     causeEffect: any[];
-  }>(() => {
-    const stored = loadStoredArcadeData();
-    return {
-      geoguessr: (stored?.anachronismScenes as any) || [...defaultHistoricalScenes],
-      anachronism: stored?.anachronismScenes as any[] || [...defaultAnachronismScenes],
-      connections: stored?.connectionsPuzzles as any[] || [...defaultConnectionsPuzzles],
-      mapMystery: stored?.mapMysteries as any[] || [...defaultMapMysteries],
-      artifact: stored?.artifactCases as any[] || [...defaultArtifactCases],
-      causeEffect: stored?.causeEffectPairs as any[] || [...defaultCauseEffectPairs],
-    };
+  }>({
+    geoguessr: [...defaultHistoricalScenes],
+    anachronism: [...defaultAnachronismScenes],
+    connections: [...defaultConnectionsPuzzles],
+    mapMystery: [...defaultMapMysteries],
+    artifact: [...defaultArtifactCases],
+    causeEffect: [...defaultCauseEffectPairs],
   });
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Initialize IndexedDB cache for media and load data from Firestore
+  useEffect(() => {
+    const init = async () => {
+      await initArcadeMediaCache();
+      setMediaInitialized(true);
+
+      const firebaseConfigured = isFirebaseConfigured();
+      setIsSyncedToCloud(firebaseConfigured);
+
+      // Load thumbnails from Firestore
+      await initGameThumbnailsCache();
+      const freshThumbnails = await loadGameThumbnailsAsync();
+      setGameThumbnails(freshThumbnails);
+
+      if (firebaseConfigured) {
+        // Load game content from Firestore
+        try {
+          const allContent = await getAllArcadeGameContent();
+          const newData = { ...arcadeData };
+
+          allContent.forEach((content) => {
+            if (content.items && content.items.length > 0) {
+              switch (content.gameType) {
+                case 'geoguessr':
+                  newData.geoguessr = content.items;
+                  break;
+                case 'anachronism':
+                  newData.anachronism = content.items;
+                  break;
+                case 'connections':
+                  newData.connections = content.items;
+                  break;
+                case 'map-mystery':
+                  newData.mapMystery = content.items;
+                  break;
+                case 'artifact':
+                  newData.artifact = content.items;
+                  break;
+                case 'cause-effect':
+                  newData.causeEffect = content.items;
+                  break;
+              }
+            }
+          });
+
+          setArcadeData(newData);
+        } catch (err) {
+          console.error('Failed to load arcade content from Firebase:', err);
+        }
+
+        // Subscribe to real-time updates
+        const unsubscribe = subscribeToArcadeGameContent((allContent) => {
+          setArcadeData((prev) => {
+            const newData = { ...prev };
+            allContent.forEach((content) => {
+              if (content.items && content.items.length > 0) {
+                switch (content.gameType) {
+                  case 'geoguessr':
+                    newData.geoguessr = content.items;
+                    break;
+                  case 'anachronism':
+                    newData.anachronism = content.items;
+                    break;
+                  case 'connections':
+                    newData.connections = content.items;
+                    break;
+                  case 'map-mystery':
+                    newData.mapMystery = content.items;
+                    break;
+                  case 'artifact':
+                    newData.artifact = content.items;
+                    break;
+                  case 'cause-effect':
+                    newData.causeEffect = content.items;
+                    break;
+                }
+              }
+            });
+            return newData;
+          });
+        });
+
+        setIsLoading(false);
+        return () => unsubscribe();
+      } else {
+        setIsLoading(false);
+      }
+    };
+    init();
+  }, []);
 
   // Build gameTypes array with current data and thumbnails
   const gameTypes: GameTypeInfo[] = defaultGameTypesMeta.map(meta => ({
@@ -221,17 +300,21 @@ export default function ArcadeEditor() {
     toast.success('Game art generation complete!');
   };
 
-  // Auto-save to localStorage when data changes
-  useEffect(() => {
-    const toStore: StoredArcadeData = {
-      anachronismScenes: arcadeData.anachronism,
-      connectionsPuzzles: arcadeData.connections,
-      mapMysteries: arcadeData.mapMystery,
-      artifactCases: arcadeData.artifact,
-      causeEffectPairs: arcadeData.causeEffect,
-    };
-    saveArcadeData(toStore);
-  }, [arcadeData]);
+  // Helper function to save game content to Firebase
+  const saveGameContentToFirebase = async (gameType: string, items: any[]) => {
+    if (!isFirebaseConfigured()) return;
+
+    try {
+      const content: FirestoreArcadeGameContent = {
+        id: gameType,
+        gameType: gameType as FirestoreArcadeGameContent['gameType'],
+        items,
+      };
+      await saveArcadeGameContent(content);
+    } catch (err) {
+      console.error(`Failed to save ${gameType} content to Firebase:`, err);
+    }
+  };
 
   const handleSelectGame = (game: GameTypeInfo) => {
     setSelectedGame(game);
@@ -266,9 +349,10 @@ export default function ArcadeEditor() {
     }
   }, [view]);
 
-  const handleSave = useCallback(() => {
+  const handleSave = useCallback(async () => {
     if (!selectedGame || editedItem === null) return;
 
+    setIsSaving(true);
     const gameId = selectedGame.id;
     const dataKey = gameId === 'geoguessr' ? 'geoguessr' :
                     gameId === 'anachronism' ? 'anachronism' :
@@ -276,6 +360,8 @@ export default function ArcadeEditor() {
                     gameId === 'map-mystery' ? 'mapMystery' :
                     gameId === 'artifact' ? 'artifact' : 'causeEffect';
 
+    // Update local state
+    let updatedItems: any[] = [];
     setArcadeData(prev => {
       const items = [...prev[dataKey]];
       if (selectedItemIndex === -1) {
@@ -285,20 +371,30 @@ export default function ArcadeEditor() {
         // Update existing
         items[selectedItemIndex] = editedItem;
       }
+      updatedItems = items;
       return { ...prev, [dataKey]: items };
     });
 
-    toast.success('Changes saved', {
-      description: 'Data persisted to local storage.',
-    });
+    // Save to Firebase
+    try {
+      await saveGameContentToFirebase(gameId, updatedItems);
+      toast.success('Changes saved to cloud');
+    } catch (err) {
+      console.error('Failed to save:', err);
+      toast.error('Failed to save to cloud');
+    } finally {
+      setIsSaving(false);
+    }
+
     handleBack();
   }, [selectedGame, editedItem, selectedItemIndex, handleBack]);
 
-  const handleDelete = useCallback(() => {
+  const handleDelete = useCallback(async () => {
     if (!selectedGame || selectedItemIndex === null || selectedItemIndex === -1) return;
 
     if (!confirm('Delete this item?')) return;
 
+    setIsSaving(true);
     const gameId = selectedGame.id;
     const dataKey = gameId === 'geoguessr' ? 'geoguessr' :
                     gameId === 'anachronism' ? 'anachronism' :
@@ -306,12 +402,24 @@ export default function ArcadeEditor() {
                     gameId === 'map-mystery' ? 'mapMystery' :
                     gameId === 'artifact' ? 'artifact' : 'causeEffect';
 
+    let updatedItems: any[] = [];
     setArcadeData(prev => {
       const items = prev[dataKey].filter((_: any, i: number) => i !== selectedItemIndex);
+      updatedItems = items;
       return { ...prev, [dataKey]: items };
     });
 
-    toast.success('Item deleted');
+    // Save to Firebase
+    try {
+      await saveGameContentToFirebase(gameId, updatedItems);
+      toast.success('Item deleted');
+    } catch (err) {
+      console.error('Failed to delete:', err);
+      toast.error('Failed to sync deletion to cloud');
+    } finally {
+      setIsSaving(false);
+    }
+
     handleBack();
   }, [selectedGame, selectedItemIndex, handleBack]);
 
@@ -339,12 +447,12 @@ export default function ArcadeEditor() {
               {isSyncedToCloud ? (
                 <>
                   <Cloud size={12} />
-                  Synced
+                  Cloud Sync
                 </>
               ) : (
                 <>
                   <CloudOff size={12} />
-                  Local
+                  No Cloud
                 </>
               )}
             </div>

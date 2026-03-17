@@ -883,3 +883,181 @@ export function useLivePantheonSouvenirs(): {
     getSouvenirById: getSouvenirByIdWithCache,
   };
 }
+
+// ============ Interactive Maps Hook ============
+
+import {
+  getInteractiveMaps,
+  subscribeToInteractiveMaps,
+  type FirestoreInteractiveMap,
+} from '@/lib/firestore';
+
+export function useLiveInteractiveMaps(): FirestoreInteractiveMap[] {
+  const [maps, setMaps] = useState<FirestoreInteractiveMap[]>([]);
+
+  useEffect(() => {
+    // Load from Firestore on mount
+    const init = async () => {
+      try {
+        const data = await getInteractiveMaps();
+        setMaps(data);
+      } catch (error) {
+        console.error('Failed to load interactive maps:', error);
+      }
+    };
+
+    if (isFirebaseConfigured()) {
+      init();
+
+      // Subscribe to real-time changes
+      const unsubscribe = subscribeToInteractiveMaps((items) => {
+        setMaps(items);
+      });
+
+      return () => unsubscribe();
+    }
+  }, []);
+
+  return maps;
+}
+
+// ============ Journey Arcs Hook ============
+
+import {
+  getJourneyArcs,
+  subscribeToJourneyArcs,
+  getJourneyThumbnails,
+  subscribeToJourneyThumbnails,
+  type FirestoreJourneyArc,
+  type FirestoreJourneyThumbnail,
+} from '@/lib/firestore';
+
+export function useLiveJourneyArcs(): {
+  arcs: FirestoreJourneyArc[];
+  thumbnails: Record<string, string>;
+} {
+  const [arcs, setArcs] = useState<FirestoreJourneyArc[]>([]);
+  const [thumbnails, setThumbnails] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    // Load from Firestore on mount
+    const init = async () => {
+      try {
+        const [arcsData, thumbsData] = await Promise.all([
+          getJourneyArcs(),
+          getJourneyThumbnails(),
+        ]);
+        setArcs(arcsData);
+        const thumbMap: Record<string, string> = {};
+        thumbsData.forEach(t => { thumbMap[t.id] = t.imageUrl; });
+        setThumbnails(thumbMap);
+      } catch (error) {
+        console.error('Failed to load journey arcs:', error);
+      }
+    };
+
+    if (isFirebaseConfigured()) {
+      init();
+
+      // Subscribe to real-time changes
+      const unsubArcs = subscribeToJourneyArcs((items) => {
+        setArcs(items);
+      });
+
+      const unsubThumbs = subscribeToJourneyThumbnails((items) => {
+        const thumbMap: Record<string, string> = {};
+        items.forEach(t => { thumbMap[t.id] = t.imageUrl; });
+        setThumbnails(thumbMap);
+      });
+
+      return () => {
+        unsubArcs();
+        unsubThumbs();
+      };
+    }
+  }, []);
+
+  return { arcs, thumbnails };
+}
+
+// ============ Arcade Game Content Hook ============
+
+import {
+  getAllArcadeGameContent,
+  subscribeToArcadeGameContent,
+  type FirestoreArcadeGameContent,
+} from '@/lib/firestore';
+
+export function useLiveArcadeContent(): Record<string, any[]> {
+  const [content, setContent] = useState<Record<string, any[]>>({});
+
+  useEffect(() => {
+    // Load from Firestore on mount
+    const init = async () => {
+      try {
+        const allContent = await getAllArcadeGameContent();
+        const result: Record<string, any[]> = {};
+        allContent.forEach(c => {
+          result[c.gameType] = c.items;
+        });
+        setContent(result);
+      } catch (error) {
+        console.error('Failed to load arcade content:', error);
+      }
+    };
+
+    if (isFirebaseConfigured()) {
+      init();
+
+      // Subscribe to real-time changes
+      const unsubscribe = subscribeToArcadeGameContent((allContent) => {
+        const result: Record<string, any[]> = {};
+        allContent.forEach(c => {
+          result[c.gameType] = c.items;
+        });
+        setContent(result);
+      });
+
+      return () => unsubscribe();
+    }
+  }, []);
+
+  return content;
+}
+
+// ============ Trivia Sets Hook ============
+
+import {
+  initTriviaCache,
+  subscribeToTriviaUpdates,
+  loadTriviaConfigAsync,
+} from '@/lib/triviaStorage';
+import type { TriviaSet } from '@/lib/triviaStorage';
+
+export function useLiveTriviaSets(): TriviaSet[] {
+  const [sets, setSets] = useState<TriviaSet[]>([]);
+
+  useEffect(() => {
+    // Load from cache on mount
+    const init = async () => {
+      try {
+        await initTriviaCache();
+        const config = await loadTriviaConfigAsync();
+        setSets(Object.values(config.sets));
+      } catch (error) {
+        console.error('Failed to load trivia sets:', error);
+      }
+    };
+
+    init();
+
+    // Subscribe to real-time changes
+    const unsubscribe = subscribeToTriviaUpdates((updatedSets) => {
+      setSets(updatedSets);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  return sets;
+}

@@ -1,12 +1,22 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { ChevronRight, Map, Layers, FileText, ArrowLeft, Save, Plus, Trash2, Wand2, Loader2 } from 'lucide-react';
+import { ChevronRight, Map, Layers, FileText, ArrowLeft, Save, Plus, Trash2, Wand2, Loader2, Cloud, CloudOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { arcs as defaultArcs, getArcById, getChapterById, getNodeById } from '@/data/journeyData';
 import { Arc, JourneyChapter, JourneyNode, JourneyNodeType, JourneyNodeContent, TwoTruthsContent, QuizMixContent, DecisionContent, BossContent, Question } from '@/types';
-import { saveJourneyArcs, loadStoredJourneyArcs } from '@/lib/adminStorage';
 import { generateImage, base64ToDataUrl, isGeminiConfigured } from '@/lib/gemini';
 import { uploadFile } from '@/lib/supabase';
+import { isFirebaseConfigured } from '@/lib/firebase';
+import {
+  getJourneyArcs,
+  saveAllJourneyArcs,
+  subscribeToJourneyArcs,
+  getJourneyThumbnails,
+  saveJourneyThumbnail,
+  subscribeToJourneyThumbnails,
+  type FirestoreJourneyArc,
+  type FirestoreJourneyThumbnail,
+} from '@/lib/firestore';
 
 type ViewMode = 'arcs' | 'chapters' | 'nodes' | 'edit';
 
@@ -28,21 +38,53 @@ const nodeTypeColors: Record<JourneyNodeType, string> = {
   'boss': 'bg-red-500/20 text-red-400',
 };
 
-const JOURNEY_THUMBNAILS_KEY = 'hb_journey_thumbnails';
-
-function loadJourneyThumbnails(): Record<string, string> {
-  try {
-    const stored = localStorage.getItem(JOURNEY_THUMBNAILS_KEY);
-    return stored ? JSON.parse(stored) : {};
-  } catch {
-    return {};
-  }
+// Convert Arc to Firestore format
+function arcToFirestore(arc: Arc, index: number): FirestoreJourneyArc {
+  return {
+    id: arc.id,
+    title: arc.title,
+    description: arc.description,
+    icon: arc.icon,
+    color: arc.color,
+    displayOrder: index,
+    chapters: arc.chapters.map((chapter, cIndex) => ({
+      id: chapter.id,
+      title: chapter.title,
+      description: chapter.description,
+      displayOrder: cIndex,
+      nodes: chapter.nodes.map((node, nIndex) => ({
+        id: node.id,
+        title: node.title,
+        type: node.type,
+        xpReward: node.xpReward,
+        content: node.content as Record<string, unknown>,
+        displayOrder: nIndex,
+      })),
+    })),
+  };
 }
 
-function saveJourneyThumbnails(thumbnails: Record<string, string>) {
-  localStorage.setItem(JOURNEY_THUMBNAILS_KEY, JSON.stringify(thumbnails));
-  // Dispatch custom event so same-tab components can update (storage event only fires cross-tab)
-  window.dispatchEvent(new CustomEvent('journey-thumbnails-updated', { detail: thumbnails }));
+// Convert Firestore format to Arc
+function firestoreToArc(fsArc: FirestoreJourneyArc): Arc {
+  return {
+    id: fsArc.id,
+    title: fsArc.title,
+    description: fsArc.description,
+    icon: fsArc.icon,
+    color: fsArc.color,
+    chapters: fsArc.chapters.map((chapter) => ({
+      id: chapter.id,
+      title: chapter.title,
+      description: chapter.description,
+      nodes: chapter.nodes.map((node) => ({
+        id: node.id,
+        title: node.title,
+        type: node.type as JourneyNodeType,
+        xpReward: node.xpReward,
+        content: node.content as JourneyNodeContent,
+      })),
+    })),
+  };
 }
 
 export default function JourneyEditor() {
@@ -51,26 +93,67 @@ export default function JourneyEditor() {
   const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
-  // Load arcs from localStorage or use defaults
-  const [arcsData, setArcsData] = useState<Arc[]>(() => {
-    const stored = loadStoredJourneyArcs();
-    return (stored as Arc[]) || [...defaultArcs];
-  });
+  // Load arcs from Firebase (or defaults if not configured)
+  const [arcsData, setArcsData] = useState<Arc[]>([...defaultArcs]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSyncedToCloud, setIsSyncedToCloud] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Thumbnail state
-  const [thumbnails, setThumbnails] = useState<Record<string, string>>(() => loadJourneyThumbnails());
+  const [thumbnails, setThumbnails] = useState<Record<string, string>>({});
   const [isGeneratingAll, setIsGeneratingAll] = useState(false);
   const [generationProgress, setGenerationProgress] = useState({ current: 0, total: 0 });
 
-  // Auto-save to localStorage when data changes
+  // Load from Firebase on mount
   useEffect(() => {
-    saveJourneyArcs(arcsData);
-  }, [arcsData]);
+    const firebaseConfigured = isFirebaseConfigured();
+    setIsSyncedToCloud(firebaseConfigured);
 
-  // Save thumbnails when they change
-  useEffect(() => {
-    saveJourneyThumbnails(thumbnails);
-  }, [thumbnails]);
+    if (firebaseConfigured) {
+      // Load arcs
+      getJourneyArcs().then((fsArcs) => {
+        if (fsArcs.length > 0) {
+          setArcsData(fsArcs.map(firestoreToArc));
+        }
+        setIsLoading(false);
+      }).catch((err) => {
+        console.error('Failed to load journey arcs:', err);
+        setIsLoading(false);
+      });
+
+      // Load thumbnails
+      getJourneyThumbnails().then((fsThumbs) => {
+        const thumbMap: Record<string, string> = {};
+        fsThumbs.forEach(t => { thumbMap[t.id] = t.imageUrl; });
+        setThumbnails(thumbMap);
+      }).catch((err) => {
+        console.error('Failed to load journey thumbnails:', err);
+      });
+
+      // Subscribe to real-time updates
+      const unsubArcs = subscribeToJourneyArcs((fsArcs) => {
+        if (fsArcs.length > 0) {
+          setArcsData(fsArcs.map(firestoreToArc));
+        }
+      });
+
+      const unsubThumbs = subscribeToJourneyThumbnails((fsThumbs) => {
+        const thumbMap: Record<string, string> = {};
+        fsThumbs.forEach(t => { thumbMap[t.id] = t.imageUrl; });
+        setThumbnails(thumbMap);
+        // Dispatch event for frontend components
+        window.dispatchEvent(new CustomEvent('journey-thumbnails-updated', { detail: thumbMap }));
+      });
+
+      return () => {
+        unsubArcs();
+        unsubThumbs();
+      };
+    } else {
+      setIsLoading(false);
+      toast.error('Firebase not configured. Changes will not be saved.');
+    }
+  }, []);
 
   // Check if a thumbnail URL is valid
   const isValidThumbnail = (url: string | undefined): boolean => {
@@ -147,6 +230,8 @@ export default function JourneyEditor() {
 
           if (uploadResult) {
             newThumbnails[item.id] = uploadResult.url;
+            // Save to Firebase
+            await saveJourneyThumbnail({ id: item.id, imageUrl: uploadResult.url });
             toast.success(`Generated art for "${item.title}"`, { id: `gen-${item.id}` });
           } else {
             toast.error(`Failed to upload art for "${item.title}"`, { id: `gen-${item.id}` });
@@ -220,11 +305,22 @@ export default function JourneyEditor() {
     }
   };
 
-  const handleSave = useCallback(() => {
-    saveJourneyArcs(arcsData);
-    toast.success('Changes saved', {
-      description: 'Data persisted to local storage.',
-    });
+  const handleSave = useCallback(async () => {
+    setIsSaving(true);
+    try {
+      const fsArcs = arcsData.map((arc, i) => arcToFirestore(arc, i));
+      const success = await saveAllJourneyArcs(fsArcs);
+      if (success) {
+        toast.success('Changes saved to cloud');
+      } else {
+        throw new Error('Save failed');
+      }
+    } catch (err) {
+      console.error('Failed to save journey arcs:', err);
+      toast.error('Failed to save changes');
+    } finally {
+      setIsSaving(false);
+    }
   }, [arcsData]);
 
   const updateNode = useCallback((updates: Partial<JourneyNode>) => {
@@ -261,7 +357,24 @@ export default function JourneyEditor() {
           </button>
         )}
         <div className="flex-1">
-          <h1 className="font-editorial text-3xl font-bold text-foreground">Journey Editor</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="font-editorial text-3xl font-bold text-foreground">Journey Editor</h1>
+            {/* Cloud sync indicator */}
+            <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium ${
+              isSyncedToCloud
+                ? 'bg-emerald-500/20 text-emerald-400'
+                : 'bg-amber-500/20 text-amber-400'
+            }`}>
+              {isSyncedToCloud ? <Cloud size={12} /> : <CloudOff size={12} />}
+              {isSyncedToCloud ? 'Cloud Sync' : 'No Cloud'}
+            </div>
+            {isSaving && (
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Loader2 size={12} className="animate-spin" />
+                Saving...
+              </div>
+            )}
+          </div>
           <Breadcrumbs
             arc={selectedArc}
             chapter={selectedChapter}
@@ -298,9 +411,15 @@ export default function JourneyEditor() {
           animate={{ opacity: 1 }}
           className="grid gap-3"
         >
-          {arcsData.map((arc) => (
-            <ArcCard key={arc.id} arc={arc} thumbnailUrl={thumbnails[arc.id]} onClick={() => handleSelectArc(arc.id)} />
-          ))}
+          {isLoading ? (
+            <div className="flex items-center justify-center p-12">
+              <Loader2 className="animate-spin text-muted-foreground" size={32} />
+            </div>
+          ) : (
+            arcsData.map((arc) => (
+              <ArcCard key={arc.id} arc={arc} thumbnailUrl={thumbnails[arc.id]} onClick={() => handleSelectArc(arc.id)} />
+            ))
+          )}
         </motion.div>
       )}
 

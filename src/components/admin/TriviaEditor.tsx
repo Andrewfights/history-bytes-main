@@ -15,21 +15,26 @@ import {
   Upload,
   FileVideo,
   Eye,
+  Cloud,
+  CloudOff,
+  Loader2,
 } from 'lucide-react';
 import {
   TriviaSet,
   TriviaQuestion,
   TriviaAnswer,
   loadTriviaConfigAsync,
-  saveTriviaSet,
-  deleteTriviaSet,
+  saveTriviaSetAsync,
+  deleteTriviaSetAsync,
   createEmptyTriviaSet,
   createEmptyQuestion,
   getTriviaSetsForStory,
   initTriviaCache,
   fileToDataUrl,
+  subscribeToTriviaUpdates,
 } from '@/lib/triviaStorage';
 import { TriviaPlayer } from '@/components/journey/ghost-army/TriviaPlayer';
+import { isFirebaseConfigured } from '@/lib/firebase';
 
 interface QuestionEditorProps {
   question: TriviaQuestion;
@@ -440,12 +445,16 @@ export function TriviaEditor() {
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [isLoading, setIsLoading] = useState(true);
   const [previewMode, setPreviewMode] = useState(false);
+  const [isSyncedToCloud, setIsSyncedToCloud] = useState(false);
 
   const selectedSet = triviaSets.find(s => s.id === selectedSetId) || null;
 
-  // Load trivia sets
+  // Load trivia sets and subscribe to Firebase updates
   useEffect(() => {
     const init = async () => {
+      const firebaseConfigured = isFirebaseConfigured();
+      setIsSyncedToCloud(firebaseConfigured);
+
       await initTriviaCache();
       const sets = getTriviaSetsForStory('ghost-army');
       setTriviaSets(sets);
@@ -455,13 +464,21 @@ export function TriviaEditor() {
       setIsLoading(false);
     };
     init();
+
+    // Subscribe to real-time updates
+    const unsubscribe = subscribeToTriviaUpdates((sets) => {
+      const ghostArmySets = sets.filter(s => s.storyId === 'ghost-army');
+      setTriviaSets(ghostArmySets);
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  const handleCreateSet = () => {
+  const handleCreateSet = async () => {
     const newSet = createEmptyTriviaSet('ghost-army');
     setTriviaSets(prev => [...prev, newSet]);
     setSelectedSetId(newSet.id);
-    saveTriviaSet(newSet);
+    await saveTriviaSetAsync(newSet);
   };
 
   const handleUpdateSet = (updates: Partial<TriviaSet>) => {
@@ -476,27 +493,35 @@ export function TriviaEditor() {
     setTriviaSets(prev => prev.map(s => s.id === selectedSetId ? updatedSet : s));
   };
 
-  const handleSaveSet = () => {
+  const handleSaveSet = async () => {
     if (!selectedSet) return;
 
     setSaveStatus('saving');
-    const success = saveTriviaSet(selectedSet);
-
-    if (success) {
-      setSaveStatus('saved');
-      setTimeout(() => setSaveStatus('idle'), 2000);
-    } else {
+    try {
+      const success = await saveTriviaSetAsync(selectedSet);
+      if (success) {
+        setSaveStatus('saved');
+        setTimeout(() => setSaveStatus('idle'), 2000);
+      } else {
+        throw new Error('Save failed');
+      }
+    } catch (err) {
+      console.error('Failed to save trivia set:', err);
       setSaveStatus('error');
       setTimeout(() => setSaveStatus('idle'), 3000);
     }
   };
 
-  const handleDeleteSet = () => {
+  const handleDeleteSet = async () => {
     if (!selectedSetId || !confirm('Delete this trivia set?')) return;
 
-    deleteTriviaSet(selectedSetId);
-    setTriviaSets(prev => prev.filter(s => s.id !== selectedSetId));
-    setSelectedSetId(triviaSets[0]?.id || null);
+    try {
+      await deleteTriviaSetAsync(selectedSetId);
+      setTriviaSets(prev => prev.filter(s => s.id !== selectedSetId));
+      setSelectedSetId(triviaSets[0]?.id || null);
+    } catch (err) {
+      console.error('Failed to delete trivia set:', err);
+    }
   };
 
   const handleAddQuestion = () => {
@@ -578,7 +603,18 @@ export function TriviaEditor() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="font-editorial text-3xl font-bold">Trivia Editor</h1>
+              <div className="flex items-center gap-3">
+                <h1 className="font-editorial text-3xl font-bold">Trivia Editor</h1>
+                {/* Cloud sync indicator */}
+                <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium ${
+                  isSyncedToCloud
+                    ? 'bg-emerald-500/20 text-emerald-400'
+                    : 'bg-amber-500/20 text-amber-400'
+                }`}>
+                  {isSyncedToCloud ? <Cloud size={12} /> : <CloudOff size={12} />}
+                  {isSyncedToCloud ? 'Cloud Sync' : 'No Cloud'}
+                </div>
+              </div>
               <p className="text-muted-foreground">
                 Create video-driven trivia for Ghost Army
               </p>

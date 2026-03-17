@@ -9,9 +9,9 @@ import {
   XP_CAP_PLAYS,
   getDailyFeaturedGame,
   getPopularGames,
-  loadGameThumbnails,
   getGameImageUrl,
 } from '@/data/arcadeGames';
+import { useLiveGameThumbnails } from '@/hooks/useLiveData';
 
 // New components
 import { FeaturedGameHero } from '@/components/arcade/FeaturedGameHero';
@@ -296,34 +296,13 @@ type ActiveGame = null | 'chrono' | 'who-am-i' | 'quote-or-fake' | 'wordle' | 'g
 export function ArcadeTab() {
   const { user, addXP, getArcadePlaysToday, recordArcadePlay } = useApp();
   const [activeGame, setActiveGame] = useState<ActiveGame>(null);
-  const [gameThumbnails, setGameThumbnails] = useState<Record<string, string>>({});
+
+  // Use live Firebase data for game thumbnails (real-time updates from admin)
+  const gameThumbnails = useLiveGameThumbnails();
 
   // Get featured and popular games from data
   const featuredGame = getDailyFeaturedGame();
   const popularGames = getPopularGames();
-
-  // Load thumbnails from localStorage on mount
-  useEffect(() => {
-    setGameThumbnails(loadGameThumbnails());
-
-    // Listen for storage changes (when admin updates thumbnails from different tab)
-    const handleStorageChange = () => {
-      setGameThumbnails(loadGameThumbnails());
-    };
-
-    // Listen for custom event (when admin updates thumbnails in same tab)
-    const handleThumbnailsUpdated = (event: CustomEvent<Record<string, string>>) => {
-      setGameThumbnails(event.detail);
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('arcade-thumbnails-updated', handleThumbnailsUpdated as EventListener);
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('arcade-thumbnails-updated', handleThumbnailsUpdated as EventListener);
-    };
-  }, []);
 
   const handleGameComplete = (gameType: string, gameTitle: string, xp: number) => {
     const game = ARCADE_GAMES.find(g => g.type === gameType);

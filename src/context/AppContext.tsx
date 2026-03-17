@@ -34,7 +34,15 @@ import {
 } from '@/lib/storage';
 import { initEraTileOverridesCache } from '@/data/historicalEras';
 import { initPantheonCache, subscribeToPantheonUpdates } from '@/data/pantheonSouvenirs';
-import { subscribeToEraTileOverrides } from '@/lib/firestore';
+import { initGameThumbnailsCache } from '@/data/arcadeGames';
+import { initTriviaCache, subscribeToTriviaUpdates } from '@/lib/triviaStorage';
+import {
+  subscribeToEraTileOverrides,
+  subscribeToGameThumbnails,
+  subscribeToInteractiveMaps,
+  subscribeToJourneyArcs,
+  subscribeToArcadeGameContent,
+} from '@/lib/firestore';
 import { EarnedBadge } from '@/types/badges';
 
 export interface JourneyViewState {
@@ -307,11 +315,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     let unsubscribeLessons: (() => void) | null = null;
     let unsubscribeEraTiles: (() => void) | null = null;
     let unsubscribePantheon: (() => void) | null = null;
+    let unsubscribeGameThumbnails: (() => void) | null = null;
 
     if (isFirebaseConfigured()) {
       // Initialize caches for admin-controlled content
       initEraTileOverridesCache().catch(err => console.error('Failed to init era tile cache:', err));
       initPantheonCache().catch(err => console.error('Failed to init pantheon cache:', err));
+      initGameThumbnailsCache().catch(err => console.error('Failed to init game thumbnails cache:', err));
+      initTriviaCache().catch(err => console.error('Failed to init trivia cache:', err));
 
       // Subscribe to era tile updates (so images update in real-time)
       unsubscribeEraTiles = subscribeToEraTileOverrides(() => {
@@ -321,6 +332,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       // Subscribe to pantheon updates
       unsubscribePantheon = subscribeToPantheonUpdates();
+
+      // Subscribe to game thumbnails updates (so arcade images update in real-time)
+      unsubscribeGameThumbnails = subscribeToGameThumbnails(() => {
+        initGameThumbnailsCache().catch(err => console.error('Game thumbnails cache update failed:', err));
+      });
+
+      // Subscribe to trivia updates
+      subscribeToTriviaUpdates(() => {
+        console.log('[AppContext] Trivia sets updated');
+      });
       unsubscribeCourses = subscribeToCourses((firestoreCourses) => {
         if (firestoreCourses && firestoreCourses.length > 0) {
           const converted: Course[] = firestoreCourses.map(c => ({
@@ -405,6 +426,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       unsubscribeLessons?.();
       unsubscribeEraTiles?.();
       unsubscribePantheon?.();
+      unsubscribeGameThumbnails?.();
     };
   }, []);
 

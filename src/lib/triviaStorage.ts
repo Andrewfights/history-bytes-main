@@ -1,6 +1,16 @@
 /**
- * Trivia Storage - IndexedDB storage for video-driven trivia
+ * Trivia Storage - Firebase/IndexedDB storage for video-driven trivia
+ * Uses Firestore for metadata and subscriptions, IndexedDB for offline cache
  */
+
+import { isFirebaseConfigured } from './firebase';
+import {
+  getTriviaSets as getFirestoreTriviaSets,
+  saveTriviaSet as saveFirestoreTriviaSet,
+  deleteTriviaSet as deleteFirestoreTriviaSet,
+  subscribeToTriviaSets,
+  type FirestoreTriviaSet,
+} from './firestore';
 
 // Trivia question structure
 export interface TriviaAnswer {
@@ -151,13 +161,112 @@ const DEFAULT_TRIVIA_CONFIG: TriviaConfig = {
 let triviaCache: TriviaConfig | null = null;
 let cacheInitialized = false;
 
-// Initialize cache
+// Convert Firestore trivia set to local format
+function firestoreToLocalTriviaSet(fs: FirestoreTriviaSet): TriviaSet {
+  return {
+    id: fs.id,
+    title: fs.title,
+    description: fs.description || '',
+    storyId: fs.category || 'ghost-army',
+    questions: fs.questions.map(q => ({
+      id: q.id,
+      questionText: q.question,
+      questionVideoUrl: q.videoUrl,
+      answerTrigger: 'end' as const,
+      answers: q.options.map((opt, i) => ({
+        id: `${q.id}-opt-${i}`,
+        text: opt,
+        isCorrect: i === q.correctIndex,
+      })),
+      correctMessage: 'Correct!',
+      wrongMessage: q.explanation || 'Not quite!',
+      correctVideoUrl: undefined,
+      wrongVideoUrl: undefined,
+      xpReward: 10,
+    })),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+// Convert local trivia set to Firestore format
+function localToFirestoreTriviaSet(local: TriviaSet, index: number): FirestoreTriviaSet {
+  return {
+    id: local.id,
+    title: local.title,
+    description: local.description,
+    category: local.storyId,
+    questions: local.questions.map(q => {
+      const correctIndex = q.answers.findIndex(a => a.isCorrect);
+      return {
+        id: q.id,
+        question: q.questionText,
+        options: q.answers.map(a => a.text),
+        correctIndex: correctIndex >= 0 ? correctIndex : 0,
+        explanation: q.wrongMessage,
+        videoUrl: q.questionVideoUrl,
+        imageUrl: undefined,
+      };
+    }),
+    displayOrder: index,
+  };
+}
+
+// Initialize cache from Firebase or IndexedDB
 export async function initTriviaCache(): Promise<void> {
+  // Try to load from Firebase first
+  if (isFirebaseConfigured()) {
+    try {
+      const firebaseSets = await getFirestoreTriviaSets();
+      if (firebaseSets.length > 0) {
+        triviaCache = {
+          sets: {},
+          lastUpdated: new Date().toISOString(),
+        };
+        firebaseSets.forEach(fs => {
+          const localSet = firestoreToLocalTriviaSet(fs);
+          triviaCache!.sets[localSet.id] = localSet;
+        });
+        // Save to IndexedDB for offline access
+        await saveToIndexedDB('trivia_config', triviaCache);
+        cacheInitialized = true;
+        console.log('[TriviaStorage] Cache initialized from Firebase:', {
+          setCount: Object.keys(triviaCache.sets).length,
+        });
+        return;
+      }
+    } catch (err) {
+      console.error('[TriviaStorage] Failed to load from Firebase:', err);
+    }
+  }
+
+  // Fallback to IndexedDB
   const data = await loadFromIndexedDB('trivia_config');
   triviaCache = data || DEFAULT_TRIVIA_CONFIG;
   cacheInitialized = true;
-  console.log('[TriviaStorage] Cache initialized:', {
+  console.log('[TriviaStorage] Cache initialized from IndexedDB:', {
     setCount: Object.keys(triviaCache.sets).length,
+  });
+}
+
+// Subscribe to Firebase updates
+export function subscribeToTriviaUpdates(callback: (sets: TriviaSet[]) => void): () => void {
+  if (!isFirebaseConfigured()) {
+    return () => {};
+  }
+
+  return subscribeToTriviaSets((firebaseSets) => {
+    triviaCache = {
+      sets: {},
+      lastUpdated: new Date().toISOString(),
+    };
+    firebaseSets.forEach(fs => {
+      const localSet = firestoreToLocalTriviaSet(fs);
+      triviaCache!.sets[localSet.id] = localSet;
+    });
+    // Update IndexedDB cache
+    saveToIndexedDB('trivia_config', triviaCache).catch(console.error);
+    callback(Object.values(triviaCache.sets));
   });
 }
 
@@ -207,20 +316,86 @@ export async function loadAllTriviaSets(): Promise<TriviaSet[]> {
   return Object.values(config.sets);
 }
 
-// Save trivia set
+// Save trivia set (to both IndexedDB and Firebase)
 export function saveTriviaSet(set: TriviaSet): boolean {
   const config = loadTriviaConfig();
   config.sets[set.id] = set;
   config.lastUpdated = new Date().toISOString();
+
+  // Save to Firebase if configured
+  if (isFirebaseConfigured()) {
+    const setIndex = Object.keys(config.sets).indexOf(set.id);
+    const firestoreSet = localToFirestoreTriviaSet(set, setIndex);
+    saveFirestoreTriviaSet(firestoreSet).catch(err => {
+      console.error('[TriviaStorage] Failed to save to Firebase:', err);
+    });
+  }
+
   return saveTriviaConfig(config);
 }
 
-// Delete trivia set
+// Async version for explicit Firebase save
+export async function saveTriviaSetAsync(set: TriviaSet): Promise<boolean> {
+  const config = loadTriviaConfig();
+  config.sets[set.id] = set;
+  config.lastUpdated = new Date().toISOString();
+
+  // Save to IndexedDB
+  const localSuccess = saveTriviaConfig(config);
+
+  // Save to Firebase if configured
+  if (isFirebaseConfigured()) {
+    const setIndex = Object.keys(config.sets).indexOf(set.id);
+    const firestoreSet = localToFirestoreTriviaSet(set, setIndex);
+    try {
+      await saveFirestoreTriviaSet(firestoreSet);
+      console.log('[TriviaStorage] Saved to Firebase');
+    } catch (err) {
+      console.error('[TriviaStorage] Failed to save to Firebase:', err);
+      return false;
+    }
+  }
+
+  return localSuccess;
+}
+
+// Delete trivia set (from both IndexedDB and Firebase)
 export function deleteTriviaSet(setId: string): boolean {
   const config = loadTriviaConfig();
   delete config.sets[setId];
   config.lastUpdated = new Date().toISOString();
+
+  // Delete from Firebase if configured
+  if (isFirebaseConfigured()) {
+    deleteFirestoreTriviaSet(setId).catch(err => {
+      console.error('[TriviaStorage] Failed to delete from Firebase:', err);
+    });
+  }
+
   return saveTriviaConfig(config);
+}
+
+// Async version for explicit Firebase delete
+export async function deleteTriviaSetAsync(setId: string): Promise<boolean> {
+  const config = loadTriviaConfig();
+  delete config.sets[setId];
+  config.lastUpdated = new Date().toISOString();
+
+  // Delete from IndexedDB
+  const localSuccess = saveTriviaConfig(config);
+
+  // Delete from Firebase if configured
+  if (isFirebaseConfigured()) {
+    try {
+      await deleteFirestoreTriviaSet(setId);
+      console.log('[TriviaStorage] Deleted from Firebase');
+    } catch (err) {
+      console.error('[TriviaStorage] Failed to delete from Firebase:', err);
+      return false;
+    }
+  }
+
+  return localSuccess;
 }
 
 // Create new trivia question

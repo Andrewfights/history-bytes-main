@@ -2,6 +2,8 @@
  * MapEditor - Admin component for creating/editing interactive maps
  * Allows uploading images, placing hotspots at exact positions,
  * and configuring click actions for each hotspot
+ *
+ * Uses Firebase Firestore for cloud persistence
  */
 
 import { useState, useRef, useEffect, useCallback } from 'react';
@@ -27,25 +29,48 @@ import {
   ZoomIn,
   ZoomOut,
   RotateCcw,
+  Cloud,
+  CloudOff,
+  Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   InteractiveMap,
   MapHotspot,
   HotspotActionType,
-  getAllMaps,
-  getMapById,
-  saveMap,
-  deleteMap,
-  createNewMap,
   createHotspot,
   DEFAULT_HOTSPOT_STYLE,
 } from '@/data/interactiveMaps';
 import { MediaPicker } from './MediaPicker';
 import type { MediaFile } from '@/lib/supabase';
+import { isFirebaseConfigured } from '@/lib/firebase';
+import {
+  getInteractiveMaps,
+  getInteractiveMap,
+  saveInteractiveMap,
+  deleteInteractiveMap,
+  subscribeToInteractiveMaps,
+  type FirestoreInteractiveMap,
+} from '@/lib/firestore';
 
 // Editor modes
 type EditorMode = 'select' | 'place' | 'move';
+
+// Convert Firestore map to local InteractiveMap type
+function firestoreToLocal(fsMap: FirestoreInteractiveMap): InteractiveMap {
+  return {
+    ...fsMap,
+    createdAt: fsMap.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+    updatedAt: fsMap.updatedAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+  };
+}
+
+// Convert local InteractiveMap to Firestore type
+function localToFirestore(map: InteractiveMap): FirestoreInteractiveMap {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { createdAt, updatedAt, ...rest } = map;
+  return rest as FirestoreInteractiveMap;
+}
 
 export default function MapEditor() {
   // Map state
@@ -63,20 +88,46 @@ export default function MapEditor() {
   const [newMapName, setNewMapName] = useState('');
   const [zoom, setZoom] = useState(1);
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSyncedToCloud, setIsSyncedToCloud] = useState(false);
 
   // Refs
   const canvasRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
 
-  // Load maps on mount
+  // Load maps from Firebase on mount and subscribe to real-time updates
   useEffect(() => {
-    setMaps(getAllMaps());
+    setIsLoading(true);
+    const firebaseConfigured = isFirebaseConfigured();
+    setIsSyncedToCloud(firebaseConfigured);
+
+    if (firebaseConfigured) {
+      // Initial load
+      getInteractiveMaps().then((fsMaps) => {
+        setMaps(fsMaps.map(firestoreToLocal));
+        setIsLoading(false);
+      }).catch((err) => {
+        console.error('Failed to load maps from Firebase:', err);
+        setIsLoading(false);
+      });
+
+      // Subscribe to real-time updates
+      const unsubscribe = subscribeToInteractiveMaps((fsMaps) => {
+        setMaps(fsMaps.map(firestoreToLocal));
+      });
+
+      return () => unsubscribe();
+    } else {
+      // No Firebase - show warning
+      setIsLoading(false);
+      toast.error('Firebase not configured. Maps will not be saved.');
+    }
   }, []);
 
   // Load selected map
   useEffect(() => {
     if (selectedMapId) {
-      const map = getMapById(selectedMapId);
+      const map = maps.find(m => m.id === selectedMapId);
       if (map) {
         setEditingMap({ ...map });
         setSelectedHotspotId(null);
@@ -84,7 +135,7 @@ export default function MapEditor() {
     } else {
       setEditingMap(null);
     }
-  }, [selectedMapId]);
+  }, [selectedMapId, maps]);
 
   const selectedHotspot = editingMap?.hotspots.find(h => h.id === selectedHotspotId);
 
@@ -215,31 +266,58 @@ export default function MapEditor() {
     toast.success('Hotspot duplicated');
   }, [editingMap]);
 
-  // Save map
-  const handleSave = useCallback(() => {
+  // Save map to Firebase
+  const handleSave = useCallback(async () => {
     if (!editingMap) return;
 
     setIsSaving(true);
     try {
-      saveMap(editingMap);
-      setMaps(getAllMaps());
-      toast.success('Map saved successfully');
+      const fsMap = localToFirestore(editingMap);
+      const success = await saveInteractiveMap(fsMap);
+      if (success) {
+        toast.success('Map saved to cloud');
+      } else {
+        throw new Error('Save failed');
+      }
     } catch (err) {
+      console.error('Failed to save map:', err);
       toast.error('Failed to save map');
     } finally {
       setIsSaving(false);
     }
   }, [editingMap]);
 
-  // Create new map
-  const handleCreateMap = useCallback((imageUrl: string, width: number, height: number) => {
-    const map = createNewMap(newMapName || 'Untitled Map', imageUrl, width, height);
-    saveMap(map);
-    setMaps(getAllMaps());
-    setSelectedMapId(map.id);
-    setShowNewMapModal(false);
-    setNewMapName('');
-    toast.success('Map created');
+  // Create new map in Firebase
+  const handleCreateMap = useCallback(async (imageUrl: string, width: number, height: number) => {
+    const newMap: InteractiveMap = {
+      id: `map-${Date.now()}`,
+      name: newMapName || 'Untitled Map',
+      imageUrl,
+      imageWidth: width,
+      imageHeight: height,
+      hotspots: [],
+      showAllHotspots: true,
+      enableZoom: false,
+      enablePan: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    try {
+      const fsMap = localToFirestore(newMap);
+      const success = await saveInteractiveMap(fsMap);
+      if (success) {
+        setSelectedMapId(newMap.id);
+        setShowNewMapModal(false);
+        setNewMapName('');
+        toast.success('Map created');
+      } else {
+        throw new Error('Create failed');
+      }
+    } catch (err) {
+      console.error('Failed to create map:', err);
+      toast.error('Failed to create map');
+    }
   }, [newMapName]);
 
   // Handle image selection for new map
@@ -254,17 +332,25 @@ export default function MapEditor() {
     img.src = file.url;
   }, [handleCreateMap]);
 
-  // Delete map
-  const handleDeleteMap = useCallback((mapId: string) => {
+  // Delete map from Firebase
+  const handleDeleteMap = useCallback(async (mapId: string) => {
     if (!confirm('Are you sure you want to delete this map?')) return;
 
-    deleteMap(mapId);
-    setMaps(getAllMaps());
-    if (selectedMapId === mapId) {
-      setSelectedMapId(null);
-      setEditingMap(null);
+    try {
+      const success = await deleteInteractiveMap(mapId);
+      if (success) {
+        if (selectedMapId === mapId) {
+          setSelectedMapId(null);
+          setEditingMap(null);
+        }
+        toast.success('Map deleted');
+      } else {
+        throw new Error('Delete failed');
+      }
+    } catch (err) {
+      console.error('Failed to delete map:', err);
+      toast.error('Failed to delete map');
     }
-    toast.success('Map deleted');
   }, [selectedMapId]);
 
   return (
@@ -272,9 +358,20 @@ export default function MapEditor() {
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-border">
         <div>
-          <h1 className="font-editorial text-2xl font-bold text-foreground">
-            Interactive Map Editor
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="font-editorial text-2xl font-bold text-foreground">
+              Interactive Map Editor
+            </h1>
+            {/* Cloud sync indicator */}
+            <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium ${
+              isSyncedToCloud
+                ? 'bg-emerald-500/20 text-emerald-400'
+                : 'bg-amber-500/20 text-amber-400'
+            }`}>
+              {isSyncedToCloud ? <Cloud size={12} /> : <CloudOff size={12} />}
+              {isSyncedToCloud ? 'Cloud Sync' : 'No Cloud'}
+            </div>
+          </div>
           <p className="text-sm text-muted-foreground mt-1">
             Create clickable hotspots on images for games and journeys
           </p>
@@ -308,7 +405,11 @@ export default function MapEditor() {
             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
               Your Maps
             </h3>
-            {maps.length === 0 ? (
+            {isLoading ? (
+              <div className="flex items-center justify-center p-8">
+                <Loader2 className="animate-spin text-muted-foreground" size={24} />
+              </div>
+            ) : maps.length === 0 ? (
               <p className="text-sm text-muted-foreground p-4 text-center">
                 No maps yet. Create one to get started.
               </p>

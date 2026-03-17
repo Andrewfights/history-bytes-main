@@ -1039,3 +1039,211 @@ export async function deletePantheonSouvenirImages(souvenirId: string): Promise<
 export function subscribeToPantheonSouvenirImages(callback: (images: FirestorePantheonSouvenirImages[]) => void): Unsubscribe {
   return subscribeToCollection<FirestorePantheonSouvenirImages>('pantheonSouvenirImages', callback);
 }
+
+// ============ Interactive Maps Types ============
+
+export interface FirestoreMapHotspot {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  shape: 'rect' | 'circle' | 'polygon';
+  polygonPoints?: Array<[number, number]>;
+  label: string;
+  tooltipText?: string;
+  iconEmoji?: string;
+  isVisible: boolean;
+  showLabel: boolean;
+  showOnHover: boolean;
+  action: {
+    type: string;
+    route?: string;
+    modalTitle?: string;
+    modalContent?: string;
+    modalImageUrl?: string;
+    mediaUrl?: string;
+    linkUrl?: string;
+    linkTarget?: string;
+    lessonId?: string;
+    quizId?: string;
+    infoText?: string;
+    customData?: Record<string, unknown>;
+  };
+  style?: {
+    backgroundColor?: string;
+    borderColor?: string;
+    borderWidth?: number;
+    opacity?: number;
+    hoverBackgroundColor?: string;
+    hoverBorderColor?: string;
+    hoverScale?: number;
+    pulseAnimation?: boolean;
+    glowEffect?: boolean;
+  };
+  isCompleted?: boolean;
+  isLocked?: boolean;
+  unlockCondition?: string;
+  order?: number;
+}
+
+export interface FirestoreInteractiveMap {
+  id: string;
+  name: string;
+  description?: string;
+  imageUrl: string;
+  imageWidth: number;
+  imageHeight: number;
+  hotspots: FirestoreMapHotspot[];
+  showAllHotspots: boolean;
+  enableZoom: boolean;
+  enablePan: boolean;
+  category?: string;
+  tags?: string[];
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
+}
+
+// ============ Interactive Maps Operations ============
+
+export async function getInteractiveMaps(): Promise<FirestoreInteractiveMap[]> {
+  return getCollection<FirestoreInteractiveMap>('interactiveMaps', orderBy('name'));
+}
+
+export async function getInteractiveMap(mapId: string): Promise<FirestoreInteractiveMap | null> {
+  return getDocument<FirestoreInteractiveMap>('interactiveMaps', mapId);
+}
+
+export async function saveInteractiveMap(map: FirestoreInteractiveMap): Promise<boolean> {
+  const data = {
+    ...map,
+    createdAt: map.createdAt || serverTimestamp(),
+  };
+  return setDocument('interactiveMaps', map.id, data);
+}
+
+export async function deleteInteractiveMap(mapId: string): Promise<boolean> {
+  return deleteDocument('interactiveMaps', mapId);
+}
+
+export function subscribeToInteractiveMaps(callback: (maps: FirestoreInteractiveMap[]) => void): Unsubscribe {
+  return subscribeToCollection<FirestoreInteractiveMap>('interactiveMaps', callback, orderBy('name'));
+}
+
+// ============ Journey Arc Types (for Admin Editor) ============
+
+export interface FirestoreJourneyArc {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  color: string;
+  thumbnailUrl?: string;
+  chapters: FirestoreJourneyChapter[];
+  displayOrder: number;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
+}
+
+export interface FirestoreJourneyChapter {
+  id: string;
+  title: string;
+  description: string;
+  thumbnailUrl?: string;
+  nodes: FirestoreJourneyNode[];
+  displayOrder: number;
+}
+
+export interface FirestoreJourneyNode {
+  id: string;
+  title: string;
+  type: string;
+  xpReward: number;
+  content: Record<string, unknown>;
+  displayOrder: number;
+}
+
+// ============ Journey Arc Operations ============
+
+export async function getJourneyArcs(): Promise<FirestoreJourneyArc[]> {
+  return getCollection<FirestoreJourneyArc>('journeyArcs', orderBy('displayOrder'));
+}
+
+export async function getJourneyArc(arcId: string): Promise<FirestoreJourneyArc | null> {
+  return getDocument<FirestoreJourneyArc>('journeyArcs', arcId);
+}
+
+export async function saveJourneyArc(arc: FirestoreJourneyArc): Promise<boolean> {
+  const data = {
+    ...arc,
+    createdAt: arc.createdAt || serverTimestamp(),
+  };
+  return setDocument('journeyArcs', arc.id, data);
+}
+
+export async function saveAllJourneyArcs(arcs: FirestoreJourneyArc[]): Promise<boolean> {
+  const documents = arcs.map((arc, index) => ({
+    id: arc.id,
+    data: {
+      ...arc,
+      displayOrder: index,
+      createdAt: arc.createdAt || serverTimestamp(),
+    },
+  }));
+  return batchSaveDocuments('journeyArcs', documents);
+}
+
+export async function deleteJourneyArc(arcId: string): Promise<boolean> {
+  return deleteDocument('journeyArcs', arcId);
+}
+
+export function subscribeToJourneyArcs(callback: (arcs: FirestoreJourneyArc[]) => void): Unsubscribe {
+  return subscribeToCollection<FirestoreJourneyArc>('journeyArcs', callback, orderBy('displayOrder'));
+}
+
+// ============ Journey Thumbnails ============
+
+export interface FirestoreJourneyThumbnail {
+  id: string;           // Arc or chapter ID
+  imageUrl: string;
+  updatedAt?: Timestamp;
+}
+
+export async function getJourneyThumbnails(): Promise<FirestoreJourneyThumbnail[]> {
+  return getCollection<FirestoreJourneyThumbnail>('journeyThumbnails');
+}
+
+export async function saveJourneyThumbnail(thumbnail: FirestoreJourneyThumbnail): Promise<boolean> {
+  return setDocument('journeyThumbnails', thumbnail.id, thumbnail);
+}
+
+export function subscribeToJourneyThumbnails(callback: (thumbnails: FirestoreJourneyThumbnail[]) => void): Unsubscribe {
+  return subscribeToCollection<FirestoreJourneyThumbnail>('journeyThumbnails', callback);
+}
+
+// ============ Arcade Game Content Types ============
+
+export interface FirestoreArcadeGameContent {
+  id: string;
+  gameType: 'geoguessr' | 'anachronism' | 'connections' | 'map-mystery' | 'artifact' | 'cause-effect';
+  items: Record<string, unknown>[];  // Game-specific content items
+  updatedAt?: Timestamp;
+}
+
+// ============ Arcade Game Content Operations ============
+
+export async function getArcadeGameContent(gameType: string): Promise<FirestoreArcadeGameContent | null> {
+  return getDocument<FirestoreArcadeGameContent>('arcadeGameContent', gameType);
+}
+
+export async function getAllArcadeGameContent(): Promise<FirestoreArcadeGameContent[]> {
+  return getCollection<FirestoreArcadeGameContent>('arcadeGameContent');
+}
+
+export async function saveArcadeGameContent(content: FirestoreArcadeGameContent): Promise<boolean> {
+  return setDocument('arcadeGameContent', content.id, content);
+}
+
+export function subscribeToArcadeGameContent(callback: (content: FirestoreArcadeGameContent[]) => void): Unsubscribe {
+  return subscribeToCollection<FirestoreArcadeGameContent>('arcadeGameContent', callback);
+}
