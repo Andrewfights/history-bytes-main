@@ -269,9 +269,9 @@ export function WW2HostSelection({ onSelectHost, onClose }: WW2HostSelectionProp
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             onClick={handleChooseGuide}
-            className="w-full max-w-sm sm:max-w-md md:max-w-lg mx-auto mt-4 sm:mt-6 py-3 sm:py-4 px-6 sm:px-8 rounded-xl bg-amber-500 text-black font-bold text-base sm:text-lg hover:bg-amber-400 transition-all active:scale-[0.98]"
+            className="w-[calc(100%-2rem)] max-w-md mx-auto mt-4 sm:mt-6 py-3 sm:py-4 px-4 sm:px-8 rounded-xl bg-amber-500 text-black font-bold text-base sm:text-lg hover:bg-amber-400 transition-all active:scale-[0.98] whitespace-nowrap overflow-hidden text-ellipsis"
           >
-            Choose {hosts[currentIndex]?.name}
+            Choose {hosts[currentIndex]?.name || 'Guide'}
           </motion.button>
         </div>
       </div>

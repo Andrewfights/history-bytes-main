@@ -171,6 +171,34 @@
     background: linear-gradient(180deg, #0A0A0B 0%, #0E0F11 40%, #0A0A0B 100%);
     background-attachment: fixed;
     min-height: 100vh;
+    min-height: 100dvh; /* Dynamic viewport height for mobile Safari */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Prevent pull-to-refresh on iOS when not needed */
+    overscroll-behavior-y: contain;
+  }
+
+  /* === iOS SAFE AREAS (Notch & Home Indicator) === */
+  html {
+    /* Ensure padding for notch and home indicator on iOS */
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+
+  /* === TOUCH TARGETS (Apple HIG: 44px minimum) === */
+  button, a, [role="button"] {
+    min-height: 44px;
+    touch-action: manipulation; /* Prevent double-tap zoom delay */
+  }
+
+  /* Allow smaller touch targets for inline elements */
+  .inline-touch, .text-link {
+    min-height: auto;
+  }
+
+  /* === PREVENT TEXT SIZE ADJUSTMENT IN SAFARI === */
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   /* === TYPOGRAPHY === */

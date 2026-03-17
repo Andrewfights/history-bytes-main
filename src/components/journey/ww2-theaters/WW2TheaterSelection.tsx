@@ -243,7 +243,7 @@ function ComingSoonModal({
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
-        className="relative max-w-full sm:max-w-sm w-full mx-2 bg-gradient-to-b from-slate-800 to-slate-900 rounded-2xl overflow-hidden border border-white/10"
+        className="relative w-[calc(100%-2rem)] sm:w-full sm:max-w-sm mx-auto bg-gradient-to-b from-slate-800 to-slate-900 rounded-2xl overflow-hidden border border-white/10"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Battle Image */}

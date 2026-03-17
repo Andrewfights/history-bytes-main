@@ -569,10 +569,10 @@ export function JourneyTab() {
             onEnded={handleWW2WelcomeVideoEnd}
             className="w-full h-full object-contain"
           />
-          {/* Skip button */}
+          {/* Skip button - positioned safely for mobile browsers */}
           <button
             onClick={handleWW2WelcomeVideoEnd}
-            className="absolute bottom-8 right-8 px-6 py-3 rounded-full bg-white/20 backdrop-blur-sm text-white font-medium hover:bg-white/30 transition-colors"
+            className="absolute bottom-20 sm:bottom-8 right-4 sm:right-8 px-4 sm:px-6 py-2.5 sm:py-3 rounded-full bg-white/20 backdrop-blur-sm text-white text-sm sm:text-base font-medium hover:bg-white/30 transition-colors z-10"
           >
             Skip
           </button>
