@@ -12,15 +12,32 @@ import { generateVideo, isVeoConfigured, buildVideoPrompt } from '@/lib/veo';
 import { generateMusic, isSunoConfigured, GAME_MUSIC_GENRES, ERA_MUSIC_STYLES, downloadAudio, getAudioDuration, type GeneratedMusic } from '@/lib/suno';
 import { useCharacterMention, type MentionSuggestion } from '@/hooks/useCharacterMention';
 import { getAllSpiritGuides } from '@/data/spiritGuidesData';
+import { isFirebaseConfigured } from '@/lib/firebase';
+import {
+  getMediaGalleryItems,
+  saveMediaGalleryItem,
+  deleteMediaGalleryItem,
+  subscribeToMediaGallery,
+  getTimelineClips,
+  saveAllTimelineClips,
+  deleteTimelineClip,
+  subscribeToTimelineClips,
+  getMusicLibraryItems,
+  saveMusicLibraryItem,
+  deleteMusicLibraryItem,
+  subscribeToMusicLibrary,
+  type FirestoreMediaGalleryItem,
+  type FirestoreTimelineClip,
+  type FirestoreMusicLibraryItem,
+} from '@/lib/firestore';
+// Legacy imports for fallback (offline support)
 import {
   loadStoredMediaGallery,
-  saveMediaGallery,
-  addToMediaGallery,
+  saveMediaGallery as saveMediaGalleryLocal,
   loadStoredTimelineClips,
-  saveTimelineClips,
+  saveTimelineClips as saveTimelineClipsLocal,
   loadStoredMusicLibrary,
-  saveMusicLibrary,
-  updateMusicAssignment,
+  saveMusicLibrary as saveMusicLibraryLocal,
   type StoredMedia,
   type StoredTimelineClip,
   type StoredMusic,
@@ -122,24 +139,86 @@ export default function MediaStudio() {
   const [generatingVideo, setGeneratingVideo] = useState(false);
   const [generatingMusic, setGeneratingMusic] = useState(false);
 
-  // Load generated media from localStorage
-  const [generatedMedia, setGeneratedMedia] = useState<GeneratedMedia[]>(() => {
-    const stored = loadStoredMediaGallery();
-    return stored.map(m => ({
-      ...m,
-      createdAt: new Date(m.createdAt),
-    }));
-  });
+  // State for generated media (synced with Firebase)
+  const [generatedMedia, setGeneratedMedia] = useState<GeneratedMedia[]>([]);
+  const [mediaLoaded, setMediaLoaded] = useState(false);
 
-  // Load timeline clips from localStorage
-  const [timelineClips, setTimelineClips] = useState<TimelineClip[]>(() => {
-    return loadStoredTimelineClips();
-  });
+  // State for timeline clips (synced with Firebase)
+  const [timelineClips, setTimelineClips] = useState<TimelineClip[]>([]);
+  const [clipsLoaded, setClipsLoaded] = useState(false);
 
-  // Load music library from localStorage
-  const [musicLibrary, setMusicLibrary] = useState<StoredMusic[]>(() => {
-    return loadStoredMusicLibrary();
-  });
+  // State for music library (synced with Firebase)
+  const [musicLibrary, setMusicLibrary] = useState<StoredMusic[]>([]);
+  const [musicLoaded, setMusicLoaded] = useState(false);
+
+  // Load data from Firebase on mount
+  useEffect(() => {
+    if (!isFirebaseConfigured()) {
+      // Fallback to localStorage if Firebase not configured
+      const stored = loadStoredMediaGallery();
+      setGeneratedMedia(stored.map(m => ({
+        ...m,
+        createdAt: new Date(m.createdAt),
+      })));
+      setTimelineClips(loadStoredTimelineClips());
+      setMusicLibrary(loadStoredMusicLibrary());
+      setMediaLoaded(true);
+      setClipsLoaded(true);
+      setMusicLoaded(true);
+      return;
+    }
+
+    // Subscribe to Firebase collections for real-time updates
+    const unsubMedia = subscribeToMediaGallery((items) => {
+      setGeneratedMedia(items.map(m => ({
+        id: m.id,
+        prompt: m.prompt,
+        type: m.type as 'image' | 'video',
+        aspectRatio: m.aspectRatio as AspectRatio,
+        dataUrl: m.dataUrl,
+        createdAt: new Date(m.createdAt),
+      })));
+      setMediaLoaded(true);
+    });
+
+    const unsubClips = subscribeToTimelineClips((clips) => {
+      setTimelineClips(clips.map(c => ({
+        id: c.id,
+        name: c.name,
+        type: c.type as MediaType,
+        duration: c.duration,
+        thumbnail: c.thumbnail,
+        src: c.src,
+        trimStart: c.trimStart,
+        trimEnd: c.trimEnd,
+      })));
+      setClipsLoaded(true);
+    });
+
+    const unsubMusic = subscribeToMusicLibrary((items) => {
+      setMusicLibrary(items.map(m => ({
+        id: m.id,
+        title: m.title,
+        prompt: m.prompt,
+        audioUrl: m.audioUrl,
+        duration: m.duration,
+        genre: m.genre,
+        era: m.era,
+        mood: m.mood,
+        assignedTo: m.assignedTo,
+        playMode: m.playMode,
+        createdAt: m.createdAt,
+        source: m.source,
+      })));
+      setMusicLoaded(true);
+    });
+
+    return () => {
+      unsubMedia();
+      unsubClips();
+      unsubMusic();
+    };
+  }, []);
 
   const [selectedClip, setSelectedClip] = useState<TimelineClip | null>(null);
   const [playingMusicId, setPlayingMusicId] = useState<string | null>(null);
@@ -186,28 +265,33 @@ export default function MediaStudio() {
   const veoConfigured = isVeoConfigured();
   const sunoConfigured = isSunoConfigured();
 
-  // Auto-save generated media to localStorage
+  // Note: Firebase data is saved on each operation (add/update/delete)
+  // Local storage fallback for offline support
   useEffect(() => {
-    const toStore: StoredMedia[] = generatedMedia.map(m => ({
-      id: m.id,
-      prompt: m.prompt,
-      type: m.type,
-      aspectRatio: m.aspectRatio,
-      dataUrl: m.dataUrl,
-      createdAt: m.createdAt.toISOString(),
-    }));
-    saveMediaGallery(toStore);
-  }, [generatedMedia]);
+    if (!isFirebaseConfigured() && mediaLoaded) {
+      const toStore: StoredMedia[] = generatedMedia.map(m => ({
+        id: m.id,
+        prompt: m.prompt,
+        type: m.type,
+        aspectRatio: m.aspectRatio,
+        dataUrl: m.dataUrl,
+        createdAt: m.createdAt.toISOString(),
+      }));
+      saveMediaGalleryLocal(toStore);
+    }
+  }, [generatedMedia, mediaLoaded]);
 
-  // Auto-save timeline clips to localStorage
   useEffect(() => {
-    saveTimelineClips(timelineClips);
-  }, [timelineClips]);
+    if (!isFirebaseConfigured() && clipsLoaded) {
+      saveTimelineClipsLocal(timelineClips);
+    }
+  }, [timelineClips, clipsLoaded]);
 
-  // Auto-save music library to localStorage
   useEffect(() => {
-    saveMusicLibrary(musicLibrary);
-  }, [musicLibrary]);
+    if (!isFirebaseConfigured() && musicLoaded) {
+      saveMusicLibraryLocal(musicLibrary);
+    }
+  }, [musicLibrary, musicLoaded]);
 
   // Handle prompt input with @ mention support
   const handlePromptChange = (value: string, inputRef: React.RefObject<HTMLTextAreaElement>) => {
@@ -276,7 +360,20 @@ export default function MediaStudio() {
           dataUrl: base64ToDataUrl(result.base64Data, result.mimeType),
           createdAt: new Date(),
         };
-        setGeneratedMedia(prev => [newMedia, ...prev]);
+
+        // Save to Firebase
+        if (isFirebaseConfigured()) {
+          await saveMediaGalleryItem({
+            id: newMedia.id,
+            prompt: newMedia.prompt,
+            type: newMedia.type,
+            aspectRatio: newMedia.aspectRatio,
+            dataUrl: newMedia.dataUrl,
+            createdAt: newMedia.createdAt.toISOString(),
+          });
+        } else {
+          setGeneratedMedia(prev => [newMedia, ...prev]);
+        }
         toast.success('Image generated!', { id: 'generating' });
       } else {
         toast.error('Failed to generate image', { id: 'generating' });
@@ -325,7 +422,24 @@ export default function MediaStudio() {
           thumbnail: selectedSourceImage?.dataUrl || result.videoUrl,
           src: result.videoUrl,
         };
-        setTimelineClips(prev => [...prev, newClip]);
+
+        // Save to Firebase
+        if (isFirebaseConfigured()) {
+          const allClips = [...timelineClips, newClip];
+          await saveAllTimelineClips(allClips.map((c, i) => ({
+            id: c.id,
+            name: c.name,
+            type: c.type,
+            duration: c.duration,
+            thumbnail: c.thumbnail,
+            src: c.src,
+            trimStart: c.trimStart,
+            trimEnd: c.trimEnd,
+            displayOrder: i,
+          })));
+        } else {
+          setTimelineClips(prev => [...prev, newClip]);
+        }
         toast.success('Video generated!', { id: 'generating-video' });
         setActiveTab('timeline');
       } else {
@@ -379,7 +493,23 @@ export default function MediaStudio() {
           createdAt: result.createdAt.toISOString(),
           source: 'generated',
         };
-        setMusicLibrary(prev => [newMusic, ...prev]);
+
+        // Save to Firebase
+        if (isFirebaseConfigured()) {
+          await saveMusicLibraryItem({
+            id: newMusic.id,
+            title: newMusic.title,
+            prompt: newMusic.prompt,
+            audioUrl: newMusic.audioUrl,
+            duration: newMusic.duration,
+            genre: newMusic.genre,
+            era: newMusic.era,
+            createdAt: newMusic.createdAt,
+            source: newMusic.source,
+          });
+        } else {
+          setMusicLibrary(prev => [newMusic, ...prev]);
+        }
         toast.success('Music generated!', { id: 'generating-music' });
       } else {
         toast.error('Failed to generate music. Check your API key and try again.', { id: 'generating-music' });
@@ -414,7 +544,21 @@ export default function MediaStudio() {
         createdAt: new Date().toISOString(),
         source: 'uploaded',
       };
-      setMusicLibrary(prev => [newMusic, ...prev]);
+
+      // Save to Firebase
+      if (isFirebaseConfigured()) {
+        await saveMusicLibraryItem({
+          id: newMusic.id,
+          title: newMusic.title,
+          prompt: newMusic.prompt,
+          audioUrl: newMusic.audioUrl,
+          duration: newMusic.duration,
+          createdAt: newMusic.createdAt,
+          source: newMusic.source,
+        });
+      } else {
+        setMusicLibrary(prev => [newMusic, ...prev]);
+      }
       toast.success('Music uploaded!');
     };
     reader.readAsDataURL(file);
@@ -437,12 +581,18 @@ export default function MediaStudio() {
     }
   };
 
-  const handleDeleteMusic = (musicId: string) => {
+  const handleDeleteMusic = async (musicId: string) => {
     if (playingMusicId === musicId) {
       audioRef.current?.pause();
       setPlayingMusicId(null);
     }
-    setMusicLibrary(prev => prev.filter(m => m.id !== musicId));
+
+    // Delete from Firebase
+    if (isFirebaseConfigured()) {
+      await deleteMusicLibraryItem(musicId);
+    } else {
+      setMusicLibrary(prev => prev.filter(m => m.id !== musicId));
+    }
     toast.success('Music removed');
   };
 
@@ -451,36 +601,78 @@ export default function MediaStudio() {
     toast.success('Music downloaded');
   };
 
-  const handleAssignMusic = (musicId: string, targetType: 'module' | 'game' | 'lesson' | 'course', targetId: string, targetName: string) => {
-    setMusicLibrary(prev => prev.map(m => {
-      if (m.id === musicId) {
-        const existingAssignments = m.assignedTo || [];
-        const alreadyAssigned = existingAssignments.some(a => a.id === targetId);
+  const handleAssignMusic = async (musicId: string, targetType: 'module' | 'game' | 'lesson' | 'course', targetId: string, targetName: string) => {
+    const music = musicLibrary.find(m => m.id === musicId);
+    if (!music) return;
 
-        if (alreadyAssigned) {
-          // Remove assignment
+    const existingAssignments = music.assignedTo || [];
+    const alreadyAssigned = existingAssignments.some(a => a.id === targetId);
+
+    let updatedAssignments: StoredMusic['assignedTo'];
+    if (alreadyAssigned) {
+      // Remove assignment
+      updatedAssignments = existingAssignments.filter(a => a.id !== targetId);
+    } else {
+      // Add assignment
+      updatedAssignments = [...existingAssignments, { type: targetType, id: targetId, name: targetName }];
+    }
+
+    // Save to Firebase
+    if (isFirebaseConfigured()) {
+      await saveMusicLibraryItem({
+        id: music.id,
+        title: music.title,
+        prompt: music.prompt,
+        audioUrl: music.audioUrl,
+        duration: music.duration,
+        genre: music.genre,
+        era: music.era,
+        mood: music.mood,
+        assignedTo: updatedAssignments,
+        playMode: alreadyAssigned ? music.playMode : assignmentPlayMode,
+        createdAt: music.createdAt,
+        source: music.source,
+      });
+    } else {
+      setMusicLibrary(prev => prev.map(m => {
+        if (m.id === musicId) {
           return {
             ...m,
-            assignedTo: existingAssignments.filter(a => a.id !== targetId),
-          };
-        } else {
-          // Add assignment
-          return {
-            ...m,
-            assignedTo: [...existingAssignments, { type: targetType, id: targetId, name: targetName }],
-            playMode: assignmentPlayMode,
+            assignedTo: updatedAssignments,
+            playMode: alreadyAssigned ? m.playMode : assignmentPlayMode,
           };
         }
-      }
-      return m;
-    }));
+        return m;
+      }));
+    }
     toast.success('Music assignment updated');
   };
 
-  const handleUpdatePlayMode = (musicId: string, playMode: 'once' | 'loop') => {
-    setMusicLibrary(prev => prev.map(m =>
-      m.id === musicId ? { ...m, playMode } : m
-    ));
+  const handleUpdatePlayMode = async (musicId: string, playMode: 'once' | 'loop') => {
+    const music = musicLibrary.find(m => m.id === musicId);
+    if (!music) return;
+
+    // Save to Firebase
+    if (isFirebaseConfigured()) {
+      await saveMusicLibraryItem({
+        id: music.id,
+        title: music.title,
+        prompt: music.prompt,
+        audioUrl: music.audioUrl,
+        duration: music.duration,
+        genre: music.genre,
+        era: music.era,
+        mood: music.mood,
+        assignedTo: music.assignedTo,
+        playMode,
+        createdAt: music.createdAt,
+        source: music.source,
+      });
+    } else {
+      setMusicLibrary(prev => prev.map(m =>
+        m.id === musicId ? { ...m, playMode } : m
+      ));
+    }
   };
 
   const handleDownload = (media: GeneratedMedia) => {
@@ -490,7 +682,7 @@ export default function MediaStudio() {
     toast.success('Image downloaded');
   };
 
-  const handleAddToTimeline = (media: GeneratedMedia) => {
+  const handleAddToTimeline = async (media: GeneratedMedia) => {
     const newClip: TimelineClip = {
       id: Date.now().toString(),
       name: media.prompt.slice(0, 30) + '...',
@@ -499,7 +691,24 @@ export default function MediaStudio() {
       thumbnail: media.dataUrl,
       src: media.dataUrl,
     };
-    setTimelineClips(prev => [...prev, newClip]);
+
+    // Save to Firebase
+    if (isFirebaseConfigured()) {
+      const allClips = [...timelineClips, newClip];
+      await saveAllTimelineClips(allClips.map((c, i) => ({
+        id: c.id,
+        name: c.name,
+        type: c.type,
+        duration: c.duration,
+        thumbnail: c.thumbnail,
+        src: c.src,
+        trimStart: c.trimStart,
+        trimEnd: c.trimEnd,
+        displayOrder: i,
+      })));
+    } else {
+      setTimelineClips(prev => [...prev, newClip]);
+    }
     toast.success('Added to timeline');
     setActiveTab('timeline');
   };
@@ -510,6 +719,7 @@ export default function MediaStudio() {
 
     let addedToTimeline = 0;
     let addedToMusic = 0;
+    const newClips: TimelineClip[] = [];
 
     for (const file of Array.from(files)) {
       const reader = new FileReader();
@@ -532,25 +742,42 @@ export default function MediaStudio() {
               createdAt: new Date().toISOString(),
               source: 'uploaded',
             };
-            setMusicLibrary(prev => [newMusic, ...prev]);
+
+            // Save to Firebase
+            if (isFirebaseConfigured()) {
+              await saveMusicLibraryItem({
+                id: newMusic.id,
+                title: newMusic.title,
+                prompt: newMusic.prompt,
+                audioUrl: newMusic.audioUrl,
+                duration: newMusic.duration,
+                createdAt: newMusic.createdAt,
+                source: newMusic.source,
+              });
+            } else {
+              setMusicLibrary(prev => [newMusic, ...prev]);
+            }
             addedToMusic++;
           } else if (isVideo) {
             // For videos, we need to get duration
             const video = document.createElement('video');
             video.preload = 'metadata';
-            video.onloadedmetadata = () => {
-              const newClip: TimelineClip = {
-                id: Date.now().toString() + Math.random(),
-                name: file.name,
-                type: 'video',
-                duration: video.duration,
-                thumbnail: dataUrl, // Would be better to generate actual thumbnail
-                src: dataUrl,
+            await new Promise<void>((resolveVideo) => {
+              video.onloadedmetadata = () => {
+                const newClip: TimelineClip = {
+                  id: Date.now().toString() + Math.random(),
+                  name: file.name,
+                  type: 'video',
+                  duration: video.duration,
+                  thumbnail: dataUrl, // Would be better to generate actual thumbnail
+                  src: dataUrl,
+                };
+                newClips.push(newClip);
+                addedToTimeline++;
+                resolveVideo();
               };
-              setTimelineClips(prev => [...prev, newClip]);
-            };
+            });
             video.src = dataUrl;
-            addedToTimeline++;
           } else {
             const newClip: TimelineClip = {
               id: Date.now().toString() + Math.random(),
@@ -560,13 +787,33 @@ export default function MediaStudio() {
               thumbnail: dataUrl,
               src: dataUrl,
             };
-            setTimelineClips(prev => [...prev, newClip]);
+            newClips.push(newClip);
             addedToTimeline++;
           }
           resolve();
         };
         reader.readAsDataURL(file);
       });
+    }
+
+    // Save timeline clips to Firebase
+    if (newClips.length > 0) {
+      if (isFirebaseConfigured()) {
+        const allClips = [...timelineClips, ...newClips];
+        await saveAllTimelineClips(allClips.map((c, i) => ({
+          id: c.id,
+          name: c.name,
+          type: c.type,
+          duration: c.duration,
+          thumbnail: c.thumbnail,
+          src: c.src,
+          trimStart: c.trimStart,
+          trimEnd: c.trimEnd,
+          displayOrder: i,
+        })));
+      } else {
+        setTimelineClips(prev => [...prev, ...newClips]);
+      }
     }
 
     if (addedToTimeline > 0 && addedToMusic > 0) {
@@ -580,21 +827,63 @@ export default function MediaStudio() {
     }
   };
 
-  const handleRemoveClip = (clipId: string) => {
-    setTimelineClips(prev => prev.filter(c => c.id !== clipId));
+  const handleRemoveClip = async (clipId: string) => {
+    // Delete from Firebase
+    if (isFirebaseConfigured()) {
+      await deleteTimelineClip(clipId);
+    } else {
+      setTimelineClips(prev => prev.filter(c => c.id !== clipId));
+    }
     if (selectedClip?.id === clipId) {
       setSelectedClip(null);
     }
     toast.success('Clip removed');
   };
 
-  const handleUpdateClipDuration = (clipId: string, duration: number) => {
-    setTimelineClips(prev => prev.map(c =>
+  const handleUpdateClipDuration = async (clipId: string, duration: number) => {
+    const updatedClips = timelineClips.map(c =>
       c.id === clipId ? { ...c, duration: Math.max(1, duration) } : c
-    ));
+    );
+
+    // Save to Firebase
+    if (isFirebaseConfigured()) {
+      await saveAllTimelineClips(updatedClips.map((c, i) => ({
+        id: c.id,
+        name: c.name,
+        type: c.type,
+        duration: c.duration,
+        thumbnail: c.thumbnail,
+        src: c.src,
+        trimStart: c.trimStart,
+        trimEnd: c.trimEnd,
+        displayOrder: i,
+      })));
+    } else {
+      setTimelineClips(updatedClips);
+    }
   };
 
   const totalDuration = timelineClips.reduce((sum, clip) => sum + clip.duration, 0);
+
+  // Handle reordering clips (saves to Firebase)
+  const handleReorderClips = async (newOrder: TimelineClip[]) => {
+    setTimelineClips(newOrder); // Update UI immediately
+
+    // Save to Firebase
+    if (isFirebaseConfigured()) {
+      await saveAllTimelineClips(newOrder.map((c, i) => ({
+        id: c.id,
+        name: c.name,
+        type: c.type,
+        duration: c.duration,
+        thumbnail: c.thumbnail,
+        src: c.src,
+        trimStart: c.trimStart,
+        trimEnd: c.trimEnd,
+        displayOrder: i,
+      })));
+    }
+  };
 
   return (
     <div className="max-w-6xl">
@@ -1387,7 +1676,7 @@ export default function MediaStudio() {
               <Reorder.Group
                 axis="y"
                 values={timelineClips}
-                onReorder={setTimelineClips}
+                onReorder={handleReorderClips}
                 className="space-y-2"
               >
                 {timelineClips.map((clip, index) => (

@@ -1247,3 +1247,119 @@ export async function saveArcadeGameContent(content: FirestoreArcadeGameContent)
 export function subscribeToArcadeGameContent(callback: (content: FirestoreArcadeGameContent[]) => void): Unsubscribe {
   return subscribeToCollection<FirestoreArcadeGameContent>('arcadeGameContent', callback);
 }
+
+// ============ Media Studio Types ============
+
+export interface FirestoreMediaGalleryItem {
+  id: string;
+  prompt: string;
+  type: 'image' | 'video';
+  aspectRatio: string;
+  dataUrl: string;        // Base64 data URL
+  createdAt: string;      // ISO string
+  updatedAt?: Timestamp;
+}
+
+export interface FirestoreTimelineClip {
+  id: string;
+  name: string;
+  type: 'image' | 'video' | 'audio';
+  duration: number;       // seconds
+  thumbnail: string;      // Base64 data URL
+  src: string;            // Base64 data URL
+  trimStart?: number;
+  trimEnd?: number;
+  displayOrder: number;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
+}
+
+export interface FirestoreMusicLibraryItem {
+  id: string;
+  title: string;
+  prompt: string;
+  audioUrl: string;       // Base64 data URL or external URL
+  duration: number;       // seconds
+  genre?: string;
+  era?: string;
+  mood?: string;
+  assignedTo?: Array<{
+    type: 'module' | 'game' | 'lesson' | 'course';
+    id: string;
+    name: string;
+  }>;
+  playMode?: 'once' | 'loop';
+  source: 'generated' | 'uploaded';
+  createdAt: string;      // ISO string
+  updatedAt?: Timestamp;
+}
+
+// ============ Media Gallery Operations ============
+
+export async function getMediaGalleryItems(): Promise<FirestoreMediaGalleryItem[]> {
+  return getCollection<FirestoreMediaGalleryItem>('mediaGallery', orderBy('createdAt', 'desc'), limit(50));
+}
+
+export async function saveMediaGalleryItem(item: FirestoreMediaGalleryItem): Promise<boolean> {
+  return setDocument('mediaGallery', item.id, item);
+}
+
+export async function deleteMediaGalleryItem(itemId: string): Promise<boolean> {
+  return deleteDocument('mediaGallery', itemId);
+}
+
+export function subscribeToMediaGallery(callback: (items: FirestoreMediaGalleryItem[]) => void): Unsubscribe {
+  return subscribeToCollection<FirestoreMediaGalleryItem>('mediaGallery', callback, orderBy('createdAt', 'desc'), limit(50));
+}
+
+// ============ Timeline Clip Operations ============
+
+export async function getTimelineClips(): Promise<FirestoreTimelineClip[]> {
+  return getCollection<FirestoreTimelineClip>('timelineClips', orderBy('displayOrder'));
+}
+
+export async function saveTimelineClip(clip: FirestoreTimelineClip): Promise<boolean> {
+  const data = {
+    ...clip,
+    createdAt: clip.createdAt || serverTimestamp(),
+  };
+  return setDocument('timelineClips', clip.id, data);
+}
+
+export async function saveAllTimelineClips(clips: FirestoreTimelineClip[]): Promise<boolean> {
+  const documents = clips.map((clip, index) => ({
+    id: clip.id,
+    data: {
+      ...clip,
+      displayOrder: index,
+      createdAt: clip.createdAt || serverTimestamp(),
+    },
+  }));
+  return batchSaveDocuments('timelineClips', documents);
+}
+
+export async function deleteTimelineClip(clipId: string): Promise<boolean> {
+  return deleteDocument('timelineClips', clipId);
+}
+
+export function subscribeToTimelineClips(callback: (clips: FirestoreTimelineClip[]) => void): Unsubscribe {
+  return subscribeToCollection<FirestoreTimelineClip>('timelineClips', callback, orderBy('displayOrder'));
+}
+
+// ============ Music Library Operations ============
+
+export async function getMusicLibraryItems(): Promise<FirestoreMusicLibraryItem[]> {
+  return getCollection<FirestoreMusicLibraryItem>('musicLibrary', orderBy('createdAt', 'desc'), limit(30));
+}
+
+export async function saveMusicLibraryItem(item: FirestoreMusicLibraryItem): Promise<boolean> {
+  return setDocument('musicLibrary', item.id, item);
+}
+
+export async function deleteMusicLibraryItem(itemId: string): Promise<boolean> {
+  return deleteDocument('musicLibrary', itemId);
+}
+
+export function subscribeToMusicLibrary(callback: (items: FirestoreMusicLibraryItem[]) => void): Unsubscribe {
+  return subscribeToCollection<FirestoreMusicLibraryItem>('musicLibrary', callback, orderBy('createdAt', 'desc'), limit(30));
+}
