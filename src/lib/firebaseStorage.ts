@@ -265,12 +265,14 @@ export async function uploadFile(
 export async function listFiles(folder?: string): Promise<MediaFile[]> {
   const allFiles: MediaFile[] = [];
 
-  // Always include local files
+  // Always include local files first (they're immediately available)
   const localFiles = getLocalMediaFiles(folder);
   allFiles.push(...localFiles);
+  console.log(`[Storage] Found ${localFiles.length} local files`);
 
   // If Firebase is not configured, return only local files
   if (!isFirebaseConfigured()) {
+    console.log('[Storage] Firebase not configured, returning local files only');
     return allFiles;
   }
 
@@ -281,6 +283,7 @@ export async function listFiles(folder?: string): Promise<MediaFile[]> {
     try {
       const folderRef = ref(storage, f);
       const result = await listAll(folderRef);
+      console.log(`[Storage] Found ${result.items.length} files in ${f}/`);
 
       for (const item of result.items) {
         try {
@@ -301,14 +304,22 @@ export async function listFiles(folder?: string): Promise<MediaFile[]> {
           console.error(`[Storage] Error getting file ${item.name}:`, err);
         }
       }
-    } catch (err) {
-      console.error(`[Storage] Error listing ${f}:`, err);
+    } catch (err: any) {
+      // Log the error but don't fail completely - still return local files
+      console.error(`[Storage] Error listing ${f}/:`, err?.code || err?.message || err);
+
+      // Common Firebase Storage errors
+      if (err?.code === 'storage/unauthorized') {
+        console.warn('[Storage] 🔒 LIST permission denied. Update Firebase Storage rules to allow list operations.');
+        console.warn('[Storage] Add this rule: allow list: if true;');
+      }
     }
   }
 
   // Sort by creation date (newest first)
   allFiles.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
+  console.log(`[Storage] Total files found: ${allFiles.length}`);
   return allFiles;
 }
 

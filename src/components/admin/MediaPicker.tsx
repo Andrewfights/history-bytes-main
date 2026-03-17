@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Image, Video, Music, Search, Upload, Check, AlertCircle, Play, Pause } from 'lucide-react';
+import { X, Image, Video, Music, Search, Upload, Check, AlertCircle, Play, Pause, RefreshCw, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   isSupabaseConfigured,
@@ -209,6 +209,14 @@ export function MediaPicker({
                     className="w-full pl-10 pr-4 py-2 rounded-lg bg-background border border-border focus:border-primary outline-none"
                   />
                 </div>
+                <button
+                  onClick={() => loadFiles()}
+                  disabled={loading}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground disabled:opacity-50"
+                  title="Refresh file list"
+                >
+                  {loading ? <Loader2 size={18} className="animate-spin" /> : <RefreshCw size={18} />}
+                </button>
                 <label className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors cursor-pointer">
                   <Upload size={18} />
                   {uploading ? 'Uploading...' : 'Upload'}
@@ -232,8 +240,17 @@ export function MediaPicker({
                     </div>
                   ) : filteredFiles.length === 0 ? (
                     <div className="text-center py-12">
-                      <p className="text-muted-foreground">No files found</p>
-                      <p className="text-sm text-muted-foreground mt-1">Upload files to get started</p>
+                      <Image size={48} className="mx-auto mb-4 text-muted-foreground/30" />
+                      <p className="text-muted-foreground font-medium">No files found</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {searchQuery ? 'Try a different search term' : 'Upload files using the button above'}
+                      </p>
+                      <button
+                        onClick={() => loadFiles()}
+                        className="mt-4 text-sm text-primary hover:underline"
+                      >
+                        Refresh list
+                      </button>
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">

@@ -20,7 +20,8 @@ import {
   getStoredEraOrder,
   saveStoredEraOrder,
 } from '@/data/historicalEras';
-import { uploadFile } from '@/lib/supabase';
+import { uploadFile, listFiles } from '@/lib/supabase';
+import { uploadToFirebaseStorage } from '@/lib/firebaseStorage';
 import { MediaPicker } from './MediaPicker';
 import type { MediaFile } from '@/lib/supabase';
 import { isFirebaseConfigured } from '@/lib/firebase';
@@ -115,20 +116,42 @@ export default function EraTileEditor() {
     toast.loading('Uploading image...', { id: 'upload' });
 
     try {
-      const uploadResult = await uploadFile(file);
+      let uploadUrl: string | null = null;
 
-      if (uploadResult?.url) {
-        saveEraTileOverride(selectedEraId, uploadResult.url);
+      // Try Firebase Storage first (for cloud sync)
+      if (isFirebaseConfigured()) {
+        try {
+          uploadUrl = await uploadToFirebaseStorage(file, 'images');
+          console.log('[EraTileEditor] Uploaded to Firebase Storage:', uploadUrl);
+        } catch (firebaseError) {
+          console.warn('[EraTileEditor] Firebase Storage failed:', firebaseError);
+        }
+      }
+
+      // Fall back to the general uploadFile (which may use localStorage)
+      if (!uploadUrl) {
+        const uploadResult = await uploadFile(file);
+        uploadUrl = uploadResult?.url || null;
+      }
+
+      if (uploadUrl) {
+        saveEraTileOverride(selectedEraId, uploadUrl);
         setOverrides(getEraTileOverrides());
-        toast.success('Image uploaded and saved', { id: 'upload' });
+        toast.success('Image uploaded and saved', {
+          id: 'upload',
+          description: uploadUrl.startsWith('http') ? 'Saved to cloud' : 'Saved locally'
+        });
       } else {
-        // Fall back to data URL for local storage
+        // Last resort: data URL (won't be in media library but will work for this era)
         const reader = new FileReader();
         reader.onload = (event) => {
           const dataUrl = event.target?.result as string;
           saveEraTileOverride(selectedEraId, dataUrl);
           setOverrides(getEraTileOverrides());
-          toast.success('Image saved locally', { id: 'upload' });
+          toast.success('Image saved locally', {
+            id: 'upload',
+            description: 'Note: This image won\'t appear in the media library'
+          });
         };
         reader.readAsDataURL(file);
       }
