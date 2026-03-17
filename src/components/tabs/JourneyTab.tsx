@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, Trophy, Flame, TrendingUp, Clock, Globe, Map, ArrowRight } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { arcs, getArcById } from '@/data/journeyData';
+import { getEraImageUrl } from '@/data/historicalEras';
 
 // Load journey thumbnails from localStorage (synced with admin)
 const JOURNEY_THUMBNAILS_KEY = 'hb_journey_thumbnails';
@@ -13,6 +14,42 @@ function loadJourneyThumbnails(): Record<string, string> {
   } catch {
     return {};
   }
+}
+
+// Map arc IDs to era IDs for getting era images
+const arcToEraMapping: Record<string, string> = {
+  'world-war-2': 'ww2',
+  'french-revolution': 'french-revolution',
+  'ancient-rome': 'ancient-rome',
+  'ancient-egypt': 'ancient-egypt',
+  'cold-war': 'cold-war',
+  'medieval-europe': 'medieval',
+  'renaissance': 'renaissance',
+  'world-war-1': 'ww1',
+  'american-revolution': 'american-revolution',
+  'civil-war': 'civil-war',
+  'ancient-greece': 'ancient-greece',
+  'industrial-revolution': 'industrial-revolution',
+  'exploration': 'exploration',
+  'vikings': 'vikings',
+  'mesopotamia': 'mesopotamia',
+};
+
+// Get the image URL for an arc (uses era tile images)
+function getArcImageUrl(arcId: string, journeyThumbnails: Record<string, string>): string | null {
+  // First check if there's a custom journey thumbnail
+  const customThumbnail = journeyThumbnails[arcId];
+  if (customThumbnail && (customThumbnail.startsWith('http') || customThumbnail.startsWith('data:'))) {
+    return customThumbnail;
+  }
+
+  // Otherwise use era tile image
+  const eraId = arcToEraMapping[arcId];
+  if (eraId) {
+    return getEraImageUrl(eraId);
+  }
+
+  return null;
 }
 import { getHostById } from '@/data/hostsData';
 import { Arc } from '@/types';
@@ -735,7 +772,7 @@ export function JourneyTab() {
                       >
                         <ArcCard
                           arc={arc}
-                          thumbnailUrl={journeyThumbnails[arcId]}
+                          thumbnailUrl={getArcImageUrl(arcId, journeyThumbnails)}
                           onSelect={() => handleSelectArc(arcId)}
                           isRecent
                         />
@@ -770,7 +807,7 @@ export function JourneyTab() {
                       >
                         <ArcCard
                           arc={arc}
-                          thumbnailUrl={journeyThumbnails[arc.id]}
+                          thumbnailUrl={getArcImageUrl(arc.id, journeyThumbnails)}
                           onSelect={() => handleSelectArc(arc.id)}
                           isHighlighted={isWW2Featured}
                         />
@@ -945,11 +982,12 @@ interface ArcCardProps {
   isContinue?: boolean;
   isRecent?: boolean;
   isHighlighted?: boolean;
-  thumbnailUrl?: string;
+  thumbnailUrl?: string | null;
 }
 
 function ArcCard({ arc, onSelect, isContinue, isRecent, isHighlighted, thumbnailUrl }: ArcCardProps) {
-  const hasValidThumbnail = thumbnailUrl && (
+  const [imageError, setImageError] = useState(false);
+  const hasValidThumbnail = !imageError && thumbnailUrl && (
     thumbnailUrl.startsWith('http://') ||
     thumbnailUrl.startsWith('https://') ||
     thumbnailUrl.startsWith('data:')
@@ -975,12 +1013,17 @@ function ArcCard({ arc, onSelect, isContinue, isRecent, isHighlighted, thumbnail
       whileTap={{ scale: 0.99 }}
     >
       <div className="flex items-center gap-4">
-        {/* Icon */}
+        {/* Era Image */}
         <div className={`w-14 h-14 rounded-xl flex items-center justify-center overflow-hidden ${
           isHighlighted ? 'bg-gold-primary/30' : 'bg-primary/20'
         }`}>
           {hasValidThumbnail ? (
-            <img src={thumbnailUrl} alt={arc.title} className="w-full h-full object-cover" />
+            <img
+              src={thumbnailUrl}
+              alt={arc.title}
+              className="w-full h-full object-cover"
+              onError={() => setImageError(true)}
+            />
           ) : (
             <Map size={28} className="text-primary/50" />
           )}
