@@ -362,5 +362,40 @@ export async function getFileUrl(filePath: string): Promise<string | null> {
   }
 }
 
+/**
+ * Simple upload function that returns just the URL
+ * Useful for quick uploads without needing full metadata
+ */
+export async function uploadToFirebaseStorage(
+  file: File,
+  folder: string = 'images'
+): Promise<string> {
+  const filePath = generateFilePath(folder, file.name);
+
+  if (!isFirebaseConfigured()) {
+    throw new Error('Firebase not configured');
+  }
+
+  const storageRef = ref(storage, filePath);
+  const uploadTask = uploadBytesResumable(storageRef, file);
+
+  return new Promise((resolve, reject) => {
+    uploadTask.on(
+      'state_changed',
+      null,
+      (error) => reject(error),
+      async () => {
+        try {
+          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+          console.log('[Storage] Upload successful:', filePath);
+          resolve(downloadURL);
+        } catch (err) {
+          reject(err);
+        }
+      }
+    );
+  });
+}
+
 // Re-export isFirebaseConfigured for compatibility
 export { isFirebaseConfigured } from './firebase';

@@ -3,12 +3,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Gamepad2, ChevronRight, ArrowLeft, Save, Plus, Trash2, Image, X,
   HelpCircle, MapPin, Calendar, FileQuestion, Copy, GripVertical, Database, Upload, Wand2, Loader2,
-  Cloud, CloudOff
+  Cloud, CloudOff, ImagePlus
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { MediaPicker } from './MediaPicker';
 import { generateImage, base64ToDataUrl, isGeminiConfigured } from '@/lib/gemini';
 import { uploadFile } from '@/lib/supabase';
+import { uploadToFirebaseStorage } from '@/lib/firebaseStorage';
 import { useThumbnailUrl, PLACEHOLDER_IMAGE } from '@/lib/thumbnailUtils';
 import {
   anachronismScenes as defaultAnachronismScenes,
@@ -101,6 +102,7 @@ export default function ArcadeEditor() {
   const [gameThumbnails, setGameThumbnails] = useState<Record<string, string>>(() => loadGameThumbnails());
   const [isGeneratingAll, setIsGeneratingAll] = useState(false);
   const [generationProgress, setGenerationProgress] = useState({ current: 0, total: 0 });
+  const [uploadingGameId, setUploadingGameId] = useState<string | null>(null);
 
   // Arcade game content state
   const [arcadeData, setArcadeData] = useState<{
@@ -228,6 +230,45 @@ export default function ArcadeEditor() {
   const isValidThumbnail = (url: string | undefined): boolean => {
     if (!url) return false;
     return url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:');
+  };
+
+  // Upload image for a game type
+  const handleUploadGameImage = async (gameId: string, file: File) => {
+    setUploadingGameId(gameId);
+    toast.loading(`Uploading image for ${gameId}...`, { id: `upload-${gameId}` });
+
+    try {
+      // Try Firebase Storage first, fall back to Supabase
+      let uploadUrl: string | null = null;
+
+      try {
+        uploadUrl = await uploadToFirebaseStorage(file, `arcade/${gameId}`);
+      } catch (firebaseError) {
+        console.warn('Firebase Storage failed, trying Supabase:', firebaseError);
+        const supabaseResult = await uploadFile(file);
+        if (supabaseResult) {
+          uploadUrl = supabaseResult.url;
+        }
+      }
+
+      if (uploadUrl) {
+        // Update local state
+        const newThumbnails = { ...gameThumbnails, [gameId]: uploadUrl };
+        setGameThumbnails(newThumbnails);
+
+        // Save to Firestore
+        saveGameThumbnail(gameId, uploadUrl);
+
+        toast.success(`Image uploaded for ${gameId}`, { id: `upload-${gameId}` });
+      } else {
+        toast.error(`Failed to upload image for ${gameId}`, { id: `upload-${gameId}` });
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error(`Error uploading image: ${error}`, { id: `upload-${gameId}` });
+    } finally {
+      setUploadingGameId(null);
+    }
   };
 
   // Generate thumbnails for all games without valid images
@@ -501,7 +542,13 @@ export default function ArcadeEditor() {
           className="grid gap-3"
         >
           {gameTypes.map((game) => (
-            <GameTypeCard key={game.id} game={game} onClick={() => handleSelectGame(game)} />
+            <GameTypeCard
+              key={game.id}
+              game={game}
+              onClick={() => handleSelectGame(game)}
+              onUploadImage={handleUploadGameImage}
+              isUploading={uploadingGameId === game.id}
+            />
           ))}
         </motion.div>
       )}
@@ -659,7 +706,19 @@ function Breadcrumbs({
 }
 
 // Game Type Card Component
-function GameTypeCard({ game, onClick }: { game: GameTypeInfo; onClick: () => void }) {
+function GameTypeCard({
+  game,
+  onClick,
+  onUploadImage,
+  isUploading,
+}: {
+  game: GameTypeInfo;
+  onClick: () => void;
+  onUploadImage: (gameId: string, file: File) => void;
+  isUploading: boolean;
+}) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // Check if thumbnail is valid
   const hasValidThumbnail = game.thumbnailUrl && (
     game.thumbnailUrl.startsWith('http://') ||
@@ -667,14 +726,25 @@ function GameTypeCard({ game, onClick }: { game: GameTypeInfo; onClick: () => vo
     game.thumbnailUrl.startsWith('data:')
   );
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      onUploadImage(game.id, file);
+    }
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   return (
-    <button
-      onClick={onClick}
-      className="w-full bg-card border border-border rounded-xl p-4 hover:border-primary/50 transition-colors text-left group"
-    >
+    <div className="w-full bg-card border border-border rounded-xl p-4 hover:border-primary/50 transition-colors group">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className={`w-12 h-12 rounded-xl ${game.color} flex items-center justify-center overflow-hidden`}>
+        <button
+          onClick={onClick}
+          className="flex items-center gap-4 flex-1 text-left"
+        >
+          <div className={`w-12 h-12 rounded-xl ${game.color} flex items-center justify-center overflow-hidden relative`}>
             {hasValidThumbnail ? (
               <img
                 src={game.thumbnailUrl}
@@ -693,12 +763,43 @@ function GameTypeCard({ game, onClick }: { game: GameTypeInfo; onClick: () => vo
               {game.description} | {game.items.length} items
             </p>
           </div>
-        </div>
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <ChevronRight size={18} className="group-hover:text-primary transition-colors" />
+        </button>
+
+        {/* Action buttons */}
+        <div className="flex items-center gap-2">
+          {/* Upload image button */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleFileChange}
+            className="hidden"
+          />
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              fileInputRef.current?.click();
+            }}
+            disabled={isUploading}
+            className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground disabled:opacity-50"
+            title="Upload icon/artwork"
+          >
+            {isUploading ? (
+              <Loader2 size={18} className="animate-spin" />
+            ) : (
+              <ImagePlus size={18} />
+            )}
+          </button>
+
+          <button
+            onClick={onClick}
+            className="p-2 text-muted-foreground group-hover:text-primary transition-colors"
+          >
+            <ChevronRight size={18} />
+          </button>
         </div>
       </div>
-    </button>
+    </div>
   );
 }
 
