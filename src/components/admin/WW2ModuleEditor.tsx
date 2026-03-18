@@ -1365,15 +1365,16 @@ export function WW2ModuleEditor() {
   // Handle media upload
   const handleUpload = useCallback(async (beatId: string, mediaKey: string, file: File) => {
     try {
-      // Upload to Supabase storage
-      const url = await uploadFile(file, 'ww2-module');
-      if (!url) {
+      // Upload to Firebase Storage
+      const result = await uploadFile(file);
+      if (!result || !result.url) {
         console.error('Failed to upload file');
         return;
       }
 
-      // Update Firestore
-      await updateWW2BeatMedia(beatId, mediaKey, url);
+      // Update Firestore with the URL
+      await updateWW2BeatMedia(beatId, mediaKey, result.url);
+      console.log('Media uploaded successfully:', result.url);
     } catch (error) {
       console.error('Error uploading media:', error);
     }
