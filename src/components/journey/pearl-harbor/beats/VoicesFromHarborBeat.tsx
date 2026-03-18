@@ -12,8 +12,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Sparkles, ChevronRight, User, Quote, CheckCircle2, XCircle } from 'lucide-react';
 import { WW2Host } from '@/types';
 import { usePearlHarborProgress } from '../hooks/usePearlHarborProgress';
-import { subscribeToWW2ModuleAssets, type FirestoreWW2ModuleAssets } from '@/lib/firestore';
-import { isFirebaseConfigured } from '@/lib/firebase';
+import { useWW2ModuleAssets } from '../hooks/useWW2ModuleAssets';
 
 type Screen = 'intro' | 'story-1' | 'quiz-1' | 'story-2' | 'quiz-2' | 'story-3' | 'quiz-3' | 'story-4' | 'quiz-4' | 'completion';
 const SCREENS: Screen[] = ['intro', 'story-1', 'quiz-1', 'story-2', 'quiz-2', 'story-3', 'quiz-3', 'story-4', 'quiz-4', 'completion'];
@@ -162,24 +161,15 @@ export function VoicesFromHarborBeat({ host, onComplete, onSkip, onBack }: Voice
   const [quizAnswers, setQuizAnswers] = useState<Record<string, number | null>>({});
   const [showQuizResult, setShowQuizResult] = useState(false);
   const [skipped, setSkipped] = useState(false);
-  const [uploadedAssets, setUploadedAssets] = useState<FirestoreWW2ModuleAssets | null>(null);
 
   const { saveCheckpoint, clearCheckpoint, getCheckpoint } = usePearlHarborProgress();
-
-  // Subscribe to uploaded assets from Firestore
-  useEffect(() => {
-    if (!isFirebaseConfigured()) return;
-    const unsubscribe = subscribeToWW2ModuleAssets((assets) => {
-      setUploadedAssets(assets);
-    });
-    return () => unsubscribe();
-  }, []);
+  const { getMediaUrl } = useWW2ModuleAssets();
 
   // Helper to get uploaded portrait URL for a perspective
   const getPortraitUrl = (perspectiveId: string): string | null => {
     const mediaKey = MEDIA_KEY_MAP[perspectiveId];
     if (!mediaKey) return null;
-    return uploadedAssets?.beatMedia?.['ph-beat-4']?.[mediaKey] || null;
+    return getMediaUrl('ph-beat-4', mediaKey);
   };
 
   useEffect(() => {

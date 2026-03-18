@@ -7,11 +7,18 @@
  * interactive timeline and map of Pearl Harbor.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Sparkles, Clock, MapPin, Volume2, VolumeX } from 'lucide-react';
 import { WW2Host } from '@/types';
 import { usePearlHarborProgress } from '../hooks/usePearlHarborProgress';
+import { useWW2ModuleAssets } from '../hooks/useWW2ModuleAssets';
+
+// Media keys from WW2ModuleEditor
+const MEDIA_KEYS = {
+  aerialMap: 'pearl-harbor-aerial-map-showing-attack-routes',
+  attackSounds: 'period-accurate-attack-sounds-optional',
+};
 
 type Screen = 'intro' | 'map-overview' | 'timeline' | 'hotspots' | 'reflection' | 'completion';
 const SCREENS: Screen[] = ['intro', 'map-overview', 'timeline', 'hotspots', 'reflection', 'completion'];
@@ -127,8 +134,35 @@ export function ToraToraToraBeat({ host, onComplete, onSkip, onBack }: ToraToraT
   const [selectedHotspot, setSelectedHotspot] = useState<MapHotspot | null>(null);
   const [audioEnabled, setAudioEnabled] = useState(false);
   const [skipped, setSkipped] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const { saveCheckpoint, clearCheckpoint, getCheckpoint } = usePearlHarborProgress();
+  const { getMediaUrl } = useWW2ModuleAssets();
+
+  // Get uploaded media URLs
+  const aerialMapUrl = getMediaUrl('ph-beat-3', MEDIA_KEYS.aerialMap);
+  const attackSoundsUrl = getMediaUrl('ph-beat-3', MEDIA_KEYS.attackSounds);
+
+  // Handle attack sounds audio
+  useEffect(() => {
+    if (attackSoundsUrl && audioEnabled && screen === 'timeline') {
+      if (!audioRef.current) {
+        audioRef.current = new Audio(attackSoundsUrl);
+        audioRef.current.loop = true;
+        audioRef.current.volume = 0.3;
+      }
+      audioRef.current.play().catch(console.error);
+    } else if (audioRef.current) {
+      audioRef.current.pause();
+    }
+
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, [attackSoundsUrl, audioEnabled, screen]);
 
   useEffect(() => {
     const checkpoint = getCheckpoint();
@@ -234,19 +268,29 @@ export function ToraToraToraBeat({ host, onComplete, onSkip, onBack }: ToraToraT
             <motion.div key="map-overview" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full p-6">
               <div className="flex-1 flex flex-col items-center justify-center">
                 <h3 className="text-lg font-bold text-white mb-4">Pearl Harbor - December 7, 1941</h3>
-                {/* Stylized Map */}
+                {/* Map - Use uploaded image or fallback to stylized version */}
                 <div className="relative w-full max-w-sm aspect-square bg-blue-900/30 rounded-2xl border border-white/10 mb-4 overflow-hidden">
-                  {/* Water */}
-                  <div className="absolute inset-0 bg-gradient-to-b from-blue-800/20 to-blue-900/40" />
-                  {/* Ford Island */}
-                  <div className="absolute top-[40%] left-[40%] w-[25%] h-[30%] bg-green-800/50 rounded-full transform -rotate-12" />
-                  {/* Battleship Row indicator */}
-                  <div className="absolute top-[45%] left-[48%] w-[8%] h-[25%] bg-gray-600/50 rounded" />
-                  {/* Labels */}
-                  <div className="absolute top-[35%] left-[42%] text-white/60 text-xs">Ford Island</div>
-                  <div className="absolute top-[50%] left-[58%] text-amber-400 text-xs font-bold">Battleship Row</div>
-                  <div className="absolute top-[25%] left-[25%] text-white/60 text-xs">Wheeler Field</div>
-                  <div className="absolute top-[75%] left-[55%] text-white/60 text-xs">Hickam Field</div>
+                  {aerialMapUrl ? (
+                    <img
+                      src={aerialMapUrl}
+                      alt="Pearl Harbor aerial map"
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                  ) : (
+                    <>
+                      {/* Water */}
+                      <div className="absolute inset-0 bg-gradient-to-b from-blue-800/20 to-blue-900/40" />
+                      {/* Ford Island */}
+                      <div className="absolute top-[40%] left-[40%] w-[25%] h-[30%] bg-green-800/50 rounded-full transform -rotate-12" />
+                      {/* Battleship Row indicator */}
+                      <div className="absolute top-[45%] left-[48%] w-[8%] h-[25%] bg-gray-600/50 rounded" />
+                    </>
+                  )}
+                  {/* Labels - always show */}
+                  <div className="absolute top-[35%] left-[42%] text-white/60 text-xs drop-shadow-lg">Ford Island</div>
+                  <div className="absolute top-[50%] left-[58%] text-amber-400 text-xs font-bold drop-shadow-lg">Battleship Row</div>
+                  <div className="absolute top-[25%] left-[25%] text-white/60 text-xs drop-shadow-lg">Wheeler Field</div>
+                  <div className="absolute top-[75%] left-[55%] text-white/60 text-xs drop-shadow-lg">Hickam Field</div>
                 </div>
                 <div className="bg-white/5 rounded-xl p-4 max-w-sm">
                   <h4 className="text-white font-bold mb-2 flex items-center gap-2">
@@ -337,8 +381,18 @@ export function ToraToraToraBeat({ host, onComplete, onSkip, onBack }: ToraToraT
 
               {/* Map with hotspots */}
               <div className="relative flex-1 bg-blue-900/30 rounded-2xl border border-white/10 overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-b from-blue-800/20 to-blue-900/40" />
-                <div className="absolute top-[40%] left-[40%] w-[25%] h-[30%] bg-green-800/50 rounded-full transform -rotate-12" />
+                {aerialMapUrl ? (
+                  <img
+                    src={aerialMapUrl}
+                    alt="Pearl Harbor aerial map"
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                ) : (
+                  <>
+                    <div className="absolute inset-0 bg-gradient-to-b from-blue-800/20 to-blue-900/40" />
+                    <div className="absolute top-[40%] left-[40%] w-[25%] h-[30%] bg-green-800/50 rounded-full transform -rotate-12" />
+                  </>
+                )}
 
                 {MAP_HOTSPOTS.map((hotspot) => (
                   <motion.button

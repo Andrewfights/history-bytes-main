@@ -7,12 +7,18 @@
  * the Congressional vote, and the Marshall warning.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Sparkles, FileText, Edit3, Users, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Sparkles, FileText, Edit3, Users, AlertCircle, Play, Pause, Volume2 } from 'lucide-react';
 import { WW2Host } from '@/types';
 import { DragAndDropSorter, SortableItem } from '../shared';
 import { usePearlHarborProgress } from '../hooks/usePearlHarborProgress';
+import { useWW2ModuleAssets } from '../hooks/useWW2ModuleAssets';
+
+// Media keys from WW2ModuleEditor
+const MEDIA_KEYS = {
+  fdrSpeech: 'fdr-day-of-infamy-speech-audio-optional',
+};
 
 type Screen = 'intro' | 'speech-evolution' | 'reconstruct' | 'vote' | 'marshall' | 'completion';
 const SCREENS: Screen[] = ['intro', 'speech-evolution', 'reconstruct', 'vote', 'marshall', 'completion'];
@@ -45,8 +51,42 @@ export function DayOfInfamyBeat({ host, onComplete, onSkip, onBack }: DayOfInfam
   const [showDraftComparison, setShowDraftComparison] = useState(false);
   const [reconstructComplete, setReconstructComplete] = useState(false);
   const [skipped, setSkipped] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const { saveCheckpoint, clearCheckpoint, getCheckpoint } = usePearlHarborProgress();
+  const { getMediaUrl } = useWW2ModuleAssets();
+
+  // Get uploaded media URLs
+  const fdrSpeechUrl = getMediaUrl('ph-beat-8', MEDIA_KEYS.fdrSpeech);
+
+  // Handle FDR speech audio playback
+  const handlePlayAudio = useCallback(() => {
+    if (!fdrSpeechUrl) return;
+
+    if (isPlaying && audioRef.current) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      audioRef.current = new Audio(fdrSpeechUrl);
+      audioRef.current.onended = () => setIsPlaying(false);
+      audioRef.current.play().catch(console.error);
+      setIsPlaying(true);
+    }
+  }, [fdrSpeechUrl, isPlaying]);
+
+  // Stop audio when changing screens
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, [screen]);
 
   useEffect(() => {
     const checkpoint = getCheckpoint();
@@ -123,6 +163,24 @@ export function DayOfInfamyBeat({ host, onComplete, onSkip, onBack }: DayOfInfam
                   <p className="text-amber-200 italic text-sm">
                     "Yesterday, December 7, 1941 — a date which will live in infamy..."
                   </p>
+                  {/* Audio play button if uploaded */}
+                  {fdrSpeechUrl && (
+                    <motion.button
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      onClick={handlePlayAudio}
+                      className="mt-3 flex items-center justify-center gap-2 w-full py-2 bg-amber-500/20 hover:bg-amber-500/30 rounded-lg border border-amber-500/30 transition-colors"
+                    >
+                      {isPlaying ? (
+                        <Pause size={16} className="text-amber-400" />
+                      ) : (
+                        <Volume2 size={16} className="text-amber-400" />
+                      )}
+                      <span className="text-amber-400 text-sm font-medium">
+                        {isPlaying ? 'Pause Speech' : 'Listen to FDR\'s Speech'}
+                      </span>
+                    </motion.button>
+                  )}
                 </div>
               </div>
               <div className="space-y-3">

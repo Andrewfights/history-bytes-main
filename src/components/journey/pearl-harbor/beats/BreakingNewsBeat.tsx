@@ -7,12 +7,20 @@
  * radio interruptions, newspaper headlines, and the dramatic shift in public opinion.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Sparkles, Radio, Newspaper, ArrowRight } from 'lucide-react';
+import { ArrowLeft, Sparkles, Radio, Newspaper, ArrowRight, Play, Pause } from 'lucide-react';
 import { WW2Host } from '@/types';
 import { DragAndDropSorter, SortableItem } from '../shared';
 import { usePearlHarborProgress } from '../hooks/usePearlHarborProgress';
+import { useWW2ModuleAssets } from '../hooks/useWW2ModuleAssets';
+
+// Media keys from WW2ModuleEditor
+const MEDIA_KEYS = {
+  cbsRadio: 'cbs-radio-broadcast-clip-optional',
+  nbcRadio: 'nbc-radio-broadcast-clip-optional',
+  nytFrontPage: 'new-york-times-front-page-facsimile',
+};
 
 type Screen = 'intro' | 'radio-dial' | 'newspaper' | 'opinion-shift' | 'tsukiyama' | 'completion';
 const SCREENS: Screen[] = ['intro', 'radio-dial', 'newspaper', 'opinion-shift', 'tsukiyama', 'completion'];
@@ -91,8 +99,53 @@ export function BreakingNewsBeat({ host, onComplete, onSkip, onBack }: BreakingN
   const [stationsListened, setStationsListened] = useState<Set<string>>(new Set());
   const [sortingComplete, setSortingComplete] = useState(false);
   const [skipped, setSkipped] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const { saveCheckpoint, clearCheckpoint, getCheckpoint } = usePearlHarborProgress();
+  const { getMediaUrl } = useWW2ModuleAssets();
+
+  // Get uploaded media URLs
+  const cbsRadioUrl = getMediaUrl('ph-beat-5', MEDIA_KEYS.cbsRadio);
+  const nbcRadioUrl = getMediaUrl('ph-beat-5', MEDIA_KEYS.nbcRadio);
+  const nytFrontPageUrl = getMediaUrl('ph-beat-5', MEDIA_KEYS.nytFrontPage);
+
+  // Map station IDs to uploaded audio URLs
+  const stationAudioUrls: Record<string, string | null> = {
+    cbs: cbsRadioUrl,
+    nbc: nbcRadioUrl,
+    mutual: null, // No uploaded audio for Mutual
+  };
+
+  // Handle audio playback for radio stations
+  const handlePlayAudio = useCallback(() => {
+    if (!selectedStation) return;
+    const audioUrl = stationAudioUrls[selectedStation.id];
+    if (!audioUrl) return;
+
+    if (isPlaying && audioRef.current) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      audioRef.current = new Audio(audioUrl);
+      audioRef.current.onended = () => setIsPlaying(false);
+      audioRef.current.play().catch(console.error);
+      setIsPlaying(true);
+    }
+  }, [selectedStation, isPlaying]);
+
+  // Stop audio when changing stations or screens
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, [selectedStation, screen]);
 
   useEffect(() => {
     const checkpoint = getCheckpoint();
@@ -217,6 +270,24 @@ export function BreakingNewsBeat({ host, onComplete, onSkip, onBack }: BreakingN
                       <p className="text-amber-100 text-sm italic leading-relaxed">
                         {selectedStation.announcement}
                       </p>
+                      {/* Audio play button if uploaded */}
+                      {stationAudioUrls[selectedStation.id] && (
+                        <motion.button
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          onClick={handlePlayAudio}
+                          className="mt-3 flex items-center justify-center gap-2 w-full py-2 bg-amber-500/20 hover:bg-amber-500/30 rounded-lg border border-amber-500/30 transition-colors"
+                        >
+                          {isPlaying ? (
+                            <Pause size={16} className="text-amber-400" />
+                          ) : (
+                            <Play size={16} className="text-amber-400" />
+                          )}
+                          <span className="text-amber-400 text-sm font-medium">
+                            {isPlaying ? 'Pause Broadcast' : 'Play Actual Broadcast'}
+                          </span>
+                        </motion.button>
+                      )}
                     </motion.div>
                   ) : (
                     <p className="text-amber-400/50 text-center text-sm">Select a station below...</p>
@@ -265,29 +336,43 @@ export function BreakingNewsBeat({ host, onComplete, onSkip, onBack }: BreakingN
                 <Newspaper size={32} className="text-amber-400 mb-4" />
                 <h3 className="text-lg font-bold text-white mb-6">December 8, 1941</h3>
 
-                {/* Newspaper front page mockup */}
-                <motion.div
-                  initial={{ scale: 0.9, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  className="bg-amber-50 rounded-lg p-4 max-w-sm w-full shadow-xl"
-                >
-                  <div className="text-center border-b-2 border-black pb-2 mb-3">
-                    <p className="text-black font-serif text-xs">THE NEW YORK TIMES</p>
-                  </div>
-                  <h2 className="text-black font-serif font-bold text-xl text-center mb-2">
-                    JAPAN WARS ON U.S. AND BRITAIN
-                  </h2>
-                  <p className="text-black font-serif text-sm text-center mb-3">
-                    MAKES SUDDEN ATTACK ON HAWAII;<br />
-                    HEAVY FIGHTING AT SEA REPORTED
-                  </p>
-                  <div className="border-t border-black pt-2 text-black text-xs font-serif space-y-1">
-                    <p>• Congress to Vote War Declaration Today</p>
-                    <p>• Pacific Fleet Damaged in Surprise Raid</p>
-                    <p>• Japanese Also Attack Philippines, Guam</p>
-                    <p>• President Roosevelt to Address Nation</p>
-                  </div>
-                </motion.div>
+                {/* Newspaper front page - use uploaded image or fallback to mockup */}
+                {nytFrontPageUrl ? (
+                  <motion.div
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    className="max-w-sm w-full rounded-lg overflow-hidden shadow-xl"
+                  >
+                    <img
+                      src={nytFrontPageUrl}
+                      alt="New York Times front page - December 8, 1941"
+                      className="w-full h-auto"
+                    />
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    className="bg-amber-50 rounded-lg p-4 max-w-sm w-full shadow-xl"
+                  >
+                    <div className="text-center border-b-2 border-black pb-2 mb-3">
+                      <p className="text-black font-serif text-xs">THE NEW YORK TIMES</p>
+                    </div>
+                    <h2 className="text-black font-serif font-bold text-xl text-center mb-2">
+                      JAPAN WARS ON U.S. AND BRITAIN
+                    </h2>
+                    <p className="text-black font-serif text-sm text-center mb-3">
+                      MAKES SUDDEN ATTACK ON HAWAII;<br />
+                      HEAVY FIGHTING AT SEA REPORTED
+                    </p>
+                    <div className="border-t border-black pt-2 text-black text-xs font-serif space-y-1">
+                      <p>• Congress to Vote War Declaration Today</p>
+                      <p>• Pacific Fleet Damaged in Surprise Raid</p>
+                      <p>• Japanese Also Attack Philippines, Guam</p>
+                      <p>• President Roosevelt to Address Nation</p>
+                    </div>
+                  </motion.div>
+                )}
 
                 <p className="text-white/60 text-sm text-center mt-4 max-w-sm">
                   Newspapers printed EXTRA editions throughout the night. By morning, every American knew their world had changed.
