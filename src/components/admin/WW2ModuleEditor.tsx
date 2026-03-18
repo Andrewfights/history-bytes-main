@@ -36,6 +36,8 @@ import {
   Loader2,
   Check,
   Music,
+  Maximize2,
+  Minimize2,
 } from 'lucide-react';
 import { PEARL_HARBOR_LESSONS, TOTAL_XP, FINAL_EXAM_SCORING } from '@/data/pearlHarborLessons';
 import { ARENA_QUESTIONS, ARENA_TIERS, RECOGNITION_TIERS } from '@/data/arenaQuestions';
@@ -372,6 +374,8 @@ interface PreviewModalProps {
 }
 
 function PreviewModal({ beatType, host, onClose }: PreviewModalProps) {
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
   if (!beatType) return null;
 
   const handleComplete = (xp: number) => {
@@ -421,35 +425,101 @@ function PreviewModal({ beatType, host, onClose }: PreviewModalProps) {
         return <PearlHarborArena host={host} onComplete={handleArenaComplete} onDecline={handleBack} onBack={handleBack} />;
       default:
         return (
-          <div className="flex items-center justify-center h-full">
+          <div className="flex items-center justify-center h-full bg-slate-900">
             <p className="text-white/60">Preview not available for this beat type</p>
           </div>
         );
     }
   };
 
+  // Fullscreen mode - same as before but with better z-index control
+  if (isFullscreen) {
+    return (
+      <div className="fixed inset-0 z-[100] bg-black">
+        {/* Control bar - always on top */}
+        <div className="absolute top-0 left-0 right-0 z-[110] flex items-center justify-between p-3 bg-gradient-to-b from-black/80 to-transparent">
+          <div className="px-3 py-1.5 bg-amber-500 text-black text-sm font-bold rounded-full flex items-center gap-2">
+            <Eye size={16} />
+            PREVIEW MODE
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsFullscreen(false)}
+              className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white text-sm rounded-lg flex items-center gap-2 transition-colors"
+            >
+              <Minimize2 size={16} />
+              Exit Fullscreen
+            </button>
+            <button
+              onClick={onClose}
+              className="p-2 bg-red-500/80 hover:bg-red-500 text-white rounded-lg transition-colors"
+              title="Close Preview"
+            >
+              <X size={20} />
+            </button>
+          </div>
+        </div>
+
+        {/* Beat content - transform creates new containing block for fixed children */}
+        <div className="absolute inset-0 pt-12 z-[105] overflow-hidden" style={{ transform: 'translateZ(0)' }}>
+          {renderBeat()}
+        </div>
+      </div>
+    );
+  }
+
+  // Popup mode - centered modal with phone-like preview
   return (
-    <div className="fixed inset-0 z-50">
-      {/* Close button overlay */}
-      <button
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8"
+    >
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
         onClick={onClose}
-        className="absolute top-4 right-4 z-[60] p-3 bg-black/80 hover:bg-black rounded-full text-white/80 hover:text-white transition-colors shadow-lg"
-        title="Exit Preview"
+      />
+
+      {/* Modal container */}
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        className="relative z-[101] w-full max-w-[420px] h-[85vh] max-h-[800px] bg-slate-900 rounded-2xl overflow-hidden shadow-2xl border border-slate-700"
       >
-        <X size={24} />
-      </button>
+        {/* Header bar */}
+        <div className="absolute top-0 left-0 right-0 z-[110] flex items-center justify-between p-2 bg-slate-800/95 backdrop-blur border-b border-slate-700">
+          <div className="px-2 py-1 bg-amber-500 text-black text-xs font-bold rounded flex items-center gap-1.5">
+            <Eye size={14} />
+            PREVIEW
+          </div>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setIsFullscreen(true)}
+              className="px-2 py-1 bg-slate-600 hover:bg-slate-500 text-white text-xs rounded flex items-center gap-1.5 transition-colors"
+              title="Fullscreen"
+            >
+              <Maximize2 size={14} />
+              Fullscreen
+            </button>
+            <button
+              onClick={onClose}
+              className="p-1.5 bg-red-500/80 hover:bg-red-500 text-white rounded transition-colors"
+              title="Close Preview"
+            >
+              <X size={18} />
+            </button>
+          </div>
+        </div>
 
-      {/* Preview label */}
-      <div className="absolute top-4 left-4 z-[60] px-3 py-1.5 bg-amber-500 text-black text-sm font-bold rounded-full shadow-lg flex items-center gap-2">
-        <Eye size={16} />
-        PREVIEW MODE
-      </div>
-
-      {/* Beat content */}
-      <div className="h-full">
-        {renderBeat()}
-      </div>
-    </div>
+        {/* Preview content - transform creates new containing block for fixed children */}
+        <div className="absolute inset-0 top-10 overflow-hidden" style={{ transform: 'translateZ(0)' }}>
+          {renderBeat()}
+        </div>
+      </motion.div>
+    </motion.div>
   );
 }
 
