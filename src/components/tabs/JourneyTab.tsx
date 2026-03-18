@@ -732,14 +732,14 @@ export function JourneyTab() {
               </div>
             </motion.button>
 
-            {/* Trophy Room Button */}
+            {/* Trophy Room Button - Hidden, keeping Pantheon instead */}
+            {/*
             <motion.button
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               onClick={() => setView('trophy-room')}
               className="w-full mb-6 p-4 rounded-xl bg-gradient-to-r from-amber-500/10 to-yellow-500/5 border border-amber-500/20 hover:border-amber-500/40 transition-all group relative overflow-hidden"
             >
-              {/* Custom background image */}
               {journeyUIAssets?.trophyRoomImage && (
                 <div className="absolute inset-0">
                   <img src={journeyUIAssets.trophyRoomImage} alt="" className="w-full h-full object-cover opacity-20" />
@@ -763,6 +763,7 @@ export function JourneyTab() {
                 <ChevronRight size={20} className="text-amber-400 group-hover:translate-x-1 transition-transform" />
               </div>
             </motion.button>
+            */}
 
             {/* Feeling Lucky Card - Hidden in funnel mode */}
             {!isFunnelMode && (
@@ -1002,7 +1003,8 @@ export function JourneyTab() {
           </motion.div>
         )}
 
-        {/* Trophy Room View */}
+        {/* Trophy Room View - Hidden, keeping Pantheon instead */}
+        {/*
         {view === 'trophy-room' && (
           <TrophyRoom
             onBack={() => setView('landing')}
@@ -1012,6 +1014,7 @@ export function JourneyTab() {
             }}
           />
         )}
+        */}
 
         {/* Pantheon - Souvenir Collection */}
         {view === 'pantheon' && (
