@@ -207,8 +207,8 @@ export function WW2HostSelection({ onSelectHost, onClose }: WW2HostSelectionProp
         </motion.div>
 
         {/* Carousel */}
-        <div className="flex-1 flex flex-col items-center justify-center px-2 sm:px-4 pb-safe" style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom))' }}>
-          <div className="relative w-full max-w-sm sm:max-w-md md:max-w-lg mx-auto">
+        <div className="flex-1 flex flex-col items-center justify-center px-2 sm:px-4 pb-safe overflow-hidden" style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom))' }}>
+          <div className="relative w-full max-w-sm sm:max-w-md md:max-w-md lg:max-w-lg mx-auto">
             {/* Navigation Arrows - hidden on very small screens, use swipe instead */}
             <button
               onClick={scrollPrev}
@@ -377,8 +377,8 @@ function HostCarouselCard({ host, isActive, isSelected, onClick, onEnterPearlHar
           : 'border-white/10'
       }`}
     >
-      {/* Image/Video Container */}
-      <div className="relative aspect-[4/5] bg-gradient-to-b from-neutral-800 to-neutral-900">
+      {/* Image/Video Container - limit height on desktop so buttons are visible */}
+      <div className="relative aspect-[4/5] md:aspect-[3/4] lg:aspect-[4/5] md:max-h-[55vh] bg-gradient-to-b from-neutral-800 to-neutral-900">
         {/* Portrait Image or Video */}
         {host.introVideoUrl && isActive && !videoEnded ? (
           <>
