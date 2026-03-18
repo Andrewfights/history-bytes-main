@@ -1412,3 +1412,104 @@ export function subscribeToJourneyUIAssets(callback: (assets: FirestoreJourneyUI
     }
   );
 }
+
+// ============ WW2 Module Assets Types ============
+
+export interface WW2BeatMedia {
+  [key: string]: string | undefined;  // Dynamic keys like 'stratton-portrait', 'miller-portrait', etc.
+}
+
+export interface WW2BeatQuestion {
+  id: string;
+  question: string;
+  options?: string[];
+  correctAnswer: string;
+  explanation: string;
+  category?: string;
+}
+
+export interface WW2BeatStatement {
+  id: string;
+  statement: string;
+  isFact: boolean;
+  explanation: string;
+}
+
+export interface FirestoreWW2ModuleAssets {
+  id: string;  // Always 'ww2ModuleAssets'
+  // Beat media assets
+  beatMedia: Record<string, WW2BeatMedia>;  // Key: beat ID (e.g., 'ph-beat-1', 'ph-beat-4')
+  // Editable questions (overrides default)
+  customQuestions?: Record<string, WW2BeatQuestion[]>;  // Key: beat ID
+  // Editable statements (overrides default)
+  customStatements?: Record<string, WW2BeatStatement[]>;  // Key: beat ID
+  updatedAt?: Timestamp;
+}
+
+// ============ WW2 Module Assets Operations ============
+
+export async function getWW2ModuleAssets(): Promise<FirestoreWW2ModuleAssets | null> {
+  return getDocument<FirestoreWW2ModuleAssets>('appSettings', 'ww2ModuleAssets');
+}
+
+export async function saveWW2ModuleAssets(assets: Partial<FirestoreWW2ModuleAssets>): Promise<boolean> {
+  return setDocument('appSettings', 'ww2ModuleAssets', {
+    id: 'ww2ModuleAssets',
+    ...assets,
+  });
+}
+
+export async function updateWW2BeatMedia(beatId: string, mediaKey: string, mediaUrl: string | null): Promise<boolean> {
+  const current = await getWW2ModuleAssets();
+  const beatMedia = current?.beatMedia || {};
+
+  if (!beatMedia[beatId]) {
+    beatMedia[beatId] = {};
+  }
+
+  if (mediaUrl) {
+    beatMedia[beatId][mediaKey] = mediaUrl;
+  } else {
+    delete beatMedia[beatId][mediaKey];
+  }
+
+  return saveWW2ModuleAssets({ beatMedia });
+}
+
+export async function updateWW2BeatQuestions(beatId: string, questions: WW2BeatQuestion[]): Promise<boolean> {
+  const current = await getWW2ModuleAssets();
+  const customQuestions = current?.customQuestions || {};
+  customQuestions[beatId] = questions;
+
+  return saveWW2ModuleAssets({ customQuestions });
+}
+
+export async function updateWW2BeatStatements(beatId: string, statements: WW2BeatStatement[]): Promise<boolean> {
+  const current = await getWW2ModuleAssets();
+  const customStatements = current?.customStatements || {};
+  customStatements[beatId] = statements;
+
+  return saveWW2ModuleAssets({ customStatements });
+}
+
+export function subscribeToWW2ModuleAssets(callback: (assets: FirestoreWW2ModuleAssets | null) => void): Unsubscribe {
+  if (!isFirebaseConfigured()) {
+    callback(null);
+    return () => {};
+  }
+
+  return onSnapshot(
+    doc(db, 'appSettings', 'ww2ModuleAssets'),
+    (docSnap) => {
+      if (docSnap.exists()) {
+        callback({ id: docSnap.id, ...docSnap.data() } as FirestoreWW2ModuleAssets);
+      } else {
+        callback(null);
+      }
+    },
+    (error) => {
+      console.error('[Firestore] WW2 Module assets subscription error:', error);
+      callback(null);
+    }
+  );
+}

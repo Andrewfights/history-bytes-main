@@ -12,6 +12,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Sparkles, ChevronRight, User, Quote, CheckCircle2, XCircle } from 'lucide-react';
 import { WW2Host } from '@/types';
 import { usePearlHarborProgress } from '../hooks/usePearlHarborProgress';
+import { subscribeToWW2ModuleAssets, type FirestoreWW2ModuleAssets } from '@/lib/firestore';
+import { isFirebaseConfigured } from '@/lib/firebase';
 
 type Screen = 'intro' | 'story-1' | 'quiz-1' | 'story-2' | 'quiz-2' | 'story-3' | 'quiz-3' | 'story-4' | 'quiz-4' | 'completion';
 const SCREENS: Screen[] = ['intro', 'story-1', 'quiz-1', 'story-2', 'quiz-2', 'story-3', 'quiz-3', 'story-4', 'quiz-4', 'completion'];
@@ -146,14 +148,39 @@ interface VoicesFromHarborBeatProps {
   onBack: () => void;
 }
 
+// Map perspective IDs to media keys
+const MEDIA_KEY_MAP: Record<string, string> = {
+  stratton: 'donald-stratton-portrait',
+  miller: 'doris-miller-portrait',
+  fox: 'annie-fox-portrait',
+  abe: 'zenji-abe-portrait',
+};
+
 export function VoicesFromHarborBeat({ host, onComplete, onSkip, onBack }: VoicesFromHarborBeatProps) {
   const [screen, setScreen] = useState<Screen>('intro');
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
   const [quizAnswers, setQuizAnswers] = useState<Record<string, number | null>>({});
   const [showQuizResult, setShowQuizResult] = useState(false);
   const [skipped, setSkipped] = useState(false);
+  const [uploadedAssets, setUploadedAssets] = useState<FirestoreWW2ModuleAssets | null>(null);
 
   const { saveCheckpoint, clearCheckpoint, getCheckpoint } = usePearlHarborProgress();
+
+  // Subscribe to uploaded assets from Firestore
+  useEffect(() => {
+    if (!isFirebaseConfigured()) return;
+    const unsubscribe = subscribeToWW2ModuleAssets((assets) => {
+      setUploadedAssets(assets);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Helper to get uploaded portrait URL for a perspective
+  const getPortraitUrl = (perspectiveId: string): string | null => {
+    const mediaKey = MEDIA_KEY_MAP[perspectiveId];
+    if (!mediaKey) return null;
+    return uploadedAssets?.beatMedia?.['ph-beat-4']?.[mediaKey] || null;
+  };
 
   useEffect(() => {
     const checkpoint = getCheckpoint();
@@ -244,12 +271,21 @@ export function VoicesFromHarborBeat({ host, onComplete, onSkip, onBack }: Voice
                   History isn't just about dates and facts. It's about people. Meet four individuals whose lives were forever changed on that Sunday morning.
                 </p>
                 <div className="flex justify-center gap-4 mb-6">
-                  {PERSPECTIVES.map((p) => (
-                    <div key={p.id} className="text-center">
-                      <div className="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center text-2xl mb-1">{p.image}</div>
-                      <p className="text-white/50 text-xs">{p.name.split(' ')[1]}</p>
-                    </div>
-                  ))}
+                  {PERSPECTIVES.map((p) => {
+                    const portraitUrl = getPortraitUrl(p.id);
+                    return (
+                      <div key={p.id} className="text-center">
+                        <div className="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center text-2xl mb-1 overflow-hidden">
+                          {portraitUrl ? (
+                            <img src={portraitUrl} alt={p.name} className="w-full h-full object-cover" />
+                          ) : (
+                            p.image
+                          )}
+                        </div>
+                        <p className="text-white/50 text-xs">{p.name.split(' ')[1]}</p>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
               <div className="space-y-3">
@@ -269,8 +305,12 @@ export function VoicesFromHarborBeat({ host, onComplete, onSkip, onBack }: Voice
               <div className="flex-1 overflow-y-auto">
                 {/* Profile */}
                 <div className="flex items-center gap-4 mb-6">
-                  <div className="w-16 h-16 rounded-full bg-amber-500/20 flex items-center justify-center text-3xl">
-                    {currentPerspective.image}
+                  <div className="w-16 h-16 rounded-full bg-amber-500/20 flex items-center justify-center text-3xl overflow-hidden">
+                    {getPortraitUrl(currentPerspective.id) ? (
+                      <img src={getPortraitUrl(currentPerspective.id)!} alt={currentPerspective.name} className="w-full h-full object-cover" />
+                    ) : (
+                      currentPerspective.image
+                    )}
                   </div>
                   <div>
                     <h3 className="text-xl font-bold text-white">{currentPerspective.name}</h3>
@@ -316,8 +356,12 @@ export function VoicesFromHarborBeat({ host, onComplete, onSkip, onBack }: Voice
             <motion.div key={screen} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full p-6">
               <div className="flex-1 flex flex-col justify-center">
                 <div className="text-center mb-6">
-                  <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-2xl mx-auto mb-3">
-                    {quizPerspective.image}
+                  <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-2xl mx-auto mb-3 overflow-hidden">
+                    {getPortraitUrl(quizPerspective.id) ? (
+                      <img src={getPortraitUrl(quizPerspective.id)!} alt={quizPerspective.name} className="w-full h-full object-cover" />
+                    ) : (
+                      quizPerspective.image
+                    )}
                   </div>
                   <h3 className="text-lg font-bold text-white">{quizPerspective.quiz.question}</h3>
                 </div>

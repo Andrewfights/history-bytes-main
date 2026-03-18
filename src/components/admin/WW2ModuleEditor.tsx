@@ -2,9 +2,10 @@
  * WW2ModuleEditor - Comprehensive admin view of the WW2 module
  * Shows all beats, questions, flows, and media in user progression order
  * Includes preview functionality for testing beats as admin
+ * Supports media upload and question/answer editing
  */
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronDown,
@@ -29,12 +30,28 @@ import {
   AlertCircle,
   Eye,
   X,
+  Trash2,
+  Edit3,
+  Save,
+  Loader2,
+  Check,
 } from 'lucide-react';
 import { PEARL_HARBOR_LESSONS, TOTAL_XP, FINAL_EXAM_SCORING } from '@/data/pearlHarborLessons';
 import { ARENA_QUESTIONS, ARENA_TIERS, RECOGNITION_TIERS } from '@/data/arenaQuestions';
 import { FINAL_EXAM_QUESTIONS } from '@/components/journey/pearl-harbor/exam/examQuestions';
 import { WW2_HOSTS } from '@/data/ww2Hosts';
 import type { WW2Host } from '@/types';
+import {
+  subscribeToWW2ModuleAssets,
+  updateWW2BeatMedia,
+  updateWW2BeatQuestions,
+  updateWW2BeatStatements,
+  type FirestoreWW2ModuleAssets,
+  type WW2BeatQuestion,
+  type WW2BeatStatement,
+} from '@/lib/firestore';
+import { uploadFile } from '@/lib/supabase';
+import { isFirebaseConfigured } from '@/lib/firebase';
 
 // Import beat components for preview
 import {
@@ -338,6 +355,186 @@ function ScreenFlowVisualizer({ screens }: { screens: string[] }) {
   );
 }
 
+interface EditableQuestionListProps {
+  beatId: string;
+  questions: BeatQuestion[];
+  title?: string;
+  onSave: (beatId: string, questions: WW2BeatQuestion[]) => Promise<void>;
+}
+
+function EditableQuestionList({ beatId, questions, title, onSave }: EditableQuestionListProps) {
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editedQuestions, setEditedQuestions] = useState<BeatQuestion[]>(questions);
+  const [isSaving, setIsSaving] = useState(false);
+
+  if (!questions || questions.length === 0) return null;
+
+  const handleEdit = (index: number) => {
+    setEditingIndex(index);
+  };
+
+  const handleCancel = () => {
+    setEditedQuestions(questions);
+    setEditingIndex(null);
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await onSave(beatId, editedQuestions as WW2BeatQuestion[]);
+      setEditingIndex(null);
+    } catch (error) {
+      console.error('Failed to save questions:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const updateQuestion = (index: number, field: keyof BeatQuestion, value: string | string[]) => {
+    setEditedQuestions((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
+  };
+
+  const updateOption = (qIndex: number, optIndex: number, value: string) => {
+    setEditedQuestions((prev) => {
+      const updated = [...prev];
+      const options = [...(updated[qIndex].options || [])];
+      options[optIndex] = value;
+      updated[qIndex] = { ...updated[qIndex], options };
+      return updated;
+    });
+  };
+
+  return (
+    <div className="space-y-2">
+      <h4 className="text-white/60 text-xs uppercase tracking-wide flex items-center gap-2">
+        <FileQuestion size={14} />
+        {title || `Questions (${questions.length})`}
+        <span className="text-amber-400 text-[10px]">Editable</span>
+      </h4>
+      <div className="space-y-2">
+        {editedQuestions.map((q, idx) => (
+          <div key={q.id} className={`bg-slate-800/50 rounded-lg p-3 border ${editingIndex === idx ? 'border-amber-500/50' : 'border-slate-700/50'}`}>
+            <div className="flex items-start gap-2">
+              <span className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-400 text-xs flex items-center justify-center shrink-0 mt-0.5">
+                {idx + 1}
+              </span>
+              <div className="flex-1 min-w-0">
+                {editingIndex === idx ? (
+                  // Edit mode
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-xs text-slate-400 mb-1 block">Question</label>
+                      <textarea
+                        value={q.question}
+                        onChange={(e) => updateQuestion(idx, 'question', e.target.value)}
+                        className="w-full bg-slate-700 text-white text-sm rounded px-2 py-1.5 border border-slate-600 focus:border-amber-500 focus:outline-none resize-none"
+                        rows={2}
+                      />
+                    </div>
+                    {q.options && (
+                      <div>
+                        <label className="text-xs text-slate-400 mb-1 block">Options</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {q.options.map((opt, i) => (
+                            <div key={i} className="flex items-center gap-1">
+                              <input
+                                type="text"
+                                value={opt}
+                                onChange={(e) => updateOption(idx, i, e.target.value)}
+                                className={`flex-1 bg-slate-700 text-sm rounded px-2 py-1 border focus:outline-none ${
+                                  opt === q.correctAnswer
+                                    ? 'text-green-400 border-green-500/50 focus:border-green-500'
+                                    : 'text-white border-slate-600 focus:border-amber-500'
+                                }`}
+                              />
+                              <button
+                                onClick={() => updateQuestion(idx, 'correctAnswer', opt)}
+                                className={`p-1 rounded ${opt === q.correctAnswer ? 'bg-green-500/20 text-green-400' : 'bg-slate-600 text-slate-400 hover:text-white'}`}
+                                title="Set as correct answer"
+                              >
+                                <Check size={14} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    <div>
+                      <label className="text-xs text-slate-400 mb-1 block">Explanation</label>
+                      <textarea
+                        value={q.explanation}
+                        onChange={(e) => updateQuestion(idx, 'explanation', e.target.value)}
+                        className="w-full bg-slate-700 text-white text-sm rounded px-2 py-1.5 border border-slate-600 focus:border-amber-500 focus:outline-none resize-none"
+                        rows={2}
+                      />
+                    </div>
+                    <div className="flex items-center gap-2 pt-2">
+                      <button
+                        onClick={handleSave}
+                        disabled={isSaving}
+                        className="px-3 py-1.5 bg-green-500 hover:bg-green-400 text-black text-xs font-bold rounded flex items-center gap-1 disabled:opacity-50"
+                      >
+                        {isSaving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+                        Save
+                      </button>
+                      <button
+                        onClick={handleCancel}
+                        className="px-3 py-1.5 bg-slate-600 hover:bg-slate-500 text-white text-xs rounded"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  // View mode
+                  <>
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-white text-sm mb-2">{q.question}</p>
+                      <button
+                        onClick={() => handleEdit(idx)}
+                        className="p-1 text-slate-400 hover:text-amber-400 transition-colors shrink-0"
+                        title="Edit question"
+                      >
+                        <Edit3 size={14} />
+                      </button>
+                    </div>
+                    {q.options && (
+                      <div className="grid grid-cols-2 gap-1 mb-2">
+                        {q.options.map((opt, i) => (
+                          <div
+                            key={i}
+                            className={`text-xs px-2 py-1 rounded ${
+                              opt === q.correctAnswer
+                                ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                                : 'bg-slate-700/50 text-slate-400'
+                            }`}
+                          >
+                            {opt}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <p className="text-slate-400 text-xs">{q.explanation}</p>
+                    {q.category && (
+                      <span className="inline-block mt-1 px-2 py-0.5 bg-blue-500/20 text-blue-400 text-[10px] rounded">
+                        {q.category}
+                      </span>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function QuestionList({ questions, title }: { questions: BeatQuestion[]; title?: string }) {
   if (!questions || questions.length === 0) return null;
 
@@ -377,6 +574,148 @@ function QuestionList({ questions, title }: { questions: BeatQuestion[]; title?:
                   <span className="inline-block mt-1 px-2 py-0.5 bg-blue-500/20 text-blue-400 text-[10px] rounded">
                     {q.category}
                   </span>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+interface EditableStatementListProps {
+  beatId: string;
+  statements: BeatStatement[];
+  onSave: (beatId: string, statements: WW2BeatStatement[]) => Promise<void>;
+}
+
+function EditableStatementList({ beatId, statements, onSave }: EditableStatementListProps) {
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editedStatements, setEditedStatements] = useState<BeatStatement[]>(statements);
+  const [isSaving, setIsSaving] = useState(false);
+
+  if (!statements || statements.length === 0) return null;
+
+  const handleEdit = (index: number) => {
+    setEditingIndex(index);
+  };
+
+  const handleCancel = () => {
+    setEditedStatements(statements);
+    setEditingIndex(null);
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await onSave(beatId, editedStatements as WW2BeatStatement[]);
+      setEditingIndex(null);
+    } catch (error) {
+      console.error('Failed to save statements:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const updateStatement = (index: number, field: keyof BeatStatement, value: string | boolean) => {
+    setEditedStatements((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
+  };
+
+  return (
+    <div className="space-y-2">
+      <h4 className="text-white/60 text-xs uppercase tracking-wide flex items-center gap-2">
+        <HelpCircle size={14} />
+        Fact or Myth Statements ({statements.length})
+        <span className="text-amber-400 text-[10px]">Editable</span>
+      </h4>
+      <div className="space-y-2">
+        {editedStatements.map((s, idx) => (
+          <div key={s.id} className={`bg-slate-800/50 rounded-lg p-3 border ${editingIndex === idx ? 'border-amber-500/50' : 'border-slate-700/50'}`}>
+            <div className="flex items-start gap-2">
+              <button
+                onClick={() => editingIndex === idx && updateStatement(idx, 'isFact', !s.isFact)}
+                disabled={editingIndex !== idx}
+                className={`w-6 h-6 rounded-full text-xs flex items-center justify-center shrink-0 mt-0.5 font-bold transition-colors ${
+                  s.isFact ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                } ${editingIndex === idx ? 'cursor-pointer hover:opacity-80' : 'cursor-default'}`}
+                title={editingIndex === idx ? 'Click to toggle Fact/Myth' : undefined}
+              >
+                {s.isFact ? 'F' : 'M'}
+              </button>
+              <div className="flex-1 min-w-0">
+                {editingIndex === idx ? (
+                  // Edit mode
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-xs text-slate-400 mb-1 block">Statement</label>
+                      <textarea
+                        value={s.statement}
+                        onChange={(e) => updateStatement(idx, 'statement', e.target.value)}
+                        className="w-full bg-slate-700 text-white text-sm rounded px-2 py-1.5 border border-slate-600 focus:border-amber-500 focus:outline-none resize-none"
+                        rows={2}
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <label className="text-xs text-slate-400">Is this a Fact?</label>
+                      <button
+                        onClick={() => updateStatement(idx, 'isFact', true)}
+                        className={`px-2 py-1 text-xs rounded ${s.isFact ? 'bg-green-500 text-black font-bold' : 'bg-slate-600 text-slate-300'}`}
+                      >
+                        Fact
+                      </button>
+                      <button
+                        onClick={() => updateStatement(idx, 'isFact', false)}
+                        className={`px-2 py-1 text-xs rounded ${!s.isFact ? 'bg-red-500 text-white font-bold' : 'bg-slate-600 text-slate-300'}`}
+                      >
+                        Myth
+                      </button>
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-400 mb-1 block">Explanation</label>
+                      <textarea
+                        value={s.explanation}
+                        onChange={(e) => updateStatement(idx, 'explanation', e.target.value)}
+                        className="w-full bg-slate-700 text-white text-sm rounded px-2 py-1.5 border border-slate-600 focus:border-amber-500 focus:outline-none resize-none"
+                        rows={2}
+                      />
+                    </div>
+                    <div className="flex items-center gap-2 pt-2">
+                      <button
+                        onClick={handleSave}
+                        disabled={isSaving}
+                        className="px-3 py-1.5 bg-green-500 hover:bg-green-400 text-black text-xs font-bold rounded flex items-center gap-1 disabled:opacity-50"
+                      >
+                        {isSaving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+                        Save
+                      </button>
+                      <button
+                        onClick={handleCancel}
+                        className="px-3 py-1.5 bg-slate-600 hover:bg-slate-500 text-white text-xs rounded"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  // View mode
+                  <>
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-white text-sm mb-1">{s.statement}</p>
+                      <button
+                        onClick={() => handleEdit(idx)}
+                        className="p-1 text-slate-400 hover:text-amber-400 transition-colors shrink-0"
+                        title="Edit statement"
+                      >
+                        <Edit3 size={14} />
+                      </button>
+                    </div>
+                    <p className="text-slate-400 text-xs">{s.explanation}</p>
+                  </>
                 )}
               </div>
             </div>
@@ -438,8 +777,17 @@ function HotspotList({ hotspots }: { hotspots: BeatHotspot[] }) {
   );
 }
 
-function MediaUploadSection({ mediaNeeded }: { mediaNeeded?: BeatContent['mediaNeeded'] }) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
+interface MediaUploadSectionProps {
+  beatId: string;
+  mediaNeeded?: BeatContent['mediaNeeded'];
+  uploadedMedia: Record<string, string>;
+  onUpload: (beatId: string, mediaKey: string, file: File) => Promise<void>;
+  onRemove: (beatId: string, mediaKey: string) => Promise<void>;
+}
+
+function MediaUploadSection({ beatId, mediaNeeded, uploadedMedia, onUpload, onRemove }: MediaUploadSectionProps) {
+  const [uploadingKey, setUploadingKey] = useState<string | null>(null);
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   if (!mediaNeeded || mediaNeeded.length === 0) {
     return (
@@ -449,40 +797,126 @@ function MediaUploadSection({ mediaNeeded }: { mediaNeeded?: BeatContent['mediaN
     );
   }
 
+  const getMediaKey = (description: string) => {
+    // Convert description to a safe key
+    return description.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  };
+
+  const handleUploadClick = (mediaKey: string) => {
+    fileInputRefs.current[mediaKey]?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, mediaKey: string) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingKey(mediaKey);
+    try {
+      await onUpload(beatId, mediaKey, file);
+    } finally {
+      setUploadingKey(null);
+      // Reset file input
+      if (fileInputRefs.current[mediaKey]) {
+        fileInputRefs.current[mediaKey]!.value = '';
+      }
+    }
+  };
+
+  const handleRemove = async (mediaKey: string) => {
+    setUploadingKey(mediaKey);
+    try {
+      await onRemove(beatId, mediaKey);
+    } finally {
+      setUploadingKey(null);
+    }
+  };
+
   return (
     <div className="space-y-2">
       <h4 className="text-white/60 text-xs uppercase tracking-wide flex items-center gap-2">
         <ImageIcon size={14} />
-        Media Assets Needed ({mediaNeeded.length})
+        Media Assets ({mediaNeeded.length})
       </h4>
       <div className="space-y-2">
-        {mediaNeeded.map((media, idx) => (
-          <div key={idx} className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
-            <div className="flex items-center justify-between">
+        {mediaNeeded.map((media, idx) => {
+          const mediaKey = getMediaKey(media.description);
+          const currentUrl = uploadedMedia[mediaKey];
+          const isUploading = uploadingKey === mediaKey;
+
+          return (
+            <div key={idx} className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
               <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                {/* Preview or Icon */}
+                <div className={`w-16 h-16 rounded-lg flex items-center justify-center overflow-hidden shrink-0 ${
                   media.type === 'image' ? 'bg-blue-500/20' :
                   media.type === 'video' ? 'bg-purple-500/20' :
                   'bg-green-500/20'
                 }`}>
-                  {media.type === 'image' && <ImageIcon size={20} className="text-blue-400" />}
-                  {media.type === 'video' && <Video size={20} className="text-purple-400" />}
-                  {media.type === 'audio' && <Play size={20} className="text-green-400" />}
-                </div>
-                <div>
-                  <p className="text-white text-sm">{media.description}</p>
-                  {media.path && (
-                    <p className="text-slate-500 text-xs font-mono">{media.path}</p>
+                  {currentUrl ? (
+                    media.type === 'image' ? (
+                      <img src={currentUrl} alt={media.description} className="w-full h-full object-cover" />
+                    ) : media.type === 'video' ? (
+                      <video src={currentUrl} className="w-full h-full object-cover" />
+                    ) : (
+                      <Play size={24} className="text-green-400" />
+                    )
+                  ) : (
+                    <>
+                      {media.type === 'image' && <ImageIcon size={24} className="text-blue-400" />}
+                      {media.type === 'video' && <Video size={24} className="text-purple-400" />}
+                      {media.type === 'audio' && <Play size={24} className="text-green-400" />}
+                    </>
                   )}
                 </div>
+
+                {/* Description */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-white text-sm font-medium">{media.description}</p>
+                  {currentUrl ? (
+                    <p className="text-green-400 text-xs flex items-center gap-1 mt-1">
+                      <Check size={12} />
+                      Uploaded
+                    </p>
+                  ) : (
+                    <p className="text-slate-500 text-xs mt-1">Not uploaded yet</p>
+                  )}
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center gap-2">
+                  {currentUrl && (
+                    <button
+                      onClick={() => handleRemove(mediaKey)}
+                      disabled={isUploading}
+                      className="p-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
+                  <button
+                    onClick={() => handleUploadClick(mediaKey)}
+                    disabled={isUploading}
+                    className="px-3 py-2 bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold rounded-lg flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                  >
+                    {isUploading ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : (
+                      <Upload size={14} />
+                    )}
+                    {currentUrl ? 'Replace' : 'Upload'}
+                  </button>
+                  <input
+                    type="file"
+                    ref={(el) => { fileInputRefs.current[mediaKey] = el; }}
+                    onChange={(e) => handleFileChange(e, mediaKey)}
+                    accept={media.type === 'image' ? 'image/*' : media.type === 'video' ? 'video/*' : 'audio/*'}
+                    className="hidden"
+                  />
+                </div>
               </div>
-              <button className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white text-xs rounded-lg flex items-center gap-1.5 transition-colors">
-                <Upload size={14} />
-                Upload
-              </button>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -599,12 +1033,22 @@ function BeatCard({
   isExpanded,
   onToggle,
   onPreview,
+  uploadedMedia,
+  onUpload,
+  onRemove,
+  onSaveQuestions,
+  onSaveStatements,
 }: {
   lesson: typeof PEARL_HARBOR_LESSONS[0];
   index: number;
   isExpanded: boolean;
   onToggle: () => void;
   onPreview: (beatType: string) => void;
+  uploadedMedia: Record<string, string>;
+  onUpload: (beatId: string, mediaKey: string, file: File) => Promise<void>;
+  onRemove: (beatId: string, mediaKey: string) => Promise<void>;
+  onSaveQuestions: (beatId: string, questions: WW2BeatQuestion[]) => Promise<void>;
+  onSaveStatements: (beatId: string, statements: WW2BeatStatement[]) => Promise<void>;
 }) {
   const content = BEAT_CONTENT_MAP[lesson.id];
   const isExam = lesson.type === 'final-exam';
@@ -734,14 +1178,32 @@ function BeatCard({
 
               {/* Content Sections */}
               {content?.hotspots && <HotspotList hotspots={content.hotspots} />}
-              {content?.questions && content.questions.length > 0 && <QuestionList questions={content.questions} />}
-              {content?.statements && <StatementList statements={content.statements} />}
+              {content?.questions && content.questions.length > 0 && (
+                <EditableQuestionList
+                  beatId={lesson.id}
+                  questions={content.questions}
+                  onSave={onSaveQuestions}
+                />
+              )}
+              {content?.statements && (
+                <EditableStatementList
+                  beatId={lesson.id}
+                  statements={content.statements}
+                  onSave={onSaveStatements}
+                />
+              )}
 
               {/* Final Exam Questions */}
               {isExam && <ExamQuestionsList />}
 
               {/* Media Upload */}
-              <MediaUploadSection mediaNeeded={content?.mediaNeeded} />
+              <MediaUploadSection
+                beatId={lesson.id}
+                mediaNeeded={content?.mediaNeeded}
+                uploadedMedia={uploadedMedia}
+                onUpload={onUpload}
+                onRemove={onRemove}
+              />
             </div>
           </motion.div>
         )}
@@ -879,9 +1341,79 @@ export function WW2ModuleEditor() {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [showAll, setShowAll] = useState(false);
   const [previewBeat, setPreviewBeat] = useState<string | null>(null);
+  const [uploadedAssets, setUploadedAssets] = useState<FirestoreWW2ModuleAssets | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Get the first host as the preview host
   const previewHost = WW2_HOSTS[0];
+
+  // Subscribe to Firestore for uploaded assets
+  useEffect(() => {
+    if (!isFirebaseConfigured()) {
+      setIsLoading(false);
+      return;
+    }
+
+    const unsubscribe = subscribeToWW2ModuleAssets((assets) => {
+      setUploadedAssets(assets);
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Handle media upload
+  const handleUpload = useCallback(async (beatId: string, mediaKey: string, file: File) => {
+    try {
+      // Upload to Supabase storage
+      const url = await uploadFile(file, 'ww2-module');
+      if (!url) {
+        console.error('Failed to upload file');
+        return;
+      }
+
+      // Update Firestore
+      await updateWW2BeatMedia(beatId, mediaKey, url);
+    } catch (error) {
+      console.error('Error uploading media:', error);
+    }
+  }, []);
+
+  // Handle media removal
+  const handleRemove = useCallback(async (beatId: string, mediaKey: string) => {
+    try {
+      await updateWW2BeatMedia(beatId, mediaKey, null);
+    } catch (error) {
+      console.error('Error removing media:', error);
+    }
+  }, []);
+
+  // Handle saving edited questions
+  const handleSaveQuestions = useCallback(async (beatId: string, questions: WW2BeatQuestion[]) => {
+    try {
+      await updateWW2BeatQuestions(beatId, questions);
+      console.log('Questions saved for beat:', beatId);
+    } catch (error) {
+      console.error('Error saving questions:', error);
+      throw error;
+    }
+  }, []);
+
+  // Handle saving edited statements
+  const handleSaveStatements = useCallback(async (beatId: string, statements: WW2BeatStatement[]) => {
+    try {
+      await updateWW2BeatStatements(beatId, statements);
+      console.log('Statements saved for beat:', beatId);
+    } catch (error) {
+      console.error('Error saving statements:', error);
+      throw error;
+    }
+  }, []);
+
+  // Get uploaded media for a specific beat
+  const getUploadedMedia = useCallback((beatId: string): Record<string, string> => {
+    return uploadedAssets?.beatMedia?.[beatId] || {};
+  }, [uploadedAssets]);
 
   const handlePreview = (beatType: string) => {
     setPreviewBeat(beatType);
@@ -986,6 +1518,11 @@ export function WW2ModuleEditor() {
             isExpanded={expandedSections.has(lesson.id)}
             onToggle={() => toggleSection(lesson.id)}
             onPreview={handlePreview}
+            uploadedMedia={getUploadedMedia(lesson.id)}
+            onUpload={handleUpload}
+            onRemove={handleRemove}
+            onSaveQuestions={handleSaveQuestions}
+            onSaveStatements={handleSaveStatements}
           />
         ))}
 
