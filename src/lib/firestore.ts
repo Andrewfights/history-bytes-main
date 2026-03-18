@@ -1363,3 +1363,52 @@ export async function deleteMusicLibraryItem(itemId: string): Promise<boolean> {
 export function subscribeToMusicLibrary(callback: (items: FirestoreMusicLibraryItem[]) => void): Unsubscribe {
   return subscribeToCollection<FirestoreMusicLibraryItem>('musicLibrary', callback, orderBy('createdAt', 'desc'), limit(30));
 }
+
+// ============ Journey UI Assets Types ============
+
+export interface FirestoreJourneyUIAssets {
+  id: string;  // Always 'default'
+  featuredJourneyImage?: string;     // Background image for Featured Journey hero
+  featuredJourneyIcon?: string;      // Custom icon for Featured Journey
+  rankBadgeImages?: Record<string, string>;  // Tier-based rank badge images (bronze, silver, gold, etc.)
+  pantheonImage?: string;            // Background/icon for Pantheon section
+  pantheonIcon?: string;             // Custom icon for Pantheon
+  trophyRoomImage?: string;          // Background/icon for Trophy Room section
+  trophyRoomIcon?: string;           // Custom icon for Trophy Room
+  updatedAt?: Timestamp;
+}
+
+// ============ Journey UI Assets Operations ============
+
+export async function getJourneyUIAssets(): Promise<FirestoreJourneyUIAssets | null> {
+  return getDocument<FirestoreJourneyUIAssets>('appSettings', 'journeyUIAssets');
+}
+
+export async function saveJourneyUIAssets(assets: Partial<FirestoreJourneyUIAssets>): Promise<boolean> {
+  return setDocument('appSettings', 'journeyUIAssets', {
+    id: 'journeyUIAssets',
+    ...assets,
+  });
+}
+
+export function subscribeToJourneyUIAssets(callback: (assets: FirestoreJourneyUIAssets | null) => void): Unsubscribe {
+  if (!isFirebaseConfigured()) {
+    callback(null);
+    return () => {};
+  }
+
+  return onSnapshot(
+    doc(db, 'appSettings', 'journeyUIAssets'),
+    (docSnap) => {
+      if (docSnap.exists()) {
+        callback({ id: docSnap.id, ...docSnap.data() } as FirestoreJourneyUIAssets);
+      } else {
+        callback(null);
+      }
+    },
+    (error) => {
+      console.error('[Firestore] Journey UI assets subscription error:', error);
+      callback(null);
+    }
+  );
+}

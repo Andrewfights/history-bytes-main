@@ -8,8 +8,8 @@ import { getApiKey } from './apiKeys';
 // Get API key from user storage or env var
 const getGeminiApiKey = () => getApiKey('gemini');
 
-// Latest image generation model
-const IMAGE_MODEL = 'gemini-2.0-flash-exp-image-generation';
+// Image generation model - using gemini-2.0-flash-exp with native image output
+const IMAGE_MODEL = 'gemini-2.0-flash';
 
 // Supported aspect ratios per documentation
 export type AspectRatio = '1:1' | '2:3' | '3:2' | '3:4' | '4:3' | '4:5' | '5:4' | '9:16' | '16:9' | '21:9';
@@ -67,12 +67,11 @@ export async function generateImage(options: GenerateImageOptions): Promise<Gene
         body: JSON.stringify({
           contents: [{
             parts: [{
-              text: enhancedPrompt
+              text: `Generate an image: ${enhancedPrompt}`
             }]
           }],
           generationConfig: {
             responseModalities: ['IMAGE', 'TEXT'],
-            responseMimeType: 'text/plain'
           }
         }),
       }
@@ -80,10 +79,16 @@ export async function generateImage(options: GenerateImageOptions): Promise<Gene
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.error('Gemini API error:', response.status, errorData);
+      console.error('[Gemini] API error:', response.status, errorData);
 
-      // Try fallback to imagen-3.0
-      return await generateImageWithImagen(enhancedPrompt, aspectRatio);
+      // Log helpful debug info
+      if (response.status === 404) {
+        console.error('[Gemini] Model not found. Check if the model name is correct.');
+      } else if (response.status === 403) {
+        console.error('[Gemini] Access forbidden. Check API key permissions.');
+      }
+
+      return null;
     }
 
     const data = await response.json();
@@ -101,58 +106,10 @@ export async function generateImage(options: GenerateImageOptions): Promise<Gene
       }
     }
 
-    console.error('No image found in response:', data);
+    console.error('[Gemini] No image found in response:', data);
     return null;
   } catch (error) {
-    console.error('Error generating image:', error);
-    return null;
-  }
-}
-
-/**
- * Fallback image generation using Imagen 3
- */
-async function generateImageWithImagen(prompt: string, aspectRatio: string): Promise<GeneratedImage | null> {
-  const apiKey = getGeminiApiKey();
-  if (!apiKey) return null;
-
-  try {
-    console.log('[Gemini] Falling back to Imagen 3');
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:predict?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          instances: [{ prompt }],
-          parameters: {
-            sampleCount: 1,
-            aspectRatio: aspectRatio,
-          },
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      console.error('Imagen API also failed:', response.status);
-      return null;
-    }
-
-    const data = await response.json();
-
-    if (data.predictions && data.predictions.length > 0) {
-      console.log('[Gemini] Imagen 3 fallback successful');
-      return {
-        base64Data: data.predictions[0].bytesBase64Encoded,
-        mimeType: 'image/png',
-      };
-    }
-
-    return null;
-  } catch (error) {
-    console.error('Imagen fallback error:', error);
+    console.error('[Gemini] Error generating image:', error);
     return null;
   }
 }

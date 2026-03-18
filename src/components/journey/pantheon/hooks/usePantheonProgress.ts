@@ -20,6 +20,7 @@ import {
   getTierRank,
   PANTHEON_WORLDS,
 } from '@/data/pantheonSouvenirs';
+import type { ArenaRecognition } from '@/data/arenaQuestions';
 
 export interface UsePantheonProgressReturn {
   // State
@@ -37,6 +38,7 @@ export interface UsePantheonProgressReturn {
   unlockSouvenir: (souvenirId: string) => void;
   upgradeSouvenir: (souvenirId: string, newTier: SouvenirTier) => boolean;
   recordExamScore: (worldId: string, score: number, total: number) => SouvenirTier | null;
+  recordArenaScore: (worldId: string, arenaTier: ArenaRecognition) => SouvenirTier | null;
 
   // Visit tracking
   markVisited: () => void;
@@ -251,6 +253,71 @@ export function usePantheonProgress(): UsePantheonProgressReturn {
     }
   }, [progress, saveProgress]);
 
+  // Map Arena recognition to souvenir tier
+  const arenaToSouvenirTier = (arenaTier: ArenaRecognition): SouvenirTier => {
+    switch (arenaTier) {
+      case 'masters':
+        return 'bronze';
+      case 'phd':
+        return 'silver';
+      case 'rhodes_scholar':
+        return 'gold';
+      default:
+        return 'gray';
+    }
+  };
+
+  // Record Arena achievement and upgrade souvenir accordingly
+  const recordArenaScore = useCallback((worldId: string, arenaTier: ArenaRecognition): SouvenirTier | null => {
+    // Find the souvenir for this world
+    const souvenir = getSouvenirByWorldId(worldId);
+    if (!souvenir) {
+      console.warn(`[Pantheon] No souvenir for world: ${worldId}`);
+      return null;
+    }
+
+    // Map Arena tier to souvenir tier
+    const earnedTier = arenaToSouvenirTier(arenaTier);
+
+    // Get current progress or create new
+    let currentProgress = progress.souvenirs[souvenir.id];
+
+    if (!currentProgress) {
+      // First time - unlock the souvenir
+      currentProgress = {
+        souvenirId: souvenir.id,
+        currentTier: 'gray',
+        unlockedAt: new Date().toISOString(),
+        examScores: [],
+      };
+    }
+
+    // Determine if this is an upgrade
+    const shouldUpgrade = isUpgrade(currentProgress.currentTier, earnedTier);
+
+    const newProgress: PantheonProgress = {
+      ...progress,
+      souvenirs: {
+        ...progress.souvenirs,
+        [souvenir.id]: {
+          ...currentProgress,
+          currentTier: shouldUpgrade ? earnedTier : currentProgress.currentTier,
+          upgradedAt: shouldUpgrade ? new Date().toISOString() : currentProgress.upgradedAt,
+        },
+      },
+    };
+
+    saveProgress(newProgress);
+
+    if (shouldUpgrade) {
+      console.log(`[Pantheon] Arena ${arenaTier} - Upgraded souvenir to ${earnedTier}!`);
+      return earnedTier;
+    } else {
+      console.log(`[Pantheon] Arena ${arenaTier} - Souvenir tier unchanged (${currentProgress.currentTier})`);
+      return null;
+    }
+  }, [progress, saveProgress]);
+
   // Mark the Pantheon as visited
   const markVisited = useCallback(() => {
     const newProgress: PantheonProgress = {
@@ -271,6 +338,7 @@ export function usePantheonProgress(): UsePantheonProgressReturn {
     unlockSouvenir,
     upgradeSouvenir,
     recordExamScore,
+    recordArenaScore,
     markVisited,
   };
 }

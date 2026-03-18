@@ -4,6 +4,7 @@ import { ChevronRight, Trophy, Flame, TrendingUp, Clock, Globe, Map, ArrowRight 
 import { useApp } from '@/context/AppContext';
 import { arcs, getArcById } from '@/data/journeyData';
 import { getEraImageUrl } from '@/data/historicalEras';
+import { subscribeToJourneyUIAssets, FirestoreJourneyUIAssets } from '@/lib/firestore';
 
 // Load journey thumbnails from localStorage (synced with admin)
 const JOURNEY_THUMBNAILS_KEY = 'hb_journey_thumbnails';
@@ -101,6 +102,7 @@ export function JourneyTab() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [currentChapterIndex, setCurrentChapterIndex] = useState(0);
   const [journeyThumbnails, setJourneyThumbnails] = useState<Record<string, string>>({});
+  const [journeyUIAssets, setJourneyUIAssets] = useState<FirestoreJourneyUIAssets | null>(null);
 
   const selectedArc = selectedArcId ? getArcById(selectedArcId) : null;
 
@@ -125,6 +127,14 @@ export function JourneyTab() {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('journey-thumbnails-updated', handleThumbnailsUpdated as EventListener);
     };
+  }, []);
+
+  // Subscribe to Firebase Journey UI Assets
+  useEffect(() => {
+    const unsubscribe = subscribeToJourneyUIAssets((assets) => {
+      setJourneyUIAssets(assets);
+    });
+    return () => unsubscribe();
   }, []);
 
   // Lucky dice state
@@ -639,12 +649,27 @@ export function JourneyTab() {
                 }}
                 className="w-full relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-900/80 via-red-900/60 to-slate-900 border border-amber-500/30 p-4 sm:p-5 text-left group"
               >
+                {/* Custom background image from Firebase */}
+                {journeyUIAssets?.featuredJourneyImage && (
+                  <div className="absolute inset-0">
+                    <img
+                      src={journeyUIAssets.featuredJourneyImage}
+                      alt=""
+                      className="w-full h-full object-cover opacity-40"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/70 to-transparent" />
+                  </div>
+                )}
                 {/* Background glow effect */}
                 <div className="absolute inset-0 bg-gradient-to-r from-amber-500/10 to-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
 
                 <div className="relative z-10">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-2xl sm:text-3xl">🪖</span>
+                    {journeyUIAssets?.featuredJourneyIcon ? (
+                      <img src={journeyUIAssets.featuredJourneyIcon} alt="" className="w-7 h-7 sm:w-8 sm:h-8 object-contain" />
+                    ) : (
+                      <span className="text-2xl sm:text-3xl">🪖</span>
+                    )}
                     <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-amber-400">Featured Journey</span>
                   </div>
 
@@ -673,19 +698,30 @@ export function JourneyTab() {
             </motion.div>
 
             {/* Progress Overview Section */}
-            <ProgressOverview user={user} completedNodesCount={completedJourneyNodes.length} />
+            <ProgressOverview user={user} completedNodesCount={completedJourneyNodes.length} rankBadgeImages={journeyUIAssets?.rankBadgeImages} />
 
             {/* Pantheon - Souvenir Collection */}
             <motion.button
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               onClick={() => setView('pantheon')}
-              className="w-full mb-4 p-3 sm:p-4 rounded-xl bg-gradient-to-r from-slate-800/80 to-slate-900/60 border border-white/10 hover:border-amber-500/30 transition-all group"
+              className="w-full mb-4 p-3 sm:p-4 rounded-xl bg-gradient-to-r from-slate-800/80 to-slate-900/60 border border-white/10 hover:border-amber-500/30 transition-all group relative overflow-hidden"
             >
-              <div className="flex items-center justify-between">
+              {/* Custom background image */}
+              {journeyUIAssets?.pantheonImage && (
+                <div className="absolute inset-0">
+                  <img src={journeyUIAssets.pantheonImage} alt="" className="w-full h-full object-cover opacity-20" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-slate-900/90 to-slate-900/70" />
+                </div>
+              )}
+              <div className="flex items-center justify-between relative z-10">
                 <div className="flex items-center gap-2 sm:gap-3">
-                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-amber-500/20 to-slate-700/50 flex items-center justify-center text-xl sm:text-2xl">
-                    🪖
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-amber-500/20 to-slate-700/50 flex items-center justify-center text-xl sm:text-2xl overflow-hidden">
+                    {journeyUIAssets?.pantheonIcon ? (
+                      <img src={journeyUIAssets.pantheonIcon} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      '🪖'
+                    )}
                   </div>
                   <div className="text-left">
                     <h3 className="font-bold text-sm sm:text-base text-white">The Pantheon</h3>
@@ -701,12 +737,23 @@ export function JourneyTab() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               onClick={() => setView('trophy-room')}
-              className="w-full mb-6 p-4 rounded-xl bg-gradient-to-r from-amber-500/10 to-yellow-500/5 border border-amber-500/20 hover:border-amber-500/40 transition-all group"
+              className="w-full mb-6 p-4 rounded-xl bg-gradient-to-r from-amber-500/10 to-yellow-500/5 border border-amber-500/20 hover:border-amber-500/40 transition-all group relative overflow-hidden"
             >
-              <div className="flex items-center justify-between">
+              {/* Custom background image */}
+              {journeyUIAssets?.trophyRoomImage && (
+                <div className="absolute inset-0">
+                  <img src={journeyUIAssets.trophyRoomImage} alt="" className="w-full h-full object-cover opacity-20" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-slate-900/90 to-slate-900/70" />
+                </div>
+              )}
+              <div className="flex items-center justify-between relative z-10">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
-                    <Trophy size={20} className="text-amber-400" />
+                  <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center overflow-hidden">
+                    {journeyUIAssets?.trophyRoomIcon ? (
+                      <img src={journeyUIAssets.trophyRoomIcon} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <Trophy size={20} className="text-amber-400" />
+                    )}
                   </div>
                   <div className="text-left">
                     <h3 className="font-bold text-white">Trophy Room</h3>
@@ -1069,6 +1116,7 @@ function ArcCard({ arc, onSelect, isContinue, isRecent, isHighlighted, thumbnail
 interface ProgressOverviewProps {
   user: { xp: number; streak: number };
   completedNodesCount: number;
+  rankBadgeImages?: Record<string, string>;
 }
 
 const tierColors: Record<string, string> = {
@@ -1080,7 +1128,7 @@ const tierColors: Record<string, string> = {
   legendary: 'from-amber-400 via-amber-200 to-amber-400',
 };
 
-function ProgressOverview({ user, completedNodesCount }: ProgressOverviewProps) {
+function ProgressOverview({ user, completedNodesCount, rankBadgeImages }: ProgressOverviewProps) {
   const rankInfo = getRankInfo(user.xp);
   const nextRank = getNextRankXP(user.xp);
   const progressToNext = nextRank.next
@@ -1090,6 +1138,9 @@ function ProgressOverview({ user, completedNodesCount }: ProgressOverviewProps) 
 
   // Count arcs with content available
   const arcsWithContent = arcs.filter(arc => arc.chapters.length > 0).length;
+
+  // Get custom rank badge image if available
+  const customRankBadge = rankBadgeImages?.[rankInfo.tier];
 
   return (
     <motion.div
@@ -1113,8 +1164,12 @@ function ProgressOverview({ user, completedNodesCount }: ProgressOverviewProps) 
       <div className="p-3 sm:p-4 rounded-2xl bg-card border border-border mb-4">
         <div className="flex items-center gap-3 sm:gap-4 mb-3">
           {/* Rank Badge */}
-          <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-xl bg-gradient-to-br ${tierColors[rankInfo.tier]} flex items-center justify-center`}>
-            <span className="text-2xl sm:text-3xl">{rankInfo.icon}</span>
+          <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-xl bg-gradient-to-br ${tierColors[rankInfo.tier]} flex items-center justify-center overflow-hidden`}>
+            {customRankBadge ? (
+              <img src={customRankBadge} alt={rankInfo.rank} className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-2xl sm:text-3xl">{rankInfo.icon}</span>
+            )}
           </div>
 
           {/* Rank Info */}

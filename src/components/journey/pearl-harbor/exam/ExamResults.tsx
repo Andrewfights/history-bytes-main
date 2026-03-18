@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Award, Star, RotateCcw, BookOpen, ChevronRight, Trophy } from 'lucide-react';
+import { Award, Star, RotateCcw, BookOpen, ChevronRight, Trophy, Crown, Swords } from 'lucide-react';
 import type { ExamScoreResult, ExamAnswer, ExamQuestion } from './types';
 import type { WW2Host, SouvenirTier } from '../../../../types';
 import {
@@ -23,6 +23,7 @@ interface ExamResultsProps {
   onComplete: (xp: number) => void;
   onRetry: () => void;
   onReviewLessons: () => void;
+  onEnterArena?: () => void;
 }
 
 export function ExamResults({
@@ -33,6 +34,7 @@ export function ExamResults({
   onComplete,
   onRetry,
   onReviewLessons,
+  onEnterArena,
 }: ExamResultsProps) {
   const tierConfig = FINAL_EXAM_SCORING[result.tier];
   const hostMessage = EXAM_HOST_DIALOGUES.results[result.tier];
@@ -262,6 +264,47 @@ export function ExamResults({
           </AnimatePresence>
         </div>
       </motion.div>
+
+      {/* THE ARENA - Elite Challenge Invitation (only for passing students) */}
+      {result.tier !== 'retry' && onEnterArena && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.8 }}
+          className="mx-4 mb-6"
+        >
+          <button
+            onClick={onEnterArena}
+            className="w-full relative overflow-hidden rounded-xl bg-gradient-to-br from-slate-800 via-slate-900 to-black border border-amber-500/30 p-4 text-left group hover:border-amber-500/50 transition-all"
+          >
+            {/* Animated glow effect */}
+            <div className="absolute inset-0 bg-gradient-to-r from-amber-500/0 via-amber-500/10 to-amber-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+
+            <div className="relative flex items-center gap-4">
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-amber-500/20 to-red-500/20 border border-amber-500/30 flex items-center justify-center">
+                <Crown size={28} className="text-amber-400" />
+              </div>
+
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="font-editorial text-lg font-bold text-white">THE ARENA</h3>
+                  <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-400 rounded">Elite</span>
+                </div>
+                <p className="text-white/60 text-xs mb-2">
+                  15 questions. Three tiers. Risk it all for Rhodes Scholar status.
+                </p>
+                <div className="flex items-center gap-3 text-[10px] text-white/40">
+                  <span>+200 to +1,000 XP</span>
+                  <span>•</span>
+                  <span>Leaderboard Rankings</span>
+                </div>
+              </div>
+
+              <ChevronRight size={20} className="text-amber-400 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </button>
+        </motion.div>
+      )}
 
       {/* Actions */}
       <motion.div

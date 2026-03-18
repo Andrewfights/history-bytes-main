@@ -24,6 +24,8 @@ import {
   getTierForIndex,
   EXAM_HOST_DIALOGUES,
 } from './examConfig';
+import { PearlHarborArena } from '../arena';
+import type { ArenaRecognition } from '@/data/arenaQuestions';
 
 export function FinalExamBeat({
   host,
@@ -38,6 +40,10 @@ export function FinalExamBeat({
   const [shuffledQuestions, setShuffledQuestions] = useState<ExamQuestion[]>([]);
   const [currentTier, setCurrentTier] = useState<ExamDifficulty>('easy');
   const [showingTierTransition, setShowingTierTransition] = useState(false);
+
+  // Arena state
+  const [showArena, setShowArena] = useState(false);
+  const [bankedArenaTier, setBankedArenaTier] = useState<ArenaRecognition | null>(null);
 
   // Initialize shuffled questions
   useEffect(() => {
@@ -121,6 +127,32 @@ export function FinalExamBeat({
     onBack();
   }, [onBack]);
 
+  // Handle entering the Arena
+  const handleEnterArena = useCallback(() => {
+    setShowArena(true);
+  }, []);
+
+  // Handle Arena completion
+  const handleArenaComplete = useCallback(
+    (xp: number, tier: ArenaRecognition) => {
+      setBankedArenaTier(tier);
+      setShowArena(false);
+      // Complete with combined XP (exam + arena bonus)
+      onComplete(examResult.xp + xp);
+    },
+    [examResult.xp, onComplete]
+  );
+
+  // Handle Arena decline
+  const handleArenaDecline = useCallback(() => {
+    setShowArena(false);
+  }, []);
+
+  // Handle Arena back (exit during questions)
+  const handleArenaBack = useCallback(() => {
+    setShowArena(false);
+  }, []);
+
   // Calculate score for results
   const examResult = calculateExamScore(answers, shuffledQuestions);
 
@@ -135,6 +167,19 @@ export function FinalExamBeat({
         return EXAM_HOST_DIALOGUES.hardTierIntro;
     }
   };
+
+  // Show Arena if active
+  if (showArena) {
+    return (
+      <PearlHarborArena
+        host={host}
+        onComplete={handleArenaComplete}
+        onDecline={handleArenaDecline}
+        onBack={handleArenaBack}
+        bankedTier={bankedArenaTier}
+      />
+    );
+  }
 
   return (
     <div className="flex flex-col h-full bg-slate-950">
@@ -351,6 +396,7 @@ export function FinalExamBeat({
                 onComplete={handleComplete}
                 onRetry={handleRetry}
                 onReviewLessons={handleReviewLessons}
+                onEnterArena={handleEnterArena}
               />
             </motion.div>
           )}

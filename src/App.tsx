@@ -29,6 +29,8 @@ const JourneyManagement = lazy(() => import('./components/admin/journey-manageme
 const PantheonEditor = lazy(() => import('./components/admin/PantheonEditor'));
 const EraTileEditor = lazy(() => import('./components/admin/EraTileEditor'));
 const MapEditor = lazy(() => import('./components/admin/MapEditor'));
+const JourneyUIEditor = lazy(() => import('./components/admin/JourneyUIEditor'));
+const WW2ModuleEditor = lazy(() => import('./components/admin/WW2ModuleEditor'));
 
 const queryClient = new QueryClient();
 
@@ -81,6 +83,8 @@ const App = () => (
                 <Route path="pearl-harbor" element={<Suspense fallback={<AdminLoadingFallback />}><PearlHarborEditor /></Suspense>} />
                 <Route path="trivia" element={<Suspense fallback={<AdminLoadingFallback />}><TriviaEditor /></Suspense>} />
                 <Route path="pantheon" element={<Suspense fallback={<AdminLoadingFallback />}><PantheonEditor /></Suspense>} />
+                <Route path="journey-ui" element={<Suspense fallback={<AdminLoadingFallback />}><JourneyUIEditor /></Suspense>} />
+                <Route path="ww2-module" element={<Suspense fallback={<AdminLoadingFallback />}><WW2ModuleEditor /></Suspense>} />
               </Route>
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
