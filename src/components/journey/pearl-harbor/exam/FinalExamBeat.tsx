@@ -127,6 +127,9 @@ export function FinalExamBeat({
     onBack();
   }, [onBack]);
 
+  // Calculate score for results - must be before callbacks that use it
+  const examResult = calculateExamScore(answers, shuffledQuestions);
+
   // Handle entering the Arena
   const handleEnterArena = useCallback(() => {
     setShowArena(true);
@@ -152,9 +155,6 @@ export function FinalExamBeat({
   const handleArenaBack = useCallback(() => {
     setShowArena(false);
   }, []);
-
-  // Calculate score for results
-  const examResult = calculateExamScore(answers, shuffledQuestions);
 
   // Get tier intro message
   const getTierIntro = (tier: ExamDifficulty) => {
