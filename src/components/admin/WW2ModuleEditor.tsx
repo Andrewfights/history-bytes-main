@@ -35,6 +35,7 @@ import {
   Save,
   Loader2,
   Check,
+  Music,
 } from 'lucide-react';
 import { PEARL_HARBOR_LESSONS, TOTAL_XP, FINAL_EXAM_SCORING } from '@/data/pearlHarborLessons';
 import { ARENA_QUESTIONS, ARENA_TIERS, RECOGNITION_TIERS } from '@/data/arenaQuestions';
@@ -241,6 +242,124 @@ const BEAT_CONTENT_MAP: Record<string, BeatContent> = {
   'ph-beat-9': BEAT_9_CONTENT,
   'ph-beat-10': BEAT_10_CONTENT,
 };
+
+// ============================================================
+// FINAL EXAM ASSETS
+// ============================================================
+interface ExamAsset {
+  key: string;
+  questionNumber: number;
+  topic: string;
+  type: 'image' | 'audio' | 'video';
+  description: string;
+}
+
+const FINAL_EXAM_ASSETS: ExamAsset[] = [
+  {
+    key: 'exam-q3-fdr-speech',
+    questionNumber: 3,
+    topic: 'FDR "Infamy" Speech',
+    type: 'audio',
+    description: 'FDR\'s actual "Day of Infamy" speech audio clip',
+  },
+  {
+    key: 'exam-q9-radar-station',
+    questionNumber: 9,
+    topic: 'Radar Warning Ignored',
+    type: 'image',
+    description: 'Opana Point radar station photo',
+  },
+  {
+    key: 'exam-q10-newspaper-before',
+    questionNumber: 10,
+    topic: 'Public Opinion - Before',
+    type: 'image',
+    description: 'Newspaper headlines showing isolationist sentiment (pre-attack)',
+  },
+  {
+    key: 'exam-q10-newspaper-after',
+    questionNumber: 10,
+    topic: 'Public Opinion - After',
+    type: 'image',
+    description: 'Newspaper headlines showing war support (post-attack)',
+  },
+];
+
+// ============================================================
+// ARENA ASSETS
+// ============================================================
+const ARENA_ASSETS: ExamAsset[] = [
+  {
+    key: 'arena-q1-harbor-entrance',
+    questionNumber: 1,
+    topic: 'USS Ward Engagement',
+    type: 'image',
+    description: 'Pre-dawn harbor entrance illustration with USS Ward silhouette',
+  },
+  {
+    key: 'arena-q2-bomb-plot',
+    questionNumber: 2,
+    topic: 'Bomb Plot Message',
+    type: 'image',
+    description: 'Declassified intelligence document with Pearl Harbor grid overlay',
+  },
+  {
+    key: 'arena-q3-red-hill',
+    questionNumber: 3,
+    topic: 'Red Hill Underground',
+    type: 'image',
+    description: 'Engineering cross-section of underground fuel tanks',
+  },
+  {
+    key: 'arena-q5-carrier-silhouettes',
+    questionNumber: 5,
+    topic: 'Carrier Divisions',
+    type: 'image',
+    description: 'Six carrier silhouettes (Akagi, Kaga, Soryu, Hiryu, Shokaku, Zuikaku)',
+  },
+  {
+    key: 'arena-q7-pacific-map',
+    questionNumber: 7,
+    topic: 'Kido Butai Route',
+    type: 'image',
+    description: 'Pacific Ocean map showing route from Hitokappu Bay to Pearl Harbor',
+  },
+  {
+    key: 'arena-q9-radio-static',
+    questionNumber: 9,
+    topic: 'KGMB Navigation',
+    type: 'audio',
+    description: 'Vintage radio static with faint Hawaiian music (KGMB recreation)',
+  },
+  {
+    key: 'arena-q10-nisei-soldier',
+    questionNumber: 10,
+    topic: '442nd Regiment',
+    type: 'image',
+    description: 'Nisei soldier portrait in uniform with military decorations',
+  },
+  {
+    key: 'arena-q12-battleship-row',
+    questionNumber: 12,
+    topic: 'Battleship Row F4',
+    type: 'image',
+    description: 'Mooring diagram showing F1-F6 berths with ship positions',
+  },
+  {
+    key: 'arena-q13-book-cover',
+    questionNumber: 13,
+    topic: 'Prange/Fuchida Problem',
+    type: 'image',
+    description: '"At Dawn We Slept" book cover image',
+  },
+  {
+    key: 'arena-q15-logbook',
+    questionNumber: 15,
+    topic: 'PHNY Logbook',
+    type: 'image',
+    description: 'Pearl Harbor Navy Yard logbook (weathered document image)',
+  },
+];
 
 // ============================================================
 // PREVIEW MODAL COMPONENT
@@ -1334,6 +1453,269 @@ function ArenaCard({
 }
 
 // ============================================================
+// EXAM/ARENA ASSETS CARD
+// ============================================================
+
+function ExamAssetsCard({
+  title,
+  subtitle,
+  icon,
+  assetType,
+  assets,
+  isExpanded,
+  onToggle,
+  uploadedMedia,
+  onUpload,
+  onRemove,
+}: {
+  title: string;
+  subtitle: string;
+  icon: string;
+  assetType: string;
+  assets: ExamAsset[];
+  isExpanded: boolean;
+  onToggle: () => void;
+  uploadedMedia: Record<string, string>;
+  onUpload: (beatId: string, mediaKey: string, file: File) => Promise<void>;
+  onRemove: (beatId: string, mediaKey: string) => Promise<void>;
+}) {
+  const [uploadingKey, setUploadingKey] = useState<string | null>(null);
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, assetKey: string) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingKey(assetKey);
+    try {
+      await onUpload(assetType, assetKey, file);
+    } finally {
+      setUploadingKey(null);
+      if (e.target) e.target.value = '';
+    }
+  };
+
+  const imageAssets = assets.filter(a => a.type === 'image');
+  const audioAssets = assets.filter(a => a.type === 'audio');
+  const uploadedCount = Object.keys(uploadedMedia).filter(k => uploadedMedia[k]).length;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="rounded-xl border overflow-hidden bg-slate-800/50 border-slate-700"
+    >
+      {/* Header */}
+      <button
+        onClick={onToggle}
+        className="w-full p-4 flex items-center gap-4 text-left hover:bg-white/5 transition-colors"
+      >
+        <div className="w-12 h-12 rounded-xl bg-slate-700 flex items-center justify-center text-2xl">
+          {icon}
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase rounded">
+              Assets
+            </span>
+            {uploadedCount > 0 && (
+              <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-[10px] font-bold rounded">
+                {uploadedCount}/{assets.length} uploaded
+              </span>
+            )}
+          </div>
+          <h3 className="text-white font-bold">{title}</h3>
+          <p className="text-slate-400 text-sm">{subtitle}</p>
+        </div>
+
+        <div className="hidden md:flex items-center gap-4 text-sm">
+          <div className="flex items-center gap-1 text-slate-400">
+            <ImageIcon size={14} />
+            <span>{imageAssets.length} images</span>
+          </div>
+          {audioAssets.length > 0 && (
+            <div className="flex items-center gap-1 text-slate-400">
+              <Music size={14} />
+              <span>{audioAssets.length} audio</span>
+            </div>
+          )}
+        </div>
+
+        <div className="text-slate-400">
+          {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
+        </div>
+      </button>
+
+      {/* Expanded Content */}
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="p-4 pt-0 border-t border-slate-700/50 space-y-4">
+              {/* Image Assets */}
+              {imageAssets.length > 0 && (
+                <div>
+                  <h4 className="text-white/60 text-xs uppercase tracking-wide mb-3 flex items-center gap-2">
+                    <ImageIcon size={14} />
+                    Image Assets ({imageAssets.length})
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {imageAssets.map((asset) => {
+                      const isUploading = uploadingKey === asset.key;
+                      const currentUrl = uploadedMedia[asset.key];
+
+                      return (
+                        <div key={asset.key} className="bg-slate-800/80 rounded-lg p-3 border border-slate-700/50">
+                          <div className="flex items-start gap-3">
+                            {/* Preview */}
+                            <div className="w-16 h-16 rounded-lg bg-slate-700 flex items-center justify-center overflow-hidden shrink-0">
+                              {currentUrl ? (
+                                <img src={currentUrl} alt={asset.topic} className="w-full h-full object-cover" />
+                              ) : (
+                                <ImageIcon size={24} className="text-slate-500" />
+                              )}
+                            </div>
+
+                            {/* Info */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-amber-400 text-xs font-mono">Q{asset.questionNumber}</span>
+                                <span className="text-white text-sm font-medium truncate">{asset.topic}</span>
+                              </div>
+                              <p className="text-slate-400 text-xs mb-2 line-clamp-2">{asset.description}</p>
+
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => fileInputRefs.current[asset.key]?.click()}
+                                  disabled={isUploading}
+                                  className="px-2 py-1 bg-slate-600 hover:bg-slate-500 text-white text-xs rounded flex items-center gap-1 disabled:opacity-50"
+                                >
+                                  {isUploading ? (
+                                    <Loader2 size={12} className="animate-spin" />
+                                  ) : (
+                                    <Upload size={12} />
+                                  )}
+                                  {currentUrl ? 'Replace' : 'Upload'}
+                                </button>
+                                {currentUrl && (
+                                  <button
+                                    onClick={() => onRemove(assetType, asset.key)}
+                                    className="px-2 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 text-xs rounded flex items-center gap-1"
+                                  >
+                                    <Trash2 size={12} />
+                                    Remove
+                                  </button>
+                                )}
+                                <input
+                                  type="file"
+                                  ref={(el) => { fileInputRefs.current[asset.key] = el; }}
+                                  onChange={(e) => handleFileChange(e, asset.key)}
+                                  accept="image/*"
+                                  className="hidden"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Audio Assets */}
+              {audioAssets.length > 0 && (
+                <div>
+                  <h4 className="text-white/60 text-xs uppercase tracking-wide mb-3 flex items-center gap-2">
+                    <Music size={14} />
+                    Audio Assets ({audioAssets.length})
+                  </h4>
+                  <div className="space-y-3">
+                    {audioAssets.map((asset) => {
+                      const isUploading = uploadingKey === asset.key;
+                      const currentUrl = uploadedMedia[asset.key];
+
+                      return (
+                        <div key={asset.key} className="bg-slate-800/80 rounded-lg p-3 border border-slate-700/50">
+                          <div className="flex items-center gap-3">
+                            {/* Icon */}
+                            <div className="w-12 h-12 rounded-lg bg-slate-700 flex items-center justify-center shrink-0">
+                              <Music size={20} className={currentUrl ? 'text-emerald-400' : 'text-slate-500'} />
+                            </div>
+
+                            {/* Info */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-amber-400 text-xs font-mono">Q{asset.questionNumber}</span>
+                                <span className="text-white text-sm font-medium">{asset.topic}</span>
+                                {currentUrl && (
+                                  <span className="px-1.5 py-0.5 bg-emerald-500/20 text-emerald-400 text-[10px] rounded">
+                                    Uploaded
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-slate-400 text-xs mb-2">{asset.description}</p>
+
+                              {/* Audio Player */}
+                              {currentUrl && (
+                                <audio controls className="w-full h-8 mb-2">
+                                  <source src={currentUrl} />
+                                </audio>
+                              )}
+
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => fileInputRefs.current[asset.key]?.click()}
+                                  disabled={isUploading}
+                                  className="px-2 py-1 bg-slate-600 hover:bg-slate-500 text-white text-xs rounded flex items-center gap-1 disabled:opacity-50"
+                                >
+                                  {isUploading ? (
+                                    <Loader2 size={12} className="animate-spin" />
+                                  ) : (
+                                    <Upload size={12} />
+                                  )}
+                                  {currentUrl ? 'Replace' : 'Upload'}
+                                </button>
+                                {currentUrl && (
+                                  <button
+                                    onClick={() => onRemove(assetType, asset.key)}
+                                    className="px-2 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 text-xs rounded flex items-center gap-1"
+                                  >
+                                    <Trash2 size={12} />
+                                    Remove
+                                  </button>
+                                )}
+                                <input
+                                  type="file"
+                                  ref={(el) => { fileInputRefs.current[asset.key] = el; }}
+                                  onChange={(e) => handleFileChange(e, asset.key)}
+                                  accept="audio/*"
+                                  className="hidden"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}
+
+// ============================================================
 // MAIN COMPONENT
 // ============================================================
 
@@ -1532,6 +1914,34 @@ export function WW2ModuleEditor() {
           isExpanded={expandedSections.has('arena')}
           onToggle={() => toggleSection('arena')}
           onPreview={() => handlePreview('arena')}
+        />
+
+        {/* Final Exam Assets Card */}
+        <ExamAssetsCard
+          title="Final Exam Assets"
+          subtitle="Media for the 15-question Final Exam"
+          icon="📋"
+          assetType="final-exam"
+          assets={FINAL_EXAM_ASSETS}
+          isExpanded={expandedSections.has('final-exam-assets')}
+          onToggle={() => toggleSection('final-exam-assets')}
+          uploadedMedia={getUploadedMedia('final-exam')}
+          onUpload={handleUpload}
+          onRemove={handleRemove}
+        />
+
+        {/* Arena Assets Card */}
+        <ExamAssetsCard
+          title="Arena Assets"
+          subtitle="Media for the 15-question Elite Arena"
+          icon="🏆"
+          assetType="arena"
+          assets={ARENA_ASSETS}
+          isExpanded={expandedSections.has('arena-assets')}
+          onToggle={() => toggleSection('arena-assets')}
+          uploadedMedia={getUploadedMedia('arena')}
+          onUpload={handleUpload}
+          onRemove={handleRemove}
         />
       </div>
 
