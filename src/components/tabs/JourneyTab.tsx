@@ -183,6 +183,7 @@ export function JourneyTab() {
   const [showWW2HostGreeting, setShowWW2HostGreeting] = useState(false);
   const [showWW2PathSelection, setShowWW2PathSelection] = useState(false);
   const [showWW2WelcomeVideo, setShowWW2WelcomeVideo] = useState(false);
+  const [welcomeVideoEnded, setWelcomeVideoEnded] = useState(false);
   const [pendingHostId, setPendingHostId] = useState<string | null>(null);
 
   // Note: Auto-resume of Ghost Army disabled - user should explicitly select it
@@ -616,15 +617,33 @@ export function JourneyTab() {
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-50 bg-black flex flex-col"
         >
-          {/* Video container */}
+          {/* Video or Host Profile */}
           <div className="flex-1 flex items-center justify-center">
-            <video
-              src={host.welcomeVideoUrl}
-              autoPlay
-              playsInline
-              loop
-              className="w-full h-full object-contain"
-            />
+            {!welcomeVideoEnded ? (
+              <video
+                src={host.welcomeVideoUrl}
+                autoPlay
+                playsInline
+                onEnded={() => setWelcomeVideoEnded(true)}
+                className="w-full h-full object-contain"
+              />
+            ) : (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="flex flex-col items-center"
+              >
+                {/* Host Profile Picture */}
+                <div
+                  className="w-32 h-32 rounded-full flex items-center justify-center text-6xl shadow-2xl mb-4"
+                  style={{ backgroundColor: host.primaryColor }}
+                >
+                  {host.avatar}
+                </div>
+                <h2 className="text-white text-2xl font-bold">{host.name}</h2>
+                <p className="text-white/60 text-sm mt-1">Your Guide</p>
+              </motion.div>
+            )}
           </div>
 
           {/* ENTER PEARL HARBOR button - always visible below video */}
@@ -633,7 +652,10 @@ export function JourneyTab() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
-              onClick={handleWW2WelcomeVideoEnd}
+              onClick={() => {
+                setWelcomeVideoEnded(false); // Reset for next time
+                handleWW2WelcomeVideoEnd();
+              }}
               className="w-full max-w-md mx-auto block px-8 py-4 rounded-xl bg-gradient-to-r from-red-600 to-red-700 text-white font-bold text-lg shadow-lg shadow-red-500/30 hover:shadow-red-500/50 hover:from-red-500 hover:to-red-600 transition-all"
             >
               ENTER PEARL HARBOR
