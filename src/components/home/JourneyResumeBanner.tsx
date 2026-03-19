@@ -60,18 +60,28 @@ export function JourneyResumeBanner({ onResume }: JourneyResumeBannerProps) {
           initial={{ opacity: 0, y: -20, height: 0 }}
           animate={{ opacity: 1, y: 0, height: 'auto' }}
           exit={{ opacity: 0, y: -20, height: 0 }}
-          className="w-full relative overflow-hidden rounded-lg bg-gradient-to-r from-amber-500/20 via-amber-400/10 to-transparent border border-amber-400/30 mb-4"
+          className="w-full relative overflow-hidden rounded-xl border border-amber-400/40 mb-4"
         >
-          <div className="flex items-center justify-between px-4 py-3">
+          {/* Pearl Harbor background artwork */}
+          <div className="absolute inset-0">
+            <img
+              src="/assets/ww2-battles/pearl-harbor.png"
+              alt=""
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-black/40" />
+          </div>
+
+          <div className="relative flex items-center justify-between px-4 py-3">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-amber-400/20 flex items-center justify-center">
                 <Zap size={16} className="text-amber-400" />
               </div>
               <div className="text-left">
-                <p className="text-sm font-semibold text-foreground">
+                <p className="text-sm font-semibold text-white">
                   Continue: Pearl Harbor
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-white/70">
                   {completedLessons}/{totalLessons} lessons complete
                 </p>
               </div>
@@ -81,16 +91,16 @@ export function JourneyResumeBanner({ onResume }: JourneyResumeBannerProps) {
               <ChevronRight size={18} className="text-amber-400" />
               <button
                 onClick={handleDismiss}
-                className="p-1.5 rounded-full hover:bg-white/10 transition-colors"
+                className="p-1.5 rounded-full hover:bg-white/20 transition-colors"
                 aria-label="Dismiss"
               >
-                <X size={14} className="text-muted-foreground" />
+                <X size={14} className="text-white/60" />
               </button>
             </div>
           </div>
 
           {/* Progress bar at bottom */}
-          <div className="h-1 bg-amber-400/10">
+          <div className="relative h-1 bg-black/30">
             <motion.div
               className="h-full bg-amber-400"
               initial={{ width: 0 }}

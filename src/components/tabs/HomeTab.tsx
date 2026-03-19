@@ -116,7 +116,6 @@ export function HomeTab({ onStartSession, onPlayDaily, onSelectTopic }: HomeTabP
             xp: totalXP,
           }}
           onStart={handleEnterJourney}
-          overrideImageUrl={journeyUIAssets?.featuredJourneyImage || '/assets/ww2-battles/pearl-harbor.png'}
         />
       )}
 
