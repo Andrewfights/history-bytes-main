@@ -649,17 +649,15 @@ export function JourneyTab() {
                 }}
                 className="w-full relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-900/80 via-red-900/60 to-slate-900 border border-amber-500/30 p-4 sm:p-5 text-left group"
               >
-                {/* Custom background image from Firebase */}
-                {journeyUIAssets?.featuredJourneyImage && (
-                  <div className="absolute inset-0">
-                    <img
-                      src={journeyUIAssets.featuredJourneyImage}
-                      alt=""
-                      className="w-full h-full object-cover opacity-40"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/70 to-transparent" />
-                  </div>
-                )}
+                {/* Background image - Firebase upload or default battle artwork */}
+                <div className="absolute inset-0">
+                  <img
+                    src={journeyUIAssets?.featuredJourneyImage || '/assets/ww2-battles/pearl-harbor.png'}
+                    alt=""
+                    className="w-full h-full object-cover opacity-50"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/60 to-slate-900/30" />
+                </div>
                 {/* Background glow effect */}
                 <div className="absolute inset-0 bg-gradient-to-r from-amber-500/10 to-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
 
