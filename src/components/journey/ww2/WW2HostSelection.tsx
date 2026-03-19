@@ -242,7 +242,6 @@ export function WW2HostSelection({ onSelectHost, onClose }: WW2HostSelectionProp
                       isActive={currentIndex === index}
                       isSelected={currentIndex === index}
                       onClick={() => handleCardClick(index)}
-                      onEnterPearlHarbor={() => onSelectHost(host.id)}
                     />
                   </CarouselItem>
                 ))}
@@ -285,17 +284,13 @@ interface HostCarouselCardProps {
   isActive: boolean;
   isSelected: boolean;
   onClick: () => void;
-  onEnterPearlHarbor: () => void;
 }
 
-function HostCarouselCard({ host, isActive, isSelected, onClick, onEnterPearlHarbor }: HostCarouselCardProps) {
+function HostCarouselCard({ host, isActive, isSelected, onClick }: HostCarouselCardProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isMuted, setIsMuted] = useState(false); // Default volume ON
   const [videoLoaded, setVideoLoaded] = useState(false);
   const [videoEnded, setVideoEnded] = useState(false);
-  const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
-  const [showEnterButton, setShowEnterButton] = useState(false);
-  const [fadeSkipButton, setFadeSkipButton] = useState(false);
 
   // Auto-play video when active, pause and reset when not
   useEffect(() => {
@@ -303,9 +298,6 @@ function HostCarouselCard({ host, isActive, isSelected, onClick, onEnterPearlHar
 
     if (isActive && host.introVideoUrl) {
       setVideoEnded(false);
-      setShowEnterButton(false);
-      setFadeSkipButton(false);
-      setTimeRemaining(null);
       videoRef.current.currentTime = 0;
       videoRef.current.play().catch(() => {
         // Auto-play blocked, that's ok
@@ -314,35 +306,8 @@ function HostCarouselCard({ host, isActive, isSelected, onClick, onEnterPearlHar
       videoRef.current.pause();
       videoRef.current.currentTime = 0;
       setVideoEnded(false);
-      setShowEnterButton(false);
-      setFadeSkipButton(false);
-      setTimeRemaining(null);
     }
   }, [isActive, host.introVideoUrl]);
-
-  // Track video time to show/hide buttons
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video || !isActive) return;
-
-    const handleTimeUpdate = () => {
-      const remaining = video.duration - video.currentTime;
-      setTimeRemaining(remaining);
-
-      // Fade skip button with 3 seconds left
-      if (remaining <= 3 && !fadeSkipButton) {
-        setFadeSkipButton(true);
-      }
-
-      // Show "ENTER PEARL HARBOR" button 2 seconds before end
-      if (remaining <= 2 && !showEnterButton) {
-        setShowEnterButton(true);
-      }
-    };
-
-    video.addEventListener('timeupdate', handleTimeUpdate);
-    return () => video.removeEventListener('timeupdate', handleTimeUpdate);
-  }, [isActive, fadeSkipButton, showEnterButton]);
 
   const toggleMute = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -399,44 +364,6 @@ function HostCarouselCard({ host, isActive, isSelected, onClick, onEnterPearlHar
             >
               {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
             </button>
-
-            {/* Skip Button - fades out with 3 seconds left */}
-            <AnimatePresence>
-              {!fadeSkipButton && !showEnterButton && (
-                <motion.button
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.5 }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onEnterPearlHarbor();
-                  }}
-                  className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 px-4 py-2 rounded-full bg-white/20 backdrop-blur-sm text-white/70 text-sm hover:bg-white/30 hover:text-white transition-colors"
-                >
-                  Skip Intro
-                </motion.button>
-              )}
-            </AnimatePresence>
-
-            {/* ENTER PEARL HARBOR Button - appears 2 seconds before end */}
-            <AnimatePresence>
-              {showEnterButton && (
-                <motion.button
-                  initial={{ opacity: 0, y: 20, scale: 0.9 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.4, ease: 'easeOut' }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onEnterPearlHarbor();
-                  }}
-                  className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-black font-bold text-base shadow-lg shadow-amber-500/30 hover:from-amber-400 hover:to-amber-500 transition-all hover:scale-105 active:scale-95"
-                >
-                  ENTER PEARL HARBOR
-                </motion.button>
-              )}
-            </AnimatePresence>
           </>
         ) : host.imageUrl ? (
           <>
@@ -445,27 +372,13 @@ function HostCarouselCard({ host, isActive, isSelected, onClick, onEnterPearlHar
               alt={host.name}
               className="absolute inset-0 w-full h-full object-cover"
             />
-            {/* Post-video overlay - Enter button + Replay option */}
+            {/* Post-video overlay - Replay option */}
             {videoEnded && host.introVideoUrl && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/40"
               >
-                {/* ENTER PEARL HARBOR Button */}
-                <motion.button
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.1 }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onEnterPearlHarbor();
-                  }}
-                  className="px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-black font-bold text-base shadow-lg shadow-amber-500/30 hover:from-amber-400 hover:to-amber-500 transition-all hover:scale-105 active:scale-95 mb-3"
-                >
-                  ENTER PEARL HARBOR
-                </motion.button>
-
                 {/* Replay Button */}
                 <motion.button
                   initial={{ y: 10, opacity: 0 }}
