@@ -1,10 +1,11 @@
 import { NavLink } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, Map, BookOpen, Gamepad2, ArrowLeft, Image, Mic, Wand2, Users, HelpCircle, Compass, Shield, Trophy, Grid3X3, MousePointer2, X, Palette, Target } from 'lucide-react';
+import { LayoutDashboard, Map, BookOpen, Gamepad2, ArrowLeft, Image, Mic, Wand2, Users, HelpCircle, Compass, Shield, Trophy, Grid3X3, MousePointer2, X, Palette, Target, Tv } from 'lucide-react';
 
 const navItems = [
   { path: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { path: '/admin/ww2-module', label: 'WW2 Module', icon: Target, end: false },
+  { path: '/admin/exam-videos', label: 'Exam Videos', icon: Tv, end: false },
   { path: '/admin/journey-management', label: 'Journey Builder', icon: Compass, end: false },
   { path: '/admin/journeys', label: 'Arc Editor', icon: Map, end: false },
   { path: '/admin/journey-ui', label: 'Journey Artwork', icon: Palette, end: false },

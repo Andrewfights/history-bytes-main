@@ -151,6 +151,28 @@ export interface ExamAnswer {
   isCorrect: boolean;
   value: unknown; // The user's answer (varies by question type)
   partialCredit?: number; // 0-1 for partial credit questions
+  timedOut?: boolean; // True if user didn't answer in time
+  timeRemaining?: number; // Seconds left when answer was locked in
+}
+
+// ---- Game Show Mode Types ----
+
+export interface PendingAnswer {
+  questionId: string;
+  value: unknown;
+  isLockedIn: boolean;
+  timeRemaining: number;
+  timedOut: boolean;
+}
+
+export type VideoLayoutMode = 'side-panel' | 'top-banner' | 'background';
+
+export interface GameShowConfig {
+  enabled: boolean;
+  questionTimeLimit: number; // seconds
+  countdownWarningThreshold: number; // seconds when pulse starts
+  allowEarlyLockIn: boolean;
+  lockInPauseDuration: number; // ms pause after lock-in before advancing
 }
 
 // ---- Scoring Types ----
@@ -186,7 +208,15 @@ export interface ExamScoreResult {
 
 // ---- State Machine Types ----
 
-export type ExamScreen = 'intro' | 'question' | 'answer_reveal' | 'transition' | 'results';
+export type ExamScreen =
+  | 'intro'
+  | 'question'
+  | 'answer_reveal'
+  | 'transition'
+  | 'results'
+  | 'question_active'  // Game show mode: question with active timer
+  | 'locked_in'        // Game show mode: answer locked, brief pause
+  | 'time_up';         // Game show mode: timer expired
 
 export interface ExamState {
   screen: ExamScreen;

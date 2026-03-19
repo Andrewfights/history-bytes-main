@@ -1,9 +1,10 @@
 /**
  * BranchingReveal - Multi-option question with reveal content
  * Used for Q7 (Fuel tanks / Nimitz)
+ * Supports both standard mode and game show mode
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, XCircle, ChevronRight } from 'lucide-react';
 import type { BranchingRevealQuestion, ExamAnswer } from '../types';
@@ -11,16 +12,41 @@ import type { BranchingRevealQuestion, ExamAnswer } from '../types';
 interface BranchingRevealProps {
   question: BranchingRevealQuestion;
   onAnswer: (answer: ExamAnswer) => void;
+  // Game show mode props
+  isGameShowMode?: boolean;
+  onSelectionChange?: (hasSelection: boolean, value: unknown) => void;
+  isLockedIn?: boolean;
+  disabled?: boolean;
 }
 
-export function BranchingReveal({ question, onAnswer }: BranchingRevealProps) {
+export function BranchingReveal({
+  question,
+  onAnswer,
+  isGameShowMode = false,
+  onSelectionChange,
+  isLockedIn = false,
+  disabled = false,
+}: BranchingRevealProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
+  // Reset when question changes
+  useEffect(() => {
+    setSelectedId(null);
+    setIsSubmitted(false);
+  }, [question.id]);
+
   const handleSelect = (optionId: string) => {
-    if (isSubmitted) return;
+    if (isSubmitted || disabled || isLockedIn) return;
     setSelectedId(optionId);
+
+    if (isGameShowMode && onSelectionChange) {
+      onSelectionChange(true, optionId);
+    }
   };
+
+  const isDisabled = isSubmitted || disabled || isLockedIn;
+  const showFeedback = !isGameShowMode && isSubmitted;
 
   const handleSubmit = () => {
     if (!selectedId || isSubmitted) return;
@@ -42,43 +68,47 @@ export function BranchingReveal({ question, onAnswer }: BranchingRevealProps) {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Category badge */}
-      {question.category && (
-        <div className="mb-3">
-          <span className="px-3 py-1 bg-white/10 rounded-full text-white/60 text-xs">
-            {question.category}
-          </span>
-        </div>
+      {/* Category badge and prompt - only in standard mode */}
+      {!isGameShowMode && (
+        <>
+          {question.category && (
+            <div className="mb-3">
+              <span className="px-3 py-1 bg-white/10 rounded-full text-white/60 text-xs">
+                {question.category}
+              </span>
+            </div>
+          )}
+          <h3 className="text-xl font-bold text-white mb-6 leading-relaxed">
+            {question.prompt}
+          </h3>
+        </>
       )}
-
-      {/* Question text */}
-      <h3 className="text-xl font-bold text-white mb-6 leading-relaxed">
-        {question.prompt}
-      </h3>
 
       {/* Options */}
       <div className="space-y-3 flex-1">
         {question.options.map((option) => {
           const isSelected = selectedId === option.id;
-          const showCorrect = isSubmitted && option.isCorrect;
-          const showIncorrect = isSubmitted && isSelected && !option.isCorrect;
+          const showCorrect = showFeedback && option.isCorrect;
+          const showIncorrect = showFeedback && isSelected && !option.isCorrect;
 
           return (
             <motion.button
               key={option.id}
-              whileHover={!isSubmitted ? { scale: 1.02 } : {}}
-              whileTap={!isSubmitted ? { scale: 0.98 } : {}}
+              whileHover={!isDisabled ? { scale: 1.02 } : {}}
+              whileTap={!isDisabled ? { scale: 0.98 } : {}}
               onClick={() => handleSelect(option.id)}
-              disabled={isSubmitted}
+              disabled={isDisabled}
               className={`w-full p-4 rounded-xl text-left transition-all flex items-center gap-3 ${
                 showCorrect
                   ? 'bg-green-500/20 border-2 border-green-500'
                   : showIncorrect
                   ? 'bg-red-500/20 border-2 border-red-500'
                   : isSelected
-                  ? 'bg-amber-500/20 border-2 border-amber-500'
+                  ? isLockedIn
+                    ? 'bg-green-500/20 border-2 border-green-500/50'
+                    : 'bg-amber-500/20 border-2 border-amber-500'
                   : 'bg-white/5 border-2 border-white/10 hover:border-white/30'
-              }`}
+              } ${isDisabled && !isSelected ? 'opacity-50' : ''}`}
             >
               {/* Option indicator */}
               <span
@@ -88,7 +118,9 @@ export function BranchingReveal({ question, onAnswer }: BranchingRevealProps) {
                     : showIncorrect
                     ? 'border-red-500 bg-red-500'
                     : isSelected
-                    ? 'border-amber-500 bg-amber-500'
+                    ? isLockedIn
+                      ? 'border-green-500 bg-green-500'
+                      : 'border-amber-500 bg-amber-500'
                     : 'border-white/30'
                 }`}
               >
@@ -100,12 +132,12 @@ export function BranchingReveal({ question, onAnswer }: BranchingRevealProps) {
               {/* Option text */}
               <span className="flex-1 text-white">{option.label}</span>
 
-              {/* Reveal indicator */}
-              {option.revealContent && !isSubmitted && (
+              {/* Reveal indicator - hide in game show mode */}
+              {!isGameShowMode && option.revealContent && !isSubmitted && (
                 <ChevronRight size={20} className="text-white/40" />
               )}
 
-              {/* Result icon */}
+              {/* Result icon - only in standard mode */}
               {showCorrect && (
                 <CheckCircle2 size={24} className="text-green-400 shrink-0" />
               )}
@@ -117,42 +149,46 @@ export function BranchingReveal({ question, onAnswer }: BranchingRevealProps) {
         })}
       </div>
 
-      {/* Reveal content (shown after correct answer) */}
-      <AnimatePresence>
-        {isSubmitted && correctOption?.revealContent && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="mt-4 overflow-hidden"
-          >
-            <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl">
-              <p className="text-amber-200 text-sm leading-relaxed">
-                {correctOption.revealContent}
-              </p>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Submit button */}
-      <AnimatePresence>
-        {selectedId && !isSubmitted && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            className="mt-6"
-          >
-            <button
-              onClick={handleSubmit}
-              className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors"
+      {/* Reveal content (shown after correct answer) - only in standard mode */}
+      {!isGameShowMode && (
+        <AnimatePresence>
+          {isSubmitted && correctOption?.revealContent && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mt-4 overflow-hidden"
             >
-              Submit Answer
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl">
+                <p className="text-amber-200 text-sm leading-relaxed">
+                  {correctOption.revealContent}
+                </p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      )}
+
+      {/* Submit button - only in standard mode */}
+      {!isGameShowMode && (
+        <AnimatePresence>
+          {selectedId && !isSubmitted && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              className="mt-6"
+            >
+              <button
+                onClick={handleSubmit}
+                className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors"
+              >
+                Submit Answer
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      )}
     </div>
   );
 }

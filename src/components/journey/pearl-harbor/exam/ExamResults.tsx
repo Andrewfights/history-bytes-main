@@ -5,8 +5,8 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Award, Star, RotateCcw, BookOpen, ChevronRight, Trophy, Crown, Swords } from 'lucide-react';
-import type { ExamScoreResult, ExamAnswer, ExamQuestion } from './types';
+import { Award, Star, RotateCcw, BookOpen, ChevronRight, Trophy, Crown, ChevronDown, Clock, XCircle, CheckCircle2 } from 'lucide-react';
+import type { ExamScoreResult, ExamAnswer, ExamQuestion, MultipleChoiceQuestion, FillInBlankQuestion, BranchingRevealQuestion, DualSliderQuestion, DragTimelineQuestion, MultiSelectQuestion, PercentageCompareQuestion, TwoPartQuestion, SequenceOrderQuestion } from './types';
 import type { WW2Host, SouvenirTier } from '../../../../types';
 import {
   EXAM_HOST_DIALOGUES,
@@ -14,6 +14,129 @@ import {
   FINAL_EXAM_SCORING,
 } from './examConfig';
 import { usePantheonProgress, TierBadge } from '../../pantheon';
+
+// Helper functions for displaying answers by question type
+function getCorrectAnswerDisplay(question: ExamQuestion): string {
+  switch (question.type) {
+    case 'multiple-choice': {
+      const q = question as MultipleChoiceQuestion;
+      return q.options[q.correctIndex];
+    }
+    case 'fill-in-blank': {
+      const q = question as FillInBlankQuestion;
+      return q.correctAnswers[0];
+    }
+    case 'branching-reveal': {
+      const q = question as BranchingRevealQuestion;
+      const correctOption = q.options.find((o) => o.isCorrect);
+      return correctOption?.label || 'Unknown';
+    }
+    case 'dual-slider': {
+      const q = question as DualSliderQuestion;
+      if (q.answerOptions && q.correctOptionIndex !== undefined) {
+        return q.answerOptions[q.correctOptionIndex];
+      }
+      return `${q.partA.label}: ${q.partA.correctValue}${q.partA.unit}, ${q.partB.label}: ${q.partB.correctValue}${q.partB.unit}`;
+    }
+    case 'drag-timeline': {
+      const q = question as DragTimelineQuestion;
+      return q.items
+        .map((item) => `${item.label} → ${q.categories.find((c) => c.id === q.correctPlacements[item.id])?.label}`)
+        .join(', ');
+    }
+    case 'multi-select': {
+      const q = question as MultiSelectQuestion;
+      return q.correctIndices.map((i) => q.options[i]).join(', ');
+    }
+    case 'percentage-compare': {
+      const q = question as PercentageCompareQuestion;
+      if (q.answerOptions && q.correctOptionIndex !== undefined) {
+        return q.answerOptions[q.correctOptionIndex];
+      }
+      return `${q.optionA.label}: ${q.optionA.correctValue}%, ${q.optionB.label}: ${q.optionB.correctValue}%`;
+    }
+    case 'two-part': {
+      const q = question as TwoPartQuestion;
+      return `A: ${q.partA.options[q.partA.correctIndex]}, B: ${q.partB.options[q.partB.correctIndex]}`;
+    }
+    case 'sequence-order': {
+      const q = question as SequenceOrderQuestion;
+      return q.correctOrder.map((id, i) => `${i + 1}. ${q.items.find((item) => item.id === id)?.label}`).join(', ');
+    }
+    default:
+      return 'Unknown';
+  }
+}
+
+function getUserAnswerDisplay(question: ExamQuestion, answer: ExamAnswer): string {
+  if (answer.timedOut && !answer.value) {
+    return 'No answer (timed out)';
+  }
+
+  switch (question.type) {
+    case 'multiple-choice': {
+      const q = question as MultipleChoiceQuestion;
+      const idx = answer.value as number;
+      return q.options[idx] || 'No selection';
+    }
+    case 'fill-in-blank': {
+      return (answer.value as string) || 'No answer';
+    }
+    case 'branching-reveal': {
+      const q = question as BranchingRevealQuestion;
+      const selectedId = answer.value as string;
+      const option = q.options.find((o) => o.id === selectedId);
+      return option?.label || 'No selection';
+    }
+    case 'dual-slider': {
+      const q = question as DualSliderQuestion;
+      if (q.answerOptions) {
+        const idx = answer.value as number;
+        return q.answerOptions[idx] || 'No selection';
+      }
+      const values = answer.value as { partA: number; partB: number };
+      return `${q.partA.label}: ${values?.partA}${q.partA.unit}, ${q.partB.label}: ${values?.partB}${q.partB.unit}`;
+    }
+    case 'drag-timeline': {
+      const q = question as DragTimelineQuestion;
+      const placements = answer.value as Record<string, string | null>;
+      return q.items
+        .map((item) => {
+          const categoryId = placements?.[item.id];
+          const category = q.categories.find((c) => c.id === categoryId);
+          return `${item.label} → ${category?.label || 'Not placed'}`;
+        })
+        .join(', ');
+    }
+    case 'multi-select': {
+      const q = question as MultiSelectQuestion;
+      const indices = answer.value as number[];
+      return indices?.length > 0 ? indices.map((i) => q.options[i]).join(', ') : 'No selection';
+    }
+    case 'percentage-compare': {
+      const q = question as PercentageCompareQuestion;
+      if (q.answerOptions) {
+        const idx = answer.value as number;
+        return q.answerOptions[idx] || 'No selection';
+      }
+      return String(answer.value);
+    }
+    case 'two-part': {
+      const q = question as TwoPartQuestion;
+      const values = answer.value as { partA: number; partB: number };
+      const partA = values?.partA !== undefined ? q.partA.options[values.partA] : 'No selection';
+      const partB = values?.partB !== undefined ? q.partB.options[values.partB] : 'No selection';
+      return `A: ${partA}, B: ${partB}`;
+    }
+    case 'sequence-order': {
+      const q = question as SequenceOrderQuestion;
+      const order = answer.value as string[];
+      return order?.map((id, i) => `${i + 1}. ${q.items.find((item) => item.id === id)?.label}`).join(', ') || 'No answer';
+    }
+    default:
+      return String(answer.value);
+  }
+}
 
 interface ExamResultsProps {
   result: ExamScoreResult;
@@ -43,6 +166,13 @@ export function ExamResults({
   const { recordExamScore, getSouvenirTier } = usePantheonProgress();
   const [souvenirUpgrade, setSouvenirUpgrade] = useState<SouvenirTier | null>(null);
   const [showUpgradeNotice, setShowUpgradeNotice] = useState(false);
+  const [showMissedQuestions, setShowMissedQuestions] = useState(false);
+
+  // Get missed questions
+  const missedQuestions = questions.filter((q) => {
+    const answer = answers.get(q.id);
+    return answer && !answer.isCorrect;
+  });
 
   // Record exam score and check for souvenir upgrade
   useEffect(() => {
@@ -264,6 +394,110 @@ export function ExamResults({
           </AnimatePresence>
         </div>
       </motion.div>
+
+      {/* Missed Questions Review */}
+      {missedQuestions.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.65 }}
+          className="mx-4 mb-6"
+        >
+          <button
+            onClick={() => setShowMissedQuestions(!showMissedQuestions)}
+            className="w-full flex items-center justify-between p-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center">
+                <XCircle size={20} className="text-red-400" />
+              </div>
+              <div className="text-left">
+                <div className="text-white font-medium">Review Missed Questions</div>
+                <div className="text-white/50 text-xs">{missedQuestions.length} question{missedQuestions.length !== 1 ? 's' : ''} to review</div>
+              </div>
+            </div>
+            <motion.div
+              animate={{ rotate: showMissedQuestions ? 180 : 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <ChevronDown size={20} className="text-white/50" />
+            </motion.div>
+          </button>
+
+          <AnimatePresence>
+            {showMissedQuestions && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="overflow-hidden"
+              >
+                <div className="pt-3 space-y-3">
+                  {missedQuestions.map((question, index) => {
+                    const answer = answers.get(question.id)!;
+                    const correctAnswer = getCorrectAnswerDisplay(question);
+                    const userAnswer = getUserAnswerDisplay(question, answer);
+
+                    return (
+                      <motion.div
+                        key={question.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                        className="bg-white/5 border border-white/10 rounded-xl p-4"
+                      >
+                        {/* Question number and timed out badge */}
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="px-2 py-0.5 bg-white/10 rounded text-white/60 text-xs font-medium">
+                            Q{question.questionNumber}
+                          </span>
+                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                            question.difficulty === 'easy' ? 'bg-green-500/20 text-green-400' :
+                            question.difficulty === 'medium' ? 'bg-amber-500/20 text-amber-400' :
+                            'bg-red-500/20 text-red-400'
+                          }`}>
+                            {question.difficulty}
+                          </span>
+                          {answer.timedOut && (
+                            <span className="flex items-center gap-1 px-2 py-0.5 bg-orange-500/20 text-orange-400 rounded text-xs font-medium">
+                              <Clock size={12} />
+                              Timed Out
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Question prompt */}
+                        <p className="text-white/90 text-sm mb-3 leading-relaxed">
+                          {question.prompt}
+                        </p>
+
+                        {/* User's answer */}
+                        <div className="flex items-start gap-2 mb-2">
+                          <XCircle size={16} className="text-red-400 shrink-0 mt-0.5" />
+                          <div className="flex-1">
+                            <span className="text-red-400/60 text-xs">Your answer:</span>
+                            <p className="text-red-400 text-sm">{userAnswer}</p>
+                          </div>
+                        </div>
+
+                        {/* Correct answer */}
+                        <div className="flex items-start gap-2">
+                          <CheckCircle2 size={16} className="text-green-400 shrink-0 mt-0.5" />
+                          <div className="flex-1">
+                            <span className="text-green-400/60 text-xs">Correct answer:</span>
+                            <p className="text-green-400 text-sm">{correctAnswer}</p>
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      )}
 
       {/* THE ARENA - Elite Challenge Invitation (only for passing students) */}
       {result.tier !== 'retry' && onEnterArena && (

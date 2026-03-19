@@ -11,6 +11,7 @@ import type {
   ExamScoreResult,
   ExamAnswer,
   ExamHostDialogue,
+  GameShowConfig,
 } from './types';
 
 // ---- Exam Configuration ----
@@ -20,9 +21,19 @@ export const FINAL_EXAM_CONFIG = {
   questionsPerTier: 5,
   tiersInOrder: ['easy', 'medium', 'hard'] as const,
   shuffleWithinTiers: true,
-  noPerQuestionTimer: true,
+  noPerQuestionTimer: false, // Changed: now has game show timer
   lessonId: 'ph-beat-11',
   xpReward: 150, // Max XP for perfect score
+};
+
+// ---- Game Show Mode Configuration ----
+
+export const GAME_SHOW_CONFIG: GameShowConfig = {
+  enabled: true,
+  questionTimeLimit: 10, // 10 seconds per question
+  countdownWarningThreshold: 3, // Pulse/blink at 3 seconds
+  allowEarlyLockIn: true, // User can lock in answer early
+  lockInPauseDuration: 1000, // 1 second pause after lock-in
 };
 
 // ---- Scoring System (from PRD) ----
@@ -161,7 +172,7 @@ export function isNewTier(currentIndex: number, nextIndex: number): boolean {
 
 export const EXAM_HOST_DIALOGUES: ExamHostDialogue = {
   intro:
-    "This is your final test. 15 questions covering everything you've learned about Pearl Harbor. Take your time - there's no timer per question. Show me what you know.",
+    "Welcome to the Final Exam! This is HQ Trivia style - you have 10 seconds per question. Lock in your answer before time runs out. You won't see if you're right or wrong until the end. Ready to test your knowledge?",
 
   easyTierIntro:
     "Let's start with the fundamentals. These first five questions cover the basics you should know.",

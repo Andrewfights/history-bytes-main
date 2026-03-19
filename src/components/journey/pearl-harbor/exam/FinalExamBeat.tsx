@@ -1,31 +1,129 @@
 /**
  * FinalExamBeat - Main component for Pearl Harbor Final Exam (Beat 11)
- * 15 questions with tiered difficulty, host integration, and comprehensive scoring
+ * HQ-style game show trivia with 10-second timer per question
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, X } from 'lucide-react';
+import { ArrowLeft, X, Volume2, VolumeX } from 'lucide-react';
 import type {
   ExamScreen,
   ExamQuestion,
   ExamAnswer,
   ExamDifficulty,
   FinalExamBeatProps,
+  PendingAnswer,
 } from './types';
 import { ExamProgressBar } from './ExamProgressBar';
 import { ExamQuestionRenderer } from './ExamQuestionRenderer';
 import { ExamResults } from './ExamResults';
+import { GameShowQuestionWrapper } from './GameShowQuestionWrapper';
 import { FINAL_EXAM_QUESTIONS } from './examQuestions';
 import {
   FINAL_EXAM_CONFIG,
+  GAME_SHOW_CONFIG,
   shuffleQuestionsWithinTiers,
   calculateExamScore,
   getTierForIndex,
   EXAM_HOST_DIALOGUES,
 } from './examConfig';
 import { PearlHarborArena } from '../arena';
+import { useExamAudio } from '@/lib/audioManager';
 import type { ArenaRecognition } from '@/data/arenaQuestions';
+
+/**
+ * Evaluate an answer for a given question
+ * Used in game show mode to evaluate all answers at the end
+ */
+function evaluateAnswer(question: ExamQuestion, value: unknown): boolean {
+  if (value === null || value === undefined) return false;
+
+  switch (question.type) {
+    case 'multiple-choice':
+      return value === question.correctIndex;
+
+    case 'fill-in-blank': {
+      const userAnswer = String(value).trim().toLowerCase();
+      return question.correctAnswers.some(
+        (correct) =>
+          question.caseSensitive
+            ? String(value).trim() === correct
+            : userAnswer === correct.toLowerCase()
+      );
+    }
+
+    case 'branching-reveal': {
+      const selectedOption = question.options.find((opt) => opt.id === value);
+      return selectedOption?.isCorrect ?? false;
+    }
+
+    case 'dual-slider':
+      // If using simplified version with options
+      if (question.correctOptionIndex !== undefined) {
+        return value === question.correctOptionIndex;
+      }
+      // Full slider version - check both values within tolerance
+      if (typeof value === 'object' && value !== null) {
+        const { partA, partB } = value as { partA: number; partB: number };
+        const partACorrect =
+          Math.abs(partA - question.partA.correctValue) <= question.partA.tolerance;
+        const partBCorrect =
+          Math.abs(partB - question.partB.correctValue) <= question.partB.tolerance;
+        return partACorrect && partBCorrect;
+      }
+      return false;
+
+    case 'drag-timeline': {
+      const placements = value as Record<string, string>;
+      return Object.entries(question.correctPlacements).every(
+        ([itemId, categoryId]) => placements[itemId] === categoryId
+      );
+    }
+
+    case 'multi-select': {
+      const selected = value as number[];
+      if (question.requireAllCorrect) {
+        // Must match exactly
+        return (
+          selected.length === question.correctIndices.length &&
+          selected.every((i) => question.correctIndices.includes(i))
+        );
+      }
+      // At least one correct and no incorrect
+      const hasCorrect = selected.some((i) => question.correctIndices.includes(i));
+      const hasIncorrect = selected.some((i) => !question.correctIndices.includes(i));
+      return hasCorrect && !hasIncorrect;
+    }
+
+    case 'percentage-compare':
+      if (question.correctOptionIndex !== undefined) {
+        return value === question.correctOptionIndex;
+      }
+      return false;
+
+    case 'two-part': {
+      const parts = value as { partA: number; partB: number };
+      const partACorrect = parts.partA === question.partA.correctIndex;
+      const partBCorrect = parts.partB === question.partB.correctIndex;
+      if (question.bothRequired) {
+        return partACorrect && partBCorrect;
+      }
+      // Partial credit - at least one correct
+      return partACorrect || partBCorrect;
+    }
+
+    case 'sequence-order': {
+      const userOrder = value as string[];
+      return (
+        userOrder.length === question.correctOrder.length &&
+        userOrder.every((id, idx) => id === question.correctOrder[idx])
+      );
+    }
+
+    default:
+      return false;
+  }
+}
 
 export function FinalExamBeat({
   host,
@@ -40,6 +138,28 @@ export function FinalExamBeat({
   const [shuffledQuestions, setShuffledQuestions] = useState<ExamQuestion[]>([]);
   const [currentTier, setCurrentTier] = useState<ExamDifficulty>('easy');
   const [showingTierTransition, setShowingTierTransition] = useState(false);
+
+  // Game show mode state
+  const [pendingAnswers, setPendingAnswers] = useState<PendingAnswer[]>([]);
+  const audio = useExamAudio();
+  const [isMuted, setIsMuted] = useState(() => audio.getMuted());
+  const isGameShowMode = GAME_SHOW_CONFIG.enabled;
+
+  // Preload audio when component mounts
+  useEffect(() => {
+    if (isGameShowMode) {
+      audio.preload();
+    }
+    return () => {
+      audio.stopLoop();
+    };
+  }, [audio, isGameShowMode]);
+
+  // Sync mute state with audio manager
+  const handleToggleMute = useCallback(() => {
+    const newMuted = audio.toggleMute();
+    setIsMuted(newMuted);
+  }, [audio]);
 
   // Arena state
   const [showArena, setShowArena] = useState(false);
@@ -62,10 +182,68 @@ export function FinalExamBeat({
 
   // Handle intro continue
   const handleIntroStart = useCallback(() => {
-    setScreen('question');
-  }, []);
+    setScreen(isGameShowMode ? 'question_active' : 'question');
+  }, [isGameShowMode]);
 
-  // Handle answer submission
+  // Handle game show question completion (from GameShowQuestionWrapper)
+  const handleGameShowQuestionComplete = useCallback(
+    (pendingAnswer: PendingAnswer) => {
+      // Store the pending answer
+      setPendingAnswers((prev) => [...prev, pendingAnswer]);
+
+      const nextIndex = currentIndex + 1;
+
+      if (nextIndex >= shuffledQuestions.length) {
+        // Exam complete - evaluate all answers
+        const finalAnswers = new Map<string, ExamAnswer>();
+        const allPendingAnswers = [...pendingAnswers, pendingAnswer];
+
+        for (const pending of allPendingAnswers) {
+          const question = shuffledQuestions.find((q) => q.id === pending.questionId);
+          if (!question) continue;
+
+          // Evaluate the answer based on question type
+          const isCorrect = evaluateAnswer(question, pending.value);
+
+          finalAnswers.set(pending.questionId, {
+            questionId: pending.questionId,
+            isCorrect,
+            value: pending.value,
+            timedOut: pending.timedOut,
+            timeRemaining: pending.timeRemaining,
+          });
+        }
+
+        setAnswers(finalAnswers);
+        setScreen('results');
+        audio.play('fanfare');
+      } else {
+        // Check for tier transition
+        const currentTierValue = getTierForIndex(currentIndex);
+        const nextTierValue = getTierForIndex(nextIndex);
+
+        if (currentTierValue !== nextTierValue) {
+          // Show tier transition
+          setCurrentTier(nextTierValue);
+          setShowingTierTransition(true);
+          setScreen('transition');
+
+          setTimeout(() => {
+            setShowingTierTransition(false);
+            setCurrentIndex(nextIndex);
+            setScreen('question_active');
+          }, 3000);
+        } else {
+          // Continue to next question immediately
+          setCurrentIndex(nextIndex);
+          setScreen('question_active');
+        }
+      }
+    },
+    [currentIndex, shuffledQuestions, pendingAnswers]
+  );
+
+  // Handle standard mode answer submission (non-game-show)
   const handleAnswer = useCallback(
     (answer: ExamAnswer) => {
       setAnswers((prev) => new Map(prev).set(answer.questionId, answer));
@@ -78,6 +256,7 @@ export function FinalExamBeat({
         if (nextIndex >= shuffledQuestions.length) {
           // Exam complete
           setScreen('results');
+          audio.play('fanfare');
         } else {
           // Check for tier transition
           const currentTierValue = getTierForIndex(currentIndex);
@@ -116,6 +295,7 @@ export function FinalExamBeat({
   // Handle retry
   const handleRetry = useCallback(() => {
     setAnswers(new Map());
+    setPendingAnswers([]);
     setCurrentIndex(0);
     setCurrentTier('easy');
     setScreen('intro');
@@ -202,12 +382,24 @@ export function FinalExamBeat({
 
       {/* Progress bar (hidden during intro/results) */}
       {screen !== 'intro' && screen !== 'results' && (
-        <div className="px-4 py-3 border-b border-white/10">
-          <ExamProgressBar
-            currentIndex={currentIndex}
-            answeredCount={answers.size}
-            correctCount={correctCount}
-          />
+        <div className="px-4 py-3 border-b border-white/10 flex items-center gap-4">
+          <div className="flex-1">
+            <ExamProgressBar
+              currentIndex={currentIndex}
+              answeredCount={isGameShowMode ? pendingAnswers.length : answers.size}
+              correctCount={correctCount}
+            />
+          </div>
+          {/* Mute toggle for game show mode */}
+          {isGameShowMode && (
+            <button
+              onClick={handleToggleMute}
+              className="p-2 text-white/60 hover:text-white transition-colors"
+              title={isMuted ? 'Unmute sounds' : 'Mute sounds'}
+            >
+              {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+            </button>
+          )}
         </div>
       )}
 
@@ -251,7 +443,7 @@ export function FinalExamBeat({
                   transition={{ delay: 0.3 }}
                   className="text-white/60 mb-6"
                 >
-                  15 Questions • No Time Limit
+                  15 Questions • {isGameShowMode ? '10 Seconds Each' : 'No Time Limit'}
                 </motion.p>
 
                 {/* Host introduction */}
@@ -301,7 +493,45 @@ export function FinalExamBeat({
             </motion.div>
           )}
 
-          {/* Question screen */}
+          {/* Game Show Mode Question Screen */}
+          {screen === 'question_active' && currentQuestion && (
+            <motion.div
+              key={`gameshow-question-${currentIndex}`}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="h-full p-4"
+            >
+              <GameShowQuestionWrapper
+                question={currentQuestion}
+                questionNumber={currentIndex + 1}
+                totalQuestions={shuffledQuestions.length}
+                videoUrl={currentQuestion.visualAsset}
+                nextVideoUrl={
+                  currentIndex + 1 < shuffledQuestions.length
+                    ? shuffledQuestions[currentIndex + 1]?.visualAsset
+                    : undefined
+                }
+                onQuestionComplete={handleGameShowQuestionComplete}
+              >
+                {({ onSelectionChange, isLockedIn, isTimedOut, disabled }) => (
+                  <ExamQuestionRenderer
+                    question={currentQuestion}
+                    hostMode={currentQuestion.hostMode}
+                    host={host}
+                    onAnswer={handleAnswer}
+                    questionNumber={currentIndex + 1}
+                    isGameShowMode={true}
+                    onSelectionChange={onSelectionChange}
+                    isLockedIn={isLockedIn}
+                    disabled={disabled}
+                  />
+                )}
+              </GameShowQuestionWrapper>
+            </motion.div>
+          )}
+
+          {/* Standard Mode Question Screen (non-game-show) */}
           {(screen === 'question' || screen === 'answer_reveal') && currentQuestion && (
             <motion.div
               key={`question-${currentIndex}`}

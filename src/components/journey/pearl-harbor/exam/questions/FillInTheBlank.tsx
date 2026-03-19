@@ -1,9 +1,10 @@
 /**
  * FillInTheBlank - Text input question for Final Exam
  * Used for Q3 (FDR "infamy" speech)
+ * Supports both standard mode and game show mode
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, XCircle } from 'lucide-react';
 import type { FillInBlankQuestion, ExamAnswer } from '../types';
@@ -11,12 +12,40 @@ import type { FillInBlankQuestion, ExamAnswer } from '../types';
 interface FillInTheBlankProps {
   question: FillInBlankQuestion;
   onAnswer: (answer: ExamAnswer) => void;
+  // Game show mode props
+  isGameShowMode?: boolean;
+  onSelectionChange?: (hasSelection: boolean, value: unknown) => void;
+  isLockedIn?: boolean;
+  disabled?: boolean;
 }
 
-export function FillInTheBlank({ question, onAnswer }: FillInTheBlankProps) {
+export function FillInTheBlank({
+  question,
+  onAnswer,
+  isGameShowMode = false,
+  onSelectionChange,
+  isLockedIn = false,
+  disabled = false,
+}: FillInTheBlankProps) {
   const [inputValue, setInputValue] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
+
+  // Reset when question changes
+  useEffect(() => {
+    setInputValue('');
+    setIsSubmitted(false);
+    setIsCorrect(false);
+  }, [question.id]);
+
+  // Notify parent of selection changes in game show mode
+  useEffect(() => {
+    if (isGameShowMode && onSelectionChange) {
+      onSelectionChange(inputValue.trim().length > 0, inputValue.trim());
+    }
+  }, [inputValue, isGameShowMode, onSelectionChange]);
+
+  const showFeedback = !isGameShowMode && isSubmitted;
 
   const handleSubmit = () => {
     if (!inputValue.trim() || isSubmitted) return;
@@ -39,9 +68,16 @@ export function FillInTheBlank({ question, onAnswer }: FillInTheBlankProps) {
   };
 
   const handleWordOption = (word: string) => {
-    if (isSubmitted) return;
+    if (isSubmitted || disabled || isLockedIn) return;
     setInputValue(word);
   };
+
+  const handleInputChange = (value: string) => {
+    if (disabled || isLockedIn) return;
+    setInputValue(value);
+  };
+
+  const isDisabled = isSubmitted || disabled || isLockedIn;
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
@@ -51,19 +87,21 @@ export function FillInTheBlank({ question, onAnswer }: FillInTheBlankProps) {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Category badge */}
-      {question.category && (
-        <div className="mb-3">
-          <span className="px-3 py-1 bg-white/10 rounded-full text-white/60 text-xs">
-            {question.category}
-          </span>
-        </div>
+      {/* Category badge and prompt - only in standard mode */}
+      {!isGameShowMode && (
+        <>
+          {question.category && (
+            <div className="mb-3">
+              <span className="px-3 py-1 bg-white/10 rounded-full text-white/60 text-xs">
+                {question.category}
+              </span>
+            </div>
+          )}
+          <h3 className="text-xl font-bold text-white mb-6 leading-relaxed">
+            {question.prompt}
+          </h3>
+        </>
       )}
-
-      {/* Question text */}
-      <h3 className="text-xl font-bold text-white mb-6 leading-relaxed">
-        {question.prompt}
-      </h3>
 
       {/* Blank prompt with fill-in */}
       <div className="bg-white/5 rounded-xl p-6 mb-6 border-2 border-white/10">
@@ -74,10 +112,12 @@ export function FillInTheBlank({ question, onAnswer }: FillInTheBlankProps) {
               {index < arr.length - 1 && (
                 <span
                   className={`inline-block min-w-[120px] px-2 py-1 mx-1 border-b-2 ${
-                    isSubmitted
+                    showFeedback
                       ? isCorrect
                         ? 'border-green-500 bg-green-500/20'
                         : 'border-red-500 bg-red-500/20'
+                      : isLockedIn && inputValue
+                      ? 'border-green-500/50 bg-green-500/20'
                       : inputValue
                       ? 'border-amber-500 bg-amber-500/20'
                       : 'border-white/40'
@@ -92,7 +132,7 @@ export function FillInTheBlank({ question, onAnswer }: FillInTheBlankProps) {
       </div>
 
       {/* Word bank (if provided) */}
-      {question.wordOptions && !isSubmitted && (
+      {question.wordOptions && !isDisabled && (
         <div className="mb-6">
           <p className="text-white/40 text-xs mb-3 text-center">
             Choose a word or type your own:
@@ -102,11 +142,14 @@ export function FillInTheBlank({ question, onAnswer }: FillInTheBlankProps) {
               <button
                 key={word}
                 onClick={() => handleWordOption(word)}
+                disabled={isDisabled}
                 className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                   inputValue.toLowerCase() === word.toLowerCase()
-                    ? 'bg-amber-500 text-black'
+                    ? isLockedIn
+                      ? 'bg-green-500 text-white'
+                      : 'bg-amber-500 text-black'
                     : 'bg-white/10 text-white hover:bg-white/20'
-                }`}
+                } ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 {word}
               </button>
@@ -116,23 +159,28 @@ export function FillInTheBlank({ question, onAnswer }: FillInTheBlankProps) {
       )}
 
       {/* Text input */}
-      {!isSubmitted && (
+      {!isDisabled && (
         <div className="flex-1">
           <input
             type="text"
             value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
+            onChange={(e) => handleInputChange(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Type your answer..."
-            className="w-full px-4 py-4 bg-white/5 border-2 border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:border-amber-500 transition-colors"
+            disabled={isDisabled}
+            className={`w-full px-4 py-4 bg-white/5 border-2 rounded-xl text-white placeholder-white/40 focus:outline-none transition-colors ${
+              isLockedIn
+                ? 'border-green-500/50'
+                : 'border-white/20 focus:border-amber-500'
+            }`}
             autoComplete="off"
             autoCapitalize="off"
           />
         </div>
       )}
 
-      {/* Result display */}
-      {isSubmitted && (
+      {/* Result display - only in standard mode */}
+      {showFeedback && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -161,24 +209,26 @@ export function FillInTheBlank({ question, onAnswer }: FillInTheBlankProps) {
         </motion.div>
       )}
 
-      {/* Submit button */}
-      <AnimatePresence>
-        {inputValue.trim() && !isSubmitted && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            className="mt-6"
-          >
-            <button
-              onClick={handleSubmit}
-              className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors"
+      {/* Submit button - only in standard mode */}
+      {!isGameShowMode && (
+        <AnimatePresence>
+          {inputValue.trim() && !isSubmitted && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              className="mt-6"
             >
-              Submit Answer
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              <button
+                onClick={handleSubmit}
+                className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors"
+              >
+                Submit Answer
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      )}
     </div>
   );
 }

@@ -1435,6 +1435,13 @@ export interface WW2BeatStatement {
   explanation: string;
 }
 
+export interface ExamQuestionVideo {
+  questionId: string;
+  videoUrl: string;
+  duration?: number; // Duration in seconds
+  uploadedAt?: Timestamp;
+}
+
 export interface FirestoreWW2ModuleAssets {
   id: string;  // Always 'ww2ModuleAssets'
   // Beat media assets
@@ -1443,6 +1450,8 @@ export interface FirestoreWW2ModuleAssets {
   customQuestions?: Record<string, WW2BeatQuestion[]>;  // Key: beat ID
   // Editable statements (overrides default)
   customStatements?: Record<string, WW2BeatStatement[]>;  // Key: beat ID
+  // Exam question videos for game show mode
+  examQuestionVideos?: Record<string, ExamQuestionVideo>;  // Key: question ID (e.g., 'exam-q1')
   updatedAt?: Timestamp;
 }
 
@@ -1490,6 +1499,24 @@ export async function updateWW2BeatStatements(beatId: string, statements: WW2Bea
   customStatements[beatId] = statements;
 
   return saveWW2ModuleAssets({ customStatements });
+}
+
+export async function updateExamQuestionVideo(questionId: string, video: ExamQuestionVideo | null): Promise<boolean> {
+  const current = await getWW2ModuleAssets();
+  const examQuestionVideos = current?.examQuestionVideos || {};
+
+  if (video) {
+    examQuestionVideos[questionId] = video;
+  } else {
+    delete examQuestionVideos[questionId];
+  }
+
+  return saveWW2ModuleAssets({ examQuestionVideos });
+}
+
+export async function getExamQuestionVideos(): Promise<Record<string, ExamQuestionVideo>> {
+  const assets = await getWW2ModuleAssets();
+  return assets?.examQuestionVideos || {};
 }
 
 export function subscribeToWW2ModuleAssets(callback: (assets: FirestoreWW2ModuleAssets | null) => void): Unsubscribe {

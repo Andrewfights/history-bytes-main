@@ -2,9 +2,10 @@
  * DragTimeline - Categorize items into before/after timeline
  * Wrapper for DragAndDropSorter in categorize mode
  * Used for Q10 (Public opinion shift)
+ * Supports both standard mode and game show mode
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, XCircle } from 'lucide-react';
 import type { DragTimelineQuestion, ExamAnswer } from '../types';
@@ -12,9 +13,20 @@ import type { DragTimelineQuestion, ExamAnswer } from '../types';
 interface DragTimelineProps {
   question: DragTimelineQuestion;
   onAnswer: (answer: ExamAnswer) => void;
+  isGameShowMode?: boolean;
+  onSelectionChange?: (hasSelection: boolean, value: unknown) => void;
+  isLockedIn?: boolean;
+  disabled?: boolean;
 }
 
-export function DragTimeline({ question, onAnswer }: DragTimelineProps) {
+export function DragTimeline({
+  question,
+  onAnswer,
+  isGameShowMode = false,
+  onSelectionChange,
+  isLockedIn = false,
+  disabled = false,
+}: DragTimelineProps) {
   const [placements, setPlacements] = useState<Record<string, string | null>>(() =>
     Object.fromEntries(question.items.map((item) => [item.id, null]))
   );
@@ -22,14 +34,33 @@ export function DragTimeline({ question, onAnswer }: DragTimelineProps) {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [score, setScore] = useState(0);
 
+  const isDisabled = isSubmitted || disabled || isLockedIn;
+  const showFeedback = !isGameShowMode && isSubmitted;
+
+  // Reset when question changes
+  useEffect(() => {
+    setPlacements(Object.fromEntries(question.items.map((item) => [item.id, null])));
+    setUnplacedItems([...question.items]);
+    setIsSubmitted(false);
+    setScore(0);
+  }, [question.id]);
+
+  // Notify parent of placements changes in game show mode
+  useEffect(() => {
+    if (isGameShowMode && onSelectionChange) {
+      const placedCount = Object.values(placements).filter((v) => v !== null).length;
+      onSelectionChange(placedCount > 0, placements);
+    }
+  }, [placements, isGameShowMode, onSelectionChange]);
+
   const handlePlace = (itemId: string, categoryId: string) => {
-    if (isSubmitted) return;
+    if (isDisabled) return;
     setPlacements((prev) => ({ ...prev, [itemId]: categoryId }));
     setUnplacedItems((prev) => prev.filter((item) => item.id !== itemId));
   };
 
   const handleRemove = (itemId: string) => {
-    if (isSubmitted) return;
+    if (isDisabled) return;
     const item = question.items.find((i) => i.id === itemId);
     if (item) {
       setPlacements((prev) => ({ ...prev, [itemId]: null }));
@@ -65,19 +96,20 @@ export function DragTimeline({ question, onAnswer }: DragTimelineProps) {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Category badge */}
-      {question.category && (
-        <div className="mb-3">
-          <span className="px-3 py-1 bg-white/10 rounded-full text-white/60 text-xs">
-            {question.category}
-          </span>
-        </div>
+      {!isGameShowMode && (
+        <>
+          {question.category && (
+            <div className="mb-3">
+              <span className="px-3 py-1 bg-white/10 rounded-full text-white/60 text-xs">
+                {question.category}
+              </span>
+            </div>
+          )}
+          <h3 className="text-lg font-bold text-white mb-4 leading-relaxed">
+            {question.prompt}
+          </h3>
+        </>
       )}
-
-      {/* Question text */}
-      <h3 className="text-lg font-bold text-white mb-4 leading-relaxed">
-        {question.prompt}
-      </h3>
 
       {/* Categories */}
       <div className="flex gap-3 mb-4 flex-1">
@@ -89,7 +121,9 @@ export function DragTimeline({ question, onAnswer }: DragTimelineProps) {
           return (
             <div
               key={category.id}
-              className="flex-1 min-h-[160px] bg-white/5 rounded-xl p-3 border-2 border-dashed border-white/20"
+              className={`flex-1 min-h-[160px] bg-white/5 rounded-xl p-3 border-2 border-dashed ${
+                isLockedIn ? 'border-green-500/30' : 'border-white/20'
+              }`}
             >
               <h4 className="text-white font-bold text-center text-sm mb-3 pb-2 border-b border-white/10">
                 {category.label}
@@ -97,9 +131,9 @@ export function DragTimeline({ question, onAnswer }: DragTimelineProps) {
               <div className="space-y-2">
                 {placedItems.map((item) => {
                   const isCorrect =
-                    isSubmitted && question.correctPlacements[item.id] === category.id;
+                    showFeedback && question.correctPlacements[item.id] === category.id;
                   const isWrong =
-                    isSubmitted && question.correctPlacements[item.id] !== category.id;
+                    showFeedback && question.correctPlacements[item.id] !== category.id;
 
                   return (
                     <motion.div
@@ -112,12 +146,14 @@ export function DragTimeline({ question, onAnswer }: DragTimelineProps) {
                           ? 'bg-green-500/20 border border-green-500'
                           : isWrong
                           ? 'bg-red-500/20 border border-red-500'
+                          : isLockedIn
+                          ? 'bg-green-500/10 border border-green-500/30'
                           : 'bg-white/10'
                       }`}
                     >
                       {item.icon && <span>{item.icon}</span>}
                       <span className="flex-1 text-white text-xs">{item.label}</span>
-                      {!isSubmitted && (
+                      {!isDisabled && (
                         <button
                           onClick={() => handleRemove(item.id)}
                           className="text-white/40 hover:text-white p-1"
@@ -137,7 +173,7 @@ export function DragTimeline({ question, onAnswer }: DragTimelineProps) {
       </div>
 
       {/* Unplaced items */}
-      {unplacedItems.length > 0 && !isSubmitted && (
+      {unplacedItems.length > 0 && !isDisabled && (
         <div className="mb-4">
           <p className="text-white/40 text-xs mb-2 text-center">
             Tap an item, then choose a category:
@@ -149,14 +185,15 @@ export function DragTimeline({ question, onAnswer }: DragTimelineProps) {
                 item={item}
                 categories={question.categories}
                 onPlace={(categoryId) => handlePlace(item.id, categoryId)}
+                disabled={isDisabled}
               />
             ))}
           </div>
         </div>
       )}
 
-      {/* Result */}
-      {isSubmitted && (
+      {/* Result - only in standard mode */}
+      {showFeedback && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -176,22 +213,24 @@ export function DragTimeline({ question, onAnswer }: DragTimelineProps) {
         </motion.div>
       )}
 
-      {/* Submit button */}
-      <AnimatePresence>
-        {!isSubmitted && (
-          <motion.button
-            initial={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={handleSubmit}
-            disabled={!allPlaced}
-            className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {allPlaced
-              ? 'Check Answers'
-              : `Place ${unplacedItems.length} more item${unplacedItems.length > 1 ? 's' : ''}`}
-          </motion.button>
-        )}
-      </AnimatePresence>
+      {/* Submit button - only in standard mode */}
+      {!isGameShowMode && (
+        <AnimatePresence>
+          {!isSubmitted && (
+            <motion.button
+              initial={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={handleSubmit}
+              disabled={!allPlaced}
+              className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {allPlaced
+                ? 'Check Answers'
+                : `Place ${unplacedItems.length} more item${unplacedItems.length > 1 ? 's' : ''}`}
+            </motion.button>
+          )}
+        </AnimatePresence>
+      )}
     </div>
   );
 }
@@ -201,12 +240,23 @@ function ItemPill({
   item,
   categories,
   onPlace,
+  disabled = false,
 }: {
   item: { id: string; label: string; icon?: string };
   categories: { id: string; label: string }[];
   onPlace: (categoryId: string) => void;
+  disabled?: boolean;
 }) {
   const [showOptions, setShowOptions] = useState(false);
+
+  if (disabled) {
+    return (
+      <div className="px-3 py-2 bg-amber-500/10 border border-amber-500/30 text-amber-300/50 rounded-full text-xs font-medium">
+        {item.icon && <span className="mr-1">{item.icon}</span>}
+        {item.label}
+      </div>
+    );
+  }
 
   return (
     <div className="relative">
