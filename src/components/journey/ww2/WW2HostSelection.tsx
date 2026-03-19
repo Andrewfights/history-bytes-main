@@ -207,7 +207,7 @@ export function WW2HostSelection({ onSelectHost, onClose }: WW2HostSelectionProp
         </motion.div>
 
         {/* Carousel */}
-        <div className="flex-1 flex flex-col items-center justify-center px-2 sm:px-4 pb-safe overflow-hidden" style={{ paddingBottom: 'max(6rem, calc(env(safe-area-inset-bottom) + 5rem))' }}>
+        <div className="flex-1 flex flex-col items-center justify-center px-2 sm:px-4 overflow-hidden">
           <div className="relative w-full max-w-sm sm:max-w-md md:max-w-md lg:max-w-lg mx-auto">
             {/* Navigation Arrows - hidden on very small screens, use swipe instead */}
             <button
@@ -249,8 +249,8 @@ export function WW2HostSelection({ onSelectHost, onClose }: WW2HostSelectionProp
             </Carousel>
           </div>
 
-          {/* Dot Indicators */}
-          <div className="flex gap-2 mt-4">
+          {/* Dot Indicators - hidden on mobile */}
+          <div className="hidden sm:flex gap-2 mt-4">
             {hosts.map((host, index) => (
               <button
                 key={host.id}
@@ -264,15 +264,17 @@ export function WW2HostSelection({ onSelectHost, onClose }: WW2HostSelectionProp
             ))}
           </div>
 
-          {/* Choose Guide Button - positioned below dots */}
-          <motion.button
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            onClick={handleChooseGuide}
-            className="w-[calc(100%-2rem)] max-w-md mx-auto mt-4 sm:mt-6 py-3 sm:py-4 px-4 sm:px-8 rounded-xl bg-amber-500 text-black font-bold text-base sm:text-lg hover:bg-amber-400 transition-all active:scale-[0.98] whitespace-nowrap overflow-hidden text-ellipsis"
-          >
-            Choose {hosts[currentIndex]?.name || 'Guide'}
-          </motion.button>
+          {/* Choose Guide Button - always visible, fixed position on mobile */}
+          <div className="w-full px-4 mt-4 sm:mt-6 mb-4" style={{ paddingBottom: 'max(5rem, calc(env(safe-area-inset-bottom) + 4.5rem))' }}>
+            <motion.button
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              onClick={handleChooseGuide}
+              className="w-full max-w-md mx-auto block py-3.5 sm:py-4 px-4 sm:px-8 rounded-xl bg-amber-500 text-black font-bold text-base sm:text-lg hover:bg-amber-400 transition-all active:scale-[0.98]"
+            >
+              Choose {hosts[currentIndex]?.name || 'Guide'}
+            </motion.button>
+          </div>
         </div>
       </div>
     </motion.div>
@@ -291,15 +293,17 @@ function HostCarouselCard({ host, isActive, isSelected, onClick }: HostCarouselC
   const [isMuted, setIsMuted] = useState(false); // Default volume ON
   const [videoLoaded, setVideoLoaded] = useState(false);
   const [videoEnded, setVideoEnded] = useState(false);
+  const [videoError, setVideoError] = useState(false);
 
   // Auto-play video when active, pause and reset when not
   useEffect(() => {
     if (!videoRef.current) return;
 
-    if (isActive && host.introVideoUrl) {
+    if (isActive && host.introVideoUrl && !videoError) {
       setVideoEnded(false);
       videoRef.current.currentTime = 0;
-      videoRef.current.play().catch(() => {
+      videoRef.current.play().catch((err) => {
+        console.log('[HostCard] Video play error:', err);
         // Auto-play blocked, that's ok
       });
     } else {
@@ -307,7 +311,7 @@ function HostCarouselCard({ host, isActive, isSelected, onClick }: HostCarouselC
       videoRef.current.currentTime = 0;
       setVideoEnded(false);
     }
-  }, [isActive, host.introVideoUrl]);
+  }, [isActive, host.introVideoUrl, videoError]);
 
   const toggleMute = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -325,6 +329,11 @@ function HostCarouselCard({ host, isActive, isSelected, onClick }: HostCarouselC
       videoRef.current.play().catch(() => {});
     }
   };
+
+  // Determine what to show: video, image, or avatar
+  const showVideo = host.introVideoUrl && isActive && !videoEnded && !videoError;
+  const showImage = host.imageUrl && !showVideo;
+  const showAvatar = !showVideo && !showImage;
 
   return (
     <motion.div
@@ -344,33 +353,40 @@ function HostCarouselCard({ host, isActive, isSelected, onClick }: HostCarouselC
     >
       {/* Image/Video Container - limit height on desktop so buttons are visible */}
       <div className="relative aspect-[4/5] md:aspect-[3/4] lg:aspect-[4/5] md:max-h-[55vh] bg-gradient-to-b from-neutral-800 to-neutral-900">
-        {/* Portrait Image or Video */}
-        {host.introVideoUrl && isActive && !videoEnded ? (
-          <>
-            <video
-              ref={videoRef}
-              src={host.introVideoUrl}
-              muted={isMuted}
-              playsInline
-              autoPlay
-              onLoadedData={() => setVideoLoaded(true)}
-              onEnded={() => setVideoEnded(true)}
-              className="absolute inset-0 w-full h-full object-cover"
-            />
-            {/* Mute Toggle */}
-            <button
-              onClick={toggleMute}
-              className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/70 transition-colors"
-            >
-              {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
-            </button>
-          </>
-        ) : host.imageUrl ? (
+        {/* Video - always render but hide when not active */}
+        {host.introVideoUrl && (
+          <video
+            ref={videoRef}
+            src={host.introVideoUrl}
+            muted={isMuted}
+            playsInline
+            preload="auto"
+            onLoadedData={() => setVideoLoaded(true)}
+            onEnded={() => setVideoEnded(true)}
+            onError={() => setVideoError(true)}
+            className={`absolute inset-0 w-full h-full object-cover object-center transition-opacity duration-300 ${
+              showVideo ? 'opacity-100' : 'opacity-0 pointer-events-none'
+            }`}
+          />
+        )}
+
+        {/* Mute Toggle - only when video is showing */}
+        {showVideo && (
+          <button
+            onClick={toggleMute}
+            className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/70 transition-colors"
+          >
+            {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+          </button>
+        )}
+
+        {/* Image fallback */}
+        {showImage && (
           <>
             <img
               src={host.imageUrl}
               alt={host.name}
-              className="absolute inset-0 w-full h-full object-cover"
+              className="absolute inset-0 w-full h-full object-cover object-center"
             />
             {/* Post-video overlay - Replay option */}
             {videoEnded && host.introVideoUrl && (
@@ -379,7 +395,6 @@ function HostCarouselCard({ host, isActive, isSelected, onClick }: HostCarouselC
                 animate={{ opacity: 1 }}
                 className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/40"
               >
-                {/* Replay Button */}
                 <motion.button
                   initial={{ y: 10, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
@@ -393,13 +408,34 @@ function HostCarouselCard({ host, isActive, isSelected, onClick }: HostCarouselC
               </motion.div>
             )}
           </>
-        ) : (
-          // Fallback to avatar
+        )}
+
+        {/* Avatar fallback */}
+        {showAvatar && (
           <div
             className="absolute inset-0 flex items-center justify-center"
             style={{ backgroundColor: host.primaryColor }}
           >
             <span className="text-8xl">{host.avatar}</span>
+            {/* Replay option if video ended but no image */}
+            {videoEnded && host.introVideoUrl && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/40"
+              >
+                <motion.button
+                  initial={{ y: 10, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.2 }}
+                  onClick={handleReplay}
+                  className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm text-white/70 text-sm hover:bg-white/20 hover:text-white transition-colors"
+                >
+                  <Play size={14} fill="currentColor" />
+                  Watch Again
+                </motion.button>
+              </motion.div>
+            )}
           </div>
         )}
 
