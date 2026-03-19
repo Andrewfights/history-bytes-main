@@ -76,8 +76,8 @@ export const HISTORICAL_ERAS: HistoricalEra[] = [
     name: 'World War II',
     subtitle: 'The conflict that shaped the modern world',
     dateRange: '1939-1945',
-    // Iwo Jima flag raising - Joe Rosenthal (public domain)
-    defaultImageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b0/Raising_the_Flag_on_Iwo_Jima%2C_larger_-_edit1.jpg/800px-Raising_the_Flag_on_Iwo_Jima%2C_larger_-_edit1.jpg',
+    // Local WW2 battle artwork
+    defaultImageUrl: '/assets/ww2-battles/d-day.png',
     accentColor: '#d97706', // amber
     isAvailable: true,
     lessonCount: 7,

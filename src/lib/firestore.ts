@@ -1364,6 +1364,27 @@ export function subscribeToMusicLibrary(callback: (items: FirestoreMusicLibraryI
   return subscribeToCollection<FirestoreMusicLibraryItem>('musicLibrary', callback, orderBy('createdAt', 'desc'), limit(30));
 }
 
+// ============ Featured Section Types ============
+
+export interface FeaturedSectionItem {
+  id: string;
+  type: 'era' | 'carousel' | 'video' | 'promo' | 'news';
+  title?: string;              // Custom title (optional, defaults to era name)
+  subtitle?: string;           // Custom subtitle
+  imageUrl?: string;           // Custom background image
+  videoUrl?: string;           // For video type
+  linkUrl?: string;            // For promo/news type - external link
+  eraId?: string;              // For era type - which era to feature
+  carouselItems?: string[];    // For carousel type - list of era IDs or image URLs
+  isActive: boolean;
+  order: number;
+}
+
+export interface FeaturedSectionConfig {
+  items: FeaturedSectionItem[];
+  updatedAt?: Timestamp;
+}
+
 // ============ Journey UI Assets Types ============
 
 export interface FirestoreJourneyUIAssets {
@@ -1375,6 +1396,7 @@ export interface FirestoreJourneyUIAssets {
   pantheonIcon?: string;             // Custom icon for Pantheon
   trophyRoomImage?: string;          // Background/icon for Trophy Room section
   trophyRoomIcon?: string;           // Custom icon for Trophy Room
+  featuredSection?: FeaturedSectionConfig;  // Featured section config for home page
   updatedAt?: Timestamp;
 }
 
