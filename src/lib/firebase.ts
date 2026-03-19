@@ -6,8 +6,10 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import {
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
   getFirestore,
-  enableIndexedDbPersistence,
   connectFirestoreEmulator
 } from 'firebase/firestore';
 import { getStorage, connectStorageEmulator } from 'firebase/storage';
@@ -41,21 +43,37 @@ const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
 // Initialize Firebase services
 export const auth = getAuth(app);
-export const db = getFirestore(app);
-export const storage = getStorage(app);
 
-// Enable offline persistence for Firestore
-if (isFirebaseConfigured()) {
-  enableIndexedDbPersistence(db).catch((err) => {
-    if (err.code === 'failed-precondition') {
-      // Multiple tabs open, persistence can only be enabled in one tab at a time
-      console.warn('[Firebase] Offline persistence unavailable: multiple tabs open');
-    } else if (err.code === 'unimplemented') {
-      // The current browser doesn't support persistence
-      console.warn('[Firebase] Offline persistence unavailable: browser not supported');
+// Initialize Firestore with persistent cache and multi-tab support
+// This replaces the deprecated enableIndexedDbPersistence() method
+export const db = (() => {
+  if (getApps().length > 0) {
+    try {
+      // Try to get existing Firestore instance first
+      return getFirestore(app);
+    } catch {
+      // If not initialized yet, initialize with settings
     }
-  });
-}
+  }
+
+  if (isFirebaseConfigured()) {
+    try {
+      return initializeFirestore(app, {
+        localCache: persistentLocalCache({
+          tabManager: persistentMultipleTabManager()
+        })
+      });
+    } catch (err) {
+      // Firestore may already be initialized, get existing instance
+      console.warn('[Firebase] Using existing Firestore instance');
+      return getFirestore(app);
+    }
+  }
+
+  return getFirestore(app);
+})();
+
+export const storage = getStorage(app);
 
 // Connect to emulators in development (if configured)
 if (import.meta.env.DEV && import.meta.env.VITE_USE_FIREBASE_EMULATORS === 'true') {
