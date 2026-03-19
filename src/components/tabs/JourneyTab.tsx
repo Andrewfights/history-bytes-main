@@ -614,22 +614,34 @@ export function JourneyTab() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 bg-black flex items-center justify-center"
+          className="fixed inset-0 z-50 bg-black flex flex-col"
         >
-          <video
-            src={host.welcomeVideoUrl}
-            autoPlay
-            playsInline
-            onEnded={handleWW2WelcomeVideoEnd}
-            className="w-full h-full object-contain"
-          />
-          {/* Skip button - positioned safely for mobile browsers */}
-          <button
-            onClick={handleWW2WelcomeVideoEnd}
-            className="absolute bottom-20 sm:bottom-8 right-4 sm:right-8 px-4 sm:px-6 py-2.5 sm:py-3 rounded-full bg-white/20 backdrop-blur-sm text-white text-sm sm:text-base font-medium hover:bg-white/30 transition-colors z-10"
-          >
-            Skip
-          </button>
+          {/* Video container */}
+          <div className="flex-1 flex items-center justify-center">
+            <video
+              src={host.welcomeVideoUrl}
+              autoPlay
+              playsInline
+              loop
+              className="w-full h-full object-contain"
+            />
+          </div>
+
+          {/* ENTER PEARL HARBOR button - always visible below video */}
+          <div className="absolute bottom-0 left-0 right-0 p-6 pb-8 bg-gradient-to-t from-black via-black/80 to-transparent">
+            <motion.button
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              onClick={handleWW2WelcomeVideoEnd}
+              className="w-full max-w-md mx-auto block px-8 py-4 rounded-xl bg-gradient-to-r from-red-600 to-red-700 text-white font-bold text-lg shadow-lg shadow-red-500/30 hover:shadow-red-500/50 hover:from-red-500 hover:to-red-600 transition-all"
+            >
+              ENTER PEARL HARBOR
+            </motion.button>
+            <p className="text-center text-white/50 text-sm mt-3">
+              December 7, 1941
+            </p>
+          </div>
         </motion.div>
       );
     }
