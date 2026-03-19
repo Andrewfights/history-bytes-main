@@ -4,7 +4,9 @@ import { ChevronRight, Trophy, Flame, TrendingUp, Clock, Globe, Map, ArrowRight 
 import { useApp } from '@/context/AppContext';
 import { arcs, getArcById } from '@/data/journeyData';
 import { getEraImageUrl } from '@/data/historicalEras';
-import { subscribeToJourneyUIAssets, FirestoreJourneyUIAssets } from '@/lib/firestore';
+import { subscribeToJourneyUIAssets, FirestoreJourneyUIAssets, subscribeToWW2ModuleAssets, FirestoreWW2ModuleAssets } from '@/lib/firestore';
+import { CinematicVideoPlayer } from '@/components/journey/CinematicVideoPlayer';
+import { useAudioContext } from '@/context/AudioContext';
 
 // Load journey thumbnails from localStorage (synced with admin)
 const JOURNEY_THUMBNAILS_KEY = 'hb_journey_thumbnails';
@@ -103,6 +105,14 @@ export function JourneyTab() {
   const [currentChapterIndex, setCurrentChapterIndex] = useState(0);
   const [journeyThumbnails, setJourneyThumbnails] = useState<Record<string, string>>({});
   const [journeyUIAssets, setJourneyUIAssets] = useState<FirestoreJourneyUIAssets | null>(null);
+  const [ww2ModuleAssets, setWw2ModuleAssets] = useState<FirestoreWW2ModuleAssets | null>(null);
+
+  // Cinematic video state
+  const [showCinematicVideo, setShowCinematicVideo] = useState(false);
+  const [cinematicVideoUrl, setCinematicVideoUrl] = useState<string | null>(null);
+
+  // Audio context for background music
+  const { playModuleMusic, stopModuleMusic } = useAudioContext();
 
   const selectedArc = selectedArcId ? getArcById(selectedArcId) : null;
 
@@ -133,6 +143,14 @@ export function JourneyTab() {
   useEffect(() => {
     const unsubscribe = subscribeToJourneyUIAssets((assets) => {
       setJourneyUIAssets(assets);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Subscribe to WW2 Module Assets (for theater media config)
+  useEffect(() => {
+    const unsubscribe = subscribeToWW2ModuleAssets((assets) => {
+      setWw2ModuleAssets(assets);
     });
     return () => unsubscribe();
   }, []);
@@ -318,10 +336,35 @@ export function JourneyTab() {
   const handleWW2WelcomeVideoEnd = () => {
     setShowWW2WelcomeVideo(false);
     setPendingHostId(null);
-    // Now go to theater selection
+
+    // Check for cinematic video
+    const cinematicUrl = ww2ModuleAssets?.theaterMedia?.['pearl-harbor']?.cinematicVideoUrl;
+    if (cinematicUrl) {
+      setCinematicVideoUrl(cinematicUrl);
+      setShowCinematicVideo(true);
+    } else {
+      enterPearlHarborJourney();
+    }
+  };
+
+  const handleCinematicComplete = () => {
+    setShowCinematicVideo(false);
+    setCinematicVideoUrl(null);
+    enterPearlHarborJourney();
+  };
+
+  const enterPearlHarborJourney = () => {
+    // Start background music if configured
+    const musicUrl = ww2ModuleAssets?.theaterMedia?.['pearl-harbor']?.backgroundMusicUrl;
+    const musicVolume = ww2ModuleAssets?.theaterMedia?.['pearl-harbor']?.backgroundMusicVolume ?? 0.3;
+    if (musicUrl) {
+      playModuleMusic('pearl-harbor', musicUrl, musicVolume);
+    }
+
+    // Navigate to Pearl Harbor journey
     trackArcVisit(WW2_ARC_ID);
     setSelectedArcId(WW2_ARC_ID);
-    setView('ww2-theaters');
+    setView('pearl-harbor-journey');
   };
 
   const handleWW2GreetingContinue = () => {
@@ -361,6 +404,7 @@ export function JourneyTab() {
   };
 
   const handleBackFromPearlHarbor = () => {
+    stopModuleMusic(); // Stop background music when leaving
     setView('landing');
     setSelectedArcId(null);
   };
@@ -589,6 +633,19 @@ export function JourneyTab() {
         </motion.div>
       );
     }
+  }
+
+  // Render Cinematic Video if showing
+  if (showCinematicVideo && cinematicVideoUrl) {
+    return (
+      <CinematicVideoPlayer
+        videoUrl={cinematicVideoUrl}
+        onComplete={handleCinematicComplete}
+        onSkip={handleCinematicComplete}
+        showSkipButton={true}
+        skipButtonDelay={3000}
+      />
+    );
   }
 
   // Render WW2 Host Greeting if showing

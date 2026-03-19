@@ -1442,6 +1442,13 @@ export interface ExamQuestionVideo {
   uploadedAt?: Timestamp;
 }
 
+export interface TheaterMediaConfig {
+  cinematicVideoUrl?: string;      // Entry cinematic video (e.g., 40 seconds)
+  backgroundMusicUrl?: string;     // Background music for the theater/module
+  backgroundMusicVolume?: number;  // 0-1, default 0.3
+  musicFadeDuration?: number;      // ms, default 500
+}
+
 export interface FirestoreWW2ModuleAssets {
   id: string;  // Always 'ww2ModuleAssets'
   // Beat media assets
@@ -1452,6 +1459,8 @@ export interface FirestoreWW2ModuleAssets {
   customStatements?: Record<string, WW2BeatStatement[]>;  // Key: beat ID
   // Exam question videos for game show mode
   examQuestionVideos?: Record<string, ExamQuestionVideo>;  // Key: question ID (e.g., 'exam-q1')
+  // Theater-level media config (cinematic videos, background music)
+  theaterMedia?: Record<string, TheaterMediaConfig>;  // Key: theater ID (e.g., 'pearl-harbor', 'normandy')
   updatedAt?: Timestamp;
 }
 
@@ -1517,6 +1526,29 @@ export async function updateExamQuestionVideo(questionId: string, video: ExamQue
 export async function getExamQuestionVideos(): Promise<Record<string, ExamQuestionVideo>> {
   const assets = await getWW2ModuleAssets();
   return assets?.examQuestionVideos || {};
+}
+
+export async function updateTheaterMedia(theaterId: string, config: TheaterMediaConfig | null): Promise<boolean> {
+  const current = await getWW2ModuleAssets();
+  const theaterMedia = current?.theaterMedia || {};
+
+  if (config) {
+    theaterMedia[theaterId] = config;
+  } else {
+    delete theaterMedia[theaterId];
+  }
+
+  return saveWW2ModuleAssets({ theaterMedia });
+}
+
+export async function getTheaterMedia(theaterId: string): Promise<TheaterMediaConfig | null> {
+  const assets = await getWW2ModuleAssets();
+  return assets?.theaterMedia?.[theaterId] || null;
+}
+
+export async function getAllTheaterMedia(): Promise<Record<string, TheaterMediaConfig>> {
+  const assets = await getWW2ModuleAssets();
+  return assets?.theaterMedia || {};
 }
 
 export function subscribeToWW2ModuleAssets(callback: (assets: FirestoreWW2ModuleAssets | null) => void): Unsubscribe {

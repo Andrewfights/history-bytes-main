@@ -71,6 +71,7 @@ import {
   FinalExamBeat,
 } from '@/components/journey/pearl-harbor/beats';
 import { PearlHarborArena } from '@/components/journey/pearl-harbor/arena';
+import { TheaterMediaEditor } from './TheaterMediaEditor';
 
 // ============================================================
 // BEAT CONTENT DATA - All questions, statements, and flows
@@ -2013,6 +2014,35 @@ export function WW2ModuleEditor() {
           onUpload={handleUpload}
           onRemove={handleRemove}
         />
+
+        {/* Theater Media Settings Section */}
+        <div className="mt-8 mb-4">
+          <h2 className="text-lg font-semibold text-white flex items-center gap-2 mb-4">
+            <Music size={20} className="text-amber-400" />
+            Theater Media Settings
+          </h2>
+          <p className="text-sm text-slate-400 mb-4">
+            Configure cinematic entry videos and background music for each theater
+          </p>
+          <div className="space-y-3">
+            <TheaterMediaEditor
+              theaterId="pearl-harbor"
+              theaterName="Pearl Harbor"
+            />
+            <TheaterMediaEditor
+              theaterId="normandy"
+              theaterName="Normandy (D-Day)"
+            />
+            <TheaterMediaEditor
+              theaterId="battle-of-britain"
+              theaterName="Battle of Britain"
+            />
+            <TheaterMediaEditor
+              theaterId="stalingrad"
+              theaterName="Stalingrad"
+            />
+          </div>
+        </div>
       </div>
 
       {/* Preview Modal */}

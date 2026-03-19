@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/context/AuthContext";
+import { AudioProvider } from "@/context/AudioContext";
 import { Loader2 } from 'lucide-react';
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
@@ -54,8 +55,9 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          <BrowserRouter>
-            <Routes>
+          <AudioProvider>
+            <BrowserRouter>
+              <Routes>
               <Route path="/" element={<Index />} />
               {/* Admin Routes - Protected and Lazy Loaded */}
               <Route
@@ -90,8 +92,9 @@ const App = () => (
               </Route>
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
+              </Routes>
+            </BrowserRouter>
+          </AudioProvider>
         </TooltipProvider>
       </AuthProvider>
     </ThemeProvider>

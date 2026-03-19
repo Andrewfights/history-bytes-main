@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Volume2, X } from 'lucide-react';
 import { WW2Host } from '@/types';
 import { HostDialogue } from '@/data/ww2Hosts';
+import { useAudioContextSafe } from '@/context/AudioContext';
 
 interface HostNarrationProps {
   host: WW2Host;
@@ -36,6 +37,7 @@ export function HostNarration({
 }: HostNarrationProps) {
   const [currentText, setCurrentText] = useState('');
   const [isTyping, setIsTyping] = useState(true);
+  const audioContext = useAudioContextSafe();
 
   // Get the appropriate text based on phase
   const getDisplayText = () => {
@@ -143,6 +145,8 @@ export function HostNarration({
                   src={videoUrl}
                   autoPlay
                   className="w-full h-full object-cover"
+                  onPlay={() => audioContext?.notifyVideoStart()}
+                  onEnded={() => audioContext?.notifyVideoEnd()}
                 />
               </div>
             )}
@@ -232,6 +236,7 @@ export function HostIntroOverlay({
 }: HostIntroOverlayProps) {
   const [showInstructions, setShowInstructions] = useState(false);
   const [videoEnded, setVideoEnded] = useState(!videoUrl);
+  const audioContext = useAudioContextSafe();
 
   return (
     <motion.div
@@ -248,7 +253,11 @@ export function HostIntroOverlay({
               src={videoUrl}
               autoPlay
               className="w-full h-full object-cover"
-              onEnded={() => setVideoEnded(true)}
+              onPlay={() => audioContext?.notifyVideoStart()}
+              onEnded={() => {
+                audioContext?.notifyVideoEnd();
+                setVideoEnded(true);
+              }}
             />
           </div>
         ) : (

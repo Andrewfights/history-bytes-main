@@ -9,6 +9,7 @@ import { ChevronLeft, Globe, Lock, CheckCircle2, Play, Crown, AlertCircle } from
 import { WW2Host } from '@/types';
 import { PEARL_HARBOR_LESSONS, TOTAL_XP, PearlHarborLesson } from '@/data/pearlHarborLessons';
 import { usePearlHarborProgress } from './hooks/usePearlHarborProgress';
+import { MusicControl } from '@/components/shared/MusicControl';
 
 interface PearlHarborJourneyMapProps {
   host: WW2Host;
@@ -304,6 +305,9 @@ export function PearlHarborJourneyMap({
           </motion.div>
         </AnimatePresence>
       </div>
+
+      {/* Music Control */}
+      <MusicControl position="bottom-left" />
 
       {/* View Map Button */}
       <motion.button
