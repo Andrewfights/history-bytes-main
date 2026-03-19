@@ -339,11 +339,18 @@ export function JourneyTab() {
     setPendingHostId(null);
 
     // Check for cinematic video
-    const cinematicUrl = ww2ModuleAssets?.theaterMedia?.['pearl-harbor']?.cinematicVideoUrl;
+    const theaterMedia = ww2ModuleAssets?.theaterMedia?.['pearl-harbor'];
+    const cinematicUrl = theaterMedia?.cinematicVideoUrl;
+
+    console.log('[PearlHarbor] ENTER clicked - theaterMedia:', theaterMedia);
+    console.log('[PearlHarbor] cinematicVideoUrl:', cinematicUrl);
+
     if (cinematicUrl) {
+      console.log('[PearlHarbor] Playing cinematic video...');
       setCinematicVideoUrl(cinematicUrl);
       setShowCinematicVideo(true);
     } else {
+      console.log('[PearlHarbor] No cinematic configured, entering journey directly');
       enterPearlHarborJourney();
     }
   };
