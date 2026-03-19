@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, ArrowRight, X } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
@@ -15,6 +15,7 @@ import { RandomResult } from '@/lib/randomizer';
 import { getEraById, getComingSoonEras, HistoricalEra } from '@/data/historicalEras';
 import { usePearlHarborProgress } from '@/components/journey/pearl-harbor/hooks/usePearlHarborProgress';
 import { PEARL_HARBOR_LESSONS } from '@/data/pearlHarborLessons';
+import { subscribeToJourneyUIAssets, FirestoreJourneyUIAssets } from '@/lib/firestore';
 
 
 interface HomeTabProps {
@@ -36,6 +37,16 @@ export function HomeTab({ onStartSession, onPlayDaily, onSelectTopic }: HomeTabP
     id => id.startsWith('ph-lesson-')
   ).length;
   const totalLessons = PEARL_HARBOR_LESSONS.length;
+
+  // Subscribe to Firebase Journey UI Assets (for Pearl Harbor artwork)
+  const [journeyUIAssets, setJourneyUIAssets] = useState<FirestoreJourneyUIAssets | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = subscribeToJourneyUIAssets((assets) => {
+      setJourneyUIAssets(assets);
+    });
+    return () => unsubscribe();
+  }, []);
 
   // Handler to enter Pearl Harbor journey
   const handleEnterJourney = () => {
@@ -105,6 +116,7 @@ export function HomeTab({ onStartSession, onPlayDaily, onSelectTopic }: HomeTabP
             xp: totalXP,
           }}
           onStart={handleEnterJourney}
+          overrideImageUrl={journeyUIAssets?.featuredJourneyImage}
         />
       )}
 

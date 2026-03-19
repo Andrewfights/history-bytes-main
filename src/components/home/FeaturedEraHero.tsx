@@ -17,11 +17,13 @@ interface FeaturedEraHeroProps {
     xp: number;
   };
   onStart: () => void;
+  overrideImageUrl?: string; // Custom image URL (e.g., Pearl Harbor artwork from Firebase)
 }
 
-export function FeaturedEraHero({ era, progress, onStart }: FeaturedEraHeroProps) {
+export function FeaturedEraHero({ era, progress, onStart, overrideImageUrl }: FeaturedEraHeroProps) {
   const [imageError, setImageError] = useState(false);
-  const imageUrl = getEraImageUrl(era.id);
+  // Use override image if provided, otherwise fall back to era default
+  const imageUrl = overrideImageUrl || getEraImageUrl(era.id);
 
   const hasStarted = progress && progress.completed > 0;
   const isComplete = progress && progress.completed >= progress.total;

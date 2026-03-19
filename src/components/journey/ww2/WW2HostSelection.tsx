@@ -207,7 +207,7 @@ export function WW2HostSelection({ onSelectHost, onClose }: WW2HostSelectionProp
         </motion.div>
 
         {/* Carousel */}
-        <div className="flex-1 flex flex-col items-center justify-center px-2 sm:px-4 pb-safe overflow-hidden" style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom))' }}>
+        <div className="flex-1 flex flex-col items-center justify-center px-2 sm:px-4 pb-safe overflow-hidden" style={{ paddingBottom: 'max(6rem, calc(env(safe-area-inset-bottom) + 5rem))' }}>
           <div className="relative w-full max-w-sm sm:max-w-md md:max-w-md lg:max-w-lg mx-auto">
             {/* Navigation Arrows - hidden on very small screens, use swipe instead */}
             <button
