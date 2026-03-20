@@ -383,9 +383,18 @@ export function MasteryRunBeat({ host, onComplete, onSkip, onBack }: MasteryRunB
                 </p>
               </div>
 
-              <div className="flex items-center gap-2 px-6 py-3 bg-amber-500/20 rounded-full">
+              <div className="flex items-center gap-2 px-6 py-3 bg-amber-500/20 rounded-full mb-8">
                 <Sparkles className="text-amber-400" />
                 <span className="text-amber-400 font-bold text-xl">+{skipped ? 0 : earnedXP} XP</span>
+              </div>
+
+              <div style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}>
+                <button
+                  onClick={nextScreen}
+                  className="w-full max-w-sm py-4 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-black font-bold rounded-xl transition-colors shadow-lg shadow-amber-500/30"
+                >
+                  Take the Final Exam
+                </button>
               </div>
             </motion.div>
           )}
