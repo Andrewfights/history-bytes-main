@@ -213,6 +213,7 @@ export type ExamScreen =
   | 'question'
   | 'answer_reveal'
   | 'transition'
+  | 'milestone_video'  // Playing milestone transition/completion video
   | 'results'
   | 'question_active'  // Game show mode: question with active timer
   | 'locked_in'        // Game show mode: answer locked, brief pause

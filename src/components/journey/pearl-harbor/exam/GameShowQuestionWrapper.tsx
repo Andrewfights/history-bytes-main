@@ -15,11 +15,17 @@ import { GAME_SHOW_CONFIG } from './examConfig';
 import { useExamAudio } from '@/lib/audioManager';
 import type { ExamQuestion, PendingAnswer } from './types';
 
+interface VideoTrimSettings {
+  trimStart?: number;
+  trimEnd?: number;
+}
+
 interface GameShowQuestionWrapperProps {
   question: ExamQuestion;
   questionNumber: number;
   totalQuestions: number;
   videoUrl?: string;
+  videoTrim?: VideoTrimSettings;
   nextVideoUrl?: string;
   onQuestionComplete: (answer: PendingAnswer) => void;
   children: (props: GameShowChildProps) => React.ReactNode;
@@ -37,6 +43,7 @@ export function GameShowQuestionWrapper({
   questionNumber,
   totalQuestions,
   videoUrl,
+  videoTrim,
   nextVideoUrl,
   onQuestionComplete,
   children,
@@ -128,11 +135,46 @@ export function GameShowQuestionWrapper({
   const [videoError, setVideoError] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
+  // Trim settings
+  const trimStart = videoTrim?.trimStart ?? 0;
+  const trimEnd = videoTrim?.trimEnd;
+  const TARGET_CLIP_DURATION = 10; // Target duration in seconds
+
   // Reset video state when URL changes
   useEffect(() => {
     setVideoLoaded(false);
     setVideoError(false);
   }, [videoUrl]);
+
+  // Handle video loaded - seek to trim start
+  const handleVideoLoaded = useCallback(() => {
+    setVideoLoaded(true);
+    if (videoRef.current && trimStart > 0) {
+      videoRef.current.currentTime = trimStart;
+    }
+  }, [trimStart]);
+
+  // Handle video time update - loop within trim bounds or hold last frame
+  const handleTimeUpdate = useCallback(() => {
+    if (!videoRef.current) return;
+
+    const video = videoRef.current;
+    const effectiveTrimEnd = trimEnd ?? video.duration;
+    const clipDuration = effectiveTrimEnd - trimStart;
+
+    // If we've reached the trim end
+    if (video.currentTime >= effectiveTrimEnd) {
+      // For short videos (< 10s), hold the last frame
+      if (clipDuration < TARGET_CLIP_DURATION) {
+        video.pause();
+        // Keep the video at the last frame (trimEnd or video end)
+        video.currentTime = effectiveTrimEnd - 0.01;
+      } else {
+        // Loop back to trim start
+        video.currentTime = trimStart;
+      }
+    }
+  }, [trimStart, trimEnd]);
 
   return (
     <div className="flex flex-col h-full" style={{ paddingBottom: 'max(1rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}>
@@ -151,10 +193,10 @@ export function GameShowQuestionWrapper({
               ref={videoRef}
               src={videoUrl}
               autoPlay
-              loop
               muted
               playsInline
-              onLoadedData={() => setVideoLoaded(true)}
+              onLoadedData={handleVideoLoaded}
+              onTimeUpdate={handleTimeUpdate}
               onError={() => setVideoError(true)}
               initial={{ opacity: 0 }}
               animate={{ opacity: videoLoaded ? 1 : 0 }}

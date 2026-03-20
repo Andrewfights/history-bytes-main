@@ -1475,14 +1475,32 @@ export interface WW2BeatHotspotConfig {
 
 export interface ExamQuestionVideo {
   questionId: string;
-  hostId: string;  // 'eisenhower' | 'journalist' | 'codebreaker'
+  hostId: string;  // 'sergeant' | 'journalist' | 'codebreaker'
   videoUrl: string;
-  duration?: number; // Duration in seconds
+  duration?: number;    // Total duration in seconds
+  trimStart?: number;   // Start time for playback (seconds)
+  trimEnd?: number;     // End time for playback (seconds), max 10s from trimStart
   uploadedAt?: Timestamp;
 }
 
 // Map of hostId -> ExamQuestionVideo for a single question
 export type ExamQuestionHostVideos = Record<string, ExamQuestionVideo>;
+
+// Milestone videos played after Q5, Q10, and completion (Q15)
+export type ExamMilestoneType = 'after-q5' | 'after-q10' | 'completion';
+
+export interface ExamMilestoneVideo {
+  milestoneType: ExamMilestoneType;
+  hostId: string;  // 'sergeant' | 'journalist' | 'codebreaker'
+  videoUrl: string;
+  duration?: number;    // Total duration in seconds
+  trimStart?: number;   // Start time for playback (seconds)
+  trimEnd?: number;     // End time for playback (seconds)
+  uploadedAt?: Timestamp;
+}
+
+// Map of hostId -> ExamMilestoneVideo for a single milestone
+export type ExamMilestoneHostVideos = Record<string, ExamMilestoneVideo>;
 
 export interface TheaterMediaConfig {
   cinematicVideoUrl?: string;      // Entry cinematic video (e.g., 40 seconds)
@@ -1503,6 +1521,8 @@ export interface FirestoreWW2ModuleAssets {
   customHotspots?: Record<string, WW2BeatHotspotConfig>;  // Key: beat ID -> {imageUrl, hotspots}
   // Exam question videos for game show mode (per host)
   examQuestionVideos?: Record<string, ExamQuestionHostVideos>;  // Key: question ID -> hostId -> video
+  // Exam milestone videos (after Q5, Q10, and completion)
+  examMilestoneVideos?: Record<ExamMilestoneType, ExamMilestoneHostVideos>;  // Key: milestone type -> hostId -> video
   // Theater-level media config (cinematic videos, background music)
   theaterMedia?: Record<string, TheaterMediaConfig>;  // Key: theater ID (e.g., 'pearl-harbor', 'normandy')
   updatedAt?: Timestamp;
@@ -1604,6 +1624,48 @@ export async function getExamQuestionVideoForHost(
 ): Promise<ExamQuestionVideo | null> {
   const assets = await getWW2ModuleAssets();
   return assets?.examQuestionVideos?.[questionId]?.[hostId] || null;
+}
+
+// ============ Exam Milestone Video Operations ============
+
+export async function updateExamMilestoneVideo(
+  milestoneType: ExamMilestoneType,
+  hostId: string,
+  video: ExamMilestoneVideo | null
+): Promise<boolean> {
+  const current = await getWW2ModuleAssets();
+  const examMilestoneVideos = current?.examMilestoneVideos || {} as Record<ExamMilestoneType, ExamMilestoneHostVideos>;
+
+  // Initialize milestone's host videos if needed
+  if (!examMilestoneVideos[milestoneType]) {
+    examMilestoneVideos[milestoneType] = {};
+  }
+
+  if (video) {
+    examMilestoneVideos[milestoneType][hostId] = video;
+  } else {
+    delete examMilestoneVideos[milestoneType][hostId];
+    // Clean up empty milestone entries
+    if (Object.keys(examMilestoneVideos[milestoneType]).length === 0) {
+      delete examMilestoneVideos[milestoneType];
+    }
+  }
+
+  return saveWW2ModuleAssets({ examMilestoneVideos });
+}
+
+export async function getExamMilestoneVideos(): Promise<Record<ExamMilestoneType, ExamMilestoneHostVideos>> {
+  const assets = await getWW2ModuleAssets();
+  return assets?.examMilestoneVideos || {} as Record<ExamMilestoneType, ExamMilestoneHostVideos>;
+}
+
+// Get milestone video for a specific milestone and host
+export async function getExamMilestoneVideoForHost(
+  milestoneType: ExamMilestoneType,
+  hostId: string
+): Promise<ExamMilestoneVideo | null> {
+  const assets = await getWW2ModuleAssets();
+  return assets?.examMilestoneVideos?.[milestoneType]?.[hostId] || null;
 }
 
 export async function updateTheaterMedia(theaterId: string, config: TheaterMediaConfig | null): Promise<boolean> {

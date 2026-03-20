@@ -30,6 +30,14 @@ import {
 import { PearlHarborArena } from '../arena';
 import { useExamAudio } from '@/lib/audioManager';
 import type { ArenaRecognition } from '@/data/arenaQuestions';
+import {
+  getExamMilestoneVideos,
+  getExamQuestionVideos,
+  type ExamMilestoneType,
+  type ExamMilestoneVideo,
+  type ExamQuestionVideo,
+  type ExamQuestionHostVideos,
+} from '@/lib/firestore';
 
 /**
  * Evaluate an answer for a given question
@@ -150,6 +158,14 @@ export function FinalExamBeat({
   const [isMuted, setIsMuted] = useState(() => audio.getMuted());
   const isGameShowMode = GAME_SHOW_CONFIG.enabled;
 
+  // Milestone video state
+  const [milestoneVideos, setMilestoneVideos] = useState<Record<ExamMilestoneType, Record<string, ExamMilestoneVideo>>>({} as Record<ExamMilestoneType, Record<string, ExamMilestoneVideo>>);
+  const [currentMilestone, setCurrentMilestone] = useState<ExamMilestoneType | null>(null);
+  const [pendingNextIndex, setPendingNextIndex] = useState<number | null>(null);
+
+  // Question video state (from Firestore admin)
+  const [questionVideos, setQuestionVideos] = useState<Record<string, ExamQuestionHostVideos>>({});
+
   // Preload audio when component mounts
   useEffect(() => {
     if (isGameShowMode) {
@@ -159,6 +175,54 @@ export function FinalExamBeat({
       audio.stopLoop();
     };
   }, [audio, isGameShowMode]);
+
+  // Fetch milestone and question videos on mount
+  useEffect(() => {
+    async function fetchVideos() {
+      const [milestones, questions] = await Promise.all([
+        getExamMilestoneVideos(),
+        getExamQuestionVideos(),
+      ]);
+      setMilestoneVideos(milestones);
+      setQuestionVideos(questions);
+    }
+    fetchVideos();
+  }, []);
+
+  // Map host.id to video host id (soldier -> sergeant mapping)
+  const getVideoHostId = useCallback((hostId: string): string => {
+    if (hostId === 'soldier') return 'sergeant';
+    return hostId;
+  }, []);
+
+  // Get current milestone video URL for the active host
+  const getCurrentMilestoneVideoUrl = useCallback((): string | null => {
+    if (!currentMilestone) return null;
+    const videoHostId = getVideoHostId(host.id);
+    return milestoneVideos[currentMilestone]?.[videoHostId]?.videoUrl || null;
+  }, [currentMilestone, milestoneVideos, host.id, getVideoHostId]);
+
+  // Get question video data for a specific question and the current host
+  const getQuestionVideo = useCallback((questionId: string): ExamQuestionVideo | null => {
+    const videoHostId = getVideoHostId(host.id);
+    return questionVideos[questionId]?.[videoHostId] || null;
+  }, [questionVideos, host.id, getVideoHostId]);
+
+  // Handle milestone video ending
+  const handleMilestoneVideoEnd = useCallback(() => {
+    if (currentMilestone === 'completion') {
+      // After completion video, show results
+      setScreen('results');
+      audio.play('fanfare');
+    } else if (pendingNextIndex !== null) {
+      // After tier transition video, continue to next question
+      setShowingTierTransition(false);
+      setCurrentIndex(pendingNextIndex);
+      setScreen(isGameShowMode ? 'question_active' : 'question');
+    }
+    setCurrentMilestone(null);
+    setPendingNextIndex(null);
+  }, [currentMilestone, pendingNextIndex, isGameShowMode, audio]);
 
   // Sync mute state with audio manager
   const handleToggleMute = useCallback(() => {
@@ -197,6 +261,7 @@ export function FinalExamBeat({
       setPendingAnswers((prev) => [...prev, pendingAnswer]);
 
       const nextIndex = currentIndex + 1;
+      const videoHostId = getVideoHostId(host.id);
 
       if (nextIndex >= shuffledQuestions.length) {
         // Exam complete - evaluate all answers
@@ -220,24 +285,44 @@ export function FinalExamBeat({
         }
 
         setAnswers(finalAnswers);
-        setScreen('results');
-        audio.play('fanfare');
+
+        // Check for completion milestone video
+        const completionVideo = milestoneVideos['completion']?.[videoHostId]?.videoUrl;
+        if (completionVideo) {
+          setCurrentMilestone('completion');
+          setScreen('milestone_video');
+        } else {
+          setScreen('results');
+          audio.play('fanfare');
+        }
       } else {
         // Check for tier transition
         const currentTierValue = getTierForIndex(currentIndex);
         const nextTierValue = getTierForIndex(nextIndex);
 
         if (currentTierValue !== nextTierValue) {
-          // Show tier transition
+          // Determine which milestone we're at
+          const milestoneType: ExamMilestoneType = currentIndex === 4 ? 'after-q5' : 'after-q10';
+          const milestoneVideo = milestoneVideos[milestoneType]?.[videoHostId]?.videoUrl;
+
           setCurrentTier(nextTierValue);
           setShowingTierTransition(true);
-          setScreen('transition');
 
-          setTimeout(() => {
-            setShowingTierTransition(false);
-            setCurrentIndex(nextIndex);
-            setScreen('question_active');
-          }, 3000);
+          if (milestoneVideo) {
+            // Play milestone video instead of just showing transition
+            setCurrentMilestone(milestoneType);
+            setPendingNextIndex(nextIndex);
+            setScreen('milestone_video');
+          } else {
+            // No milestone video, show standard transition
+            setScreen('transition');
+
+            setTimeout(() => {
+              setShowingTierTransition(false);
+              setCurrentIndex(nextIndex);
+              setScreen('question_active');
+            }, 3000);
+          }
         } else {
           // Continue to next question immediately
           setCurrentIndex(nextIndex);
@@ -245,7 +330,7 @@ export function FinalExamBeat({
         }
       }
     },
-    [currentIndex, shuffledQuestions, pendingAnswers]
+    [currentIndex, shuffledQuestions, pendingAnswers, milestoneVideos, host.id, getVideoHostId, audio]
   );
 
   // Handle standard mode answer submission (non-game-show)
@@ -254,30 +339,50 @@ export function FinalExamBeat({
       setAnswers((prev) => new Map(prev).set(answer.questionId, answer));
       setScreen('answer_reveal');
 
+      const videoHostId = getVideoHostId(host.id);
+
       // After delay, move to next question or results
       setTimeout(() => {
         const nextIndex = currentIndex + 1;
 
         if (nextIndex >= shuffledQuestions.length) {
-          // Exam complete
-          setScreen('results');
-          audio.play('fanfare');
+          // Exam complete - check for completion milestone video
+          const completionVideo = milestoneVideos['completion']?.[videoHostId]?.videoUrl;
+          if (completionVideo) {
+            setCurrentMilestone('completion');
+            setScreen('milestone_video');
+          } else {
+            setScreen('results');
+            audio.play('fanfare');
+          }
         } else {
           // Check for tier transition
           const currentTierValue = getTierForIndex(currentIndex);
           const nextTierValue = getTierForIndex(nextIndex);
 
           if (currentTierValue !== nextTierValue) {
-            // Show tier transition
+            // Determine which milestone we're at
+            const milestoneType: ExamMilestoneType = currentIndex === 4 ? 'after-q5' : 'after-q10';
+            const milestoneVideo = milestoneVideos[milestoneType]?.[videoHostId]?.videoUrl;
+
             setCurrentTier(nextTierValue);
             setShowingTierTransition(true);
-            setScreen('transition');
 
-            setTimeout(() => {
-              setShowingTierTransition(false);
-              setCurrentIndex(nextIndex);
-              setScreen('question');
-            }, 3000);
+            if (milestoneVideo) {
+              // Play milestone video
+              setCurrentMilestone(milestoneType);
+              setPendingNextIndex(nextIndex);
+              setScreen('milestone_video');
+            } else {
+              // Show standard tier transition
+              setScreen('transition');
+
+              setTimeout(() => {
+                setShowingTierTransition(false);
+                setCurrentIndex(nextIndex);
+                setScreen('question');
+              }, 3000);
+            }
           } else {
             // Continue to next question
             setCurrentIndex(nextIndex);
@@ -286,7 +391,7 @@ export function FinalExamBeat({
         }
       }, 2000);
     },
-    [currentIndex, shuffledQuestions.length]
+    [currentIndex, shuffledQuestions.length, milestoneVideos, host.id, getVideoHostId, audio]
   );
 
   // Handle exam completion
@@ -512,10 +617,19 @@ export function FinalExamBeat({
                 question={currentQuestion}
                 questionNumber={currentIndex + 1}
                 totalQuestions={shuffledQuestions.length}
-                videoUrl={currentQuestion.visualAsset}
+                videoUrl={getQuestionVideo(currentQuestion.id)?.videoUrl || currentQuestion.visualAsset}
+                videoTrim={
+                  getQuestionVideo(currentQuestion.id)
+                    ? {
+                        trimStart: getQuestionVideo(currentQuestion.id)?.trimStart,
+                        trimEnd: getQuestionVideo(currentQuestion.id)?.trimEnd,
+                      }
+                    : undefined
+                }
                 nextVideoUrl={
                   currentIndex + 1 < shuffledQuestions.length
-                    ? shuffledQuestions[currentIndex + 1]?.visualAsset
+                    ? getQuestionVideo(shuffledQuestions[currentIndex + 1]?.id)?.videoUrl ||
+                      shuffledQuestions[currentIndex + 1]?.visualAsset
                     : undefined
                 }
                 onQuestionComplete={handleGameShowQuestionComplete}
@@ -613,6 +727,43 @@ export function FinalExamBeat({
                   </p>
                 </div>
               </motion.div>
+            </motion.div>
+          )}
+
+          {/* Milestone video screen */}
+          {screen === 'milestone_video' && currentMilestone && (
+            <motion.div
+              key={`milestone-${currentMilestone}`}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="relative flex flex-col h-full bg-black"
+            >
+              {getCurrentMilestoneVideoUrl() ? (
+                <video
+                  src={getCurrentMilestoneVideoUrl()!}
+                  className="w-full h-full object-contain"
+                  autoPlay
+                  playsInline
+                  onEnded={handleMilestoneVideoEnd}
+                  onError={handleMilestoneVideoEnd}
+                />
+              ) : (
+                // Fallback if video fails to load
+                <div className="flex-1 flex items-center justify-center">
+                  <div className="text-white/60">Loading...</div>
+                </div>
+              )}
+
+              {/* Skip button - subtle at bottom */}
+              <div className="absolute bottom-8 left-0 right-0 flex justify-center">
+                <button
+                  onClick={handleMilestoneVideoEnd}
+                  className="px-6 py-2 bg-white/10 hover:bg-white/20 text-white/70 hover:text-white text-sm rounded-full transition-colors"
+                >
+                  Skip Video
+                </button>
+              </div>
             </motion.div>
           )}
 
