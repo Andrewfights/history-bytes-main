@@ -145,17 +145,31 @@ export function RoadToWarBeat({ host, onComplete, onSkip, onBack }: RoadToWarBea
   const [challengeScore, setChallengeScore] = useState(0);
   const [skippedScreens, setSkippedScreens] = useState<Set<Screen>>(new Set());
   const [customHotspotConfig, setCustomHotspotConfig] = useState<WW2BeatHotspotConfig | null>(null);
+  const [beatMediaImage, setBeatMediaImage] = useState<string | null>(null);
 
   const { saveCheckpoint, clearCheckpoint, getCheckpoint } = usePearlHarborProgress();
 
-  // Subscribe to Firestore for custom hotspot config
+  // Subscribe to Firestore for custom hotspot config AND beat media
   useEffect(() => {
     console.log('[RoadToWarBeat] Setting up Firestore subscription for:', LESSON_DATA.id);
     const unsubscribe = subscribeToWW2ModuleAssets((assets) => {
       console.log('[RoadToWarBeat] Received assets:', assets);
-      console.log('[RoadToWarBeat] Custom hotspots for beat:', assets?.customHotspots?.[LESSON_DATA.id]);
+
+      // Check for custom hotspot config
       if (assets?.customHotspots?.[LESSON_DATA.id]) {
+        console.log('[RoadToWarBeat] Found custom hotspots:', assets.customHotspots[LESSON_DATA.id]);
         setCustomHotspotConfig(assets.customHotspots[LESSON_DATA.id]);
+      }
+
+      // Also check for beat media (uploaded in Media Assets section)
+      const beatMedia = assets?.beatMedia?.[LESSON_DATA.id];
+      if (beatMedia) {
+        console.log('[RoadToWarBeat] Found beat media:', beatMedia);
+        // Get the first available image from beatMedia
+        const imageUrl = Object.values(beatMedia)[0];
+        if (imageUrl) {
+          setBeatMediaImage(imageUrl);
+        }
       }
     });
     return () => unsubscribe();
@@ -355,7 +369,7 @@ export function RoadToWarBeat({ host, onComplete, onSkip, onBack }: RoadToWarBea
 
               <div className="flex-1">
                 <InteractiveMap
-                  mapImage={customHotspotConfig?.imageUrl || BEAT_1_DEFAULT_IMAGE}
+                  mapImage={customHotspotConfig?.imageUrl || beatMediaImage || BEAT_1_DEFAULT_IMAGE}
                   hotspots={activeHotspots}
                   viewedHotspots={viewedHotspots}
                   onHotspotView={handleHotspotView}

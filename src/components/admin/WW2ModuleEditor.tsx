@@ -1954,9 +1954,13 @@ export function WW2ModuleEditor() {
   // Handle opening hotspot editor
   const handleEditHotspots = useCallback((beatId: string) => {
     const config = uploadedAssets?.customHotspots?.[beatId];
-    // Fall back to Beat 1 default image if no custom config exists
+    // Try: 1) custom hotspot image, 2) beat media image, 3) default
+    const beatMedia = uploadedAssets?.beatMedia?.[beatId];
+    const beatMediaImage = beatMedia ? Object.values(beatMedia)[0] : '';
     const defaultImage = beatId === 'ph-beat-1' ? BEAT_1_DEFAULT_IMAGE : '';
-    setEditingHotspotsImageUrl(config?.imageUrl || defaultImage);
+    const imageUrl = config?.imageUrl || beatMediaImage || defaultImage;
+    console.log('[WW2ModuleEditor] Opening hotspot editor:', { beatId, imageUrl, config, beatMedia });
+    setEditingHotspotsImageUrl(imageUrl);
     setEditingHotspotsBeatId(beatId);
   }, [uploadedAssets]);
 
