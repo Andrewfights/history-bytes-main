@@ -1,11 +1,12 @@
 /**
  * ExamVideoManager - Admin interface for managing exam question videos
  * Allows uploading 10-second video clips for each of the 15 exam questions
+ * Supports multiple hosts (3 videos per question - one for each host)
  */
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Video, Upload, Trash2, Play, Pause, Check, AlertCircle, Clock, RefreshCw, X } from 'lucide-react';
+import { Video, Upload, Trash2, Play, Pause, Check, AlertCircle, Clock, RefreshCw, X, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { MediaPicker } from './MediaPicker';
 import { FINAL_EXAM_QUESTIONS } from '../journey/pearl-harbor/exam/examQuestions';
@@ -13,9 +14,18 @@ import {
   subscribeToWW2ModuleAssets,
   updateExamQuestionVideo,
   type ExamQuestionVideo,
+  type ExamQuestionHostVideos,
 } from '@/lib/firestore';
 import type { MediaFile } from '@/lib/supabase';
 
+// WW2 Hosts configuration
+const WW2_HOSTS = [
+  { id: 'eisenhower', name: 'General Eisenhower', avatar: '🎖️', color: 'bg-blue-500' },
+  { id: 'journalist', name: 'War Correspondent', avatar: '📰', color: 'bg-amber-500' },
+  { id: 'codebreaker', name: 'Codebreaker', avatar: '🔐', color: 'bg-purple-500' },
+] as const;
+
+type HostId = typeof WW2_HOSTS[number]['id'];
 type VideoStatus = 'missing' | 'ready' | 'wrong-duration';
 
 interface QuestionVideoState {
@@ -23,14 +33,16 @@ interface QuestionVideoState {
   questionNumber: number;
   prompt: string;
   difficulty: 'easy' | 'medium' | 'hard';
-  video: ExamQuestionVideo | null;
-  status: VideoStatus;
+  hostVideos: Record<HostId, ExamQuestionVideo | null>;
+  hostStatuses: Record<HostId, VideoStatus>;
 }
 
 export function ExamVideoManager() {
   const [questionVideos, setQuestionVideos] = useState<QuestionVideoState[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedQuestion, setSelectedQuestion] = useState<string | null>(null);
+  const [selectedHost, setSelectedHost] = useState<HostId>('eisenhower');
+  const [activeHostTab, setActiveHostTab] = useState<HostId>('eisenhower');
   const [isMediaPickerOpen, setIsMediaPickerOpen] = useState(false);
   const [previewVideoId, setPreviewVideoId] = useState<string | null>(null);
 
@@ -40,24 +52,42 @@ export function ExamVideoManager() {
       const examVideos = assets?.examQuestionVideos || {};
 
       const states: QuestionVideoState[] = FINAL_EXAM_QUESTIONS.map((q) => {
-        const video = examVideos[q.id] || null;
-        let status: VideoStatus = 'missing';
+        const questionHostVideos = examVideos[q.id] || {};
 
-        if (video) {
-          if (video.duration !== undefined && (video.duration < 8 || video.duration > 12)) {
-            status = 'wrong-duration';
+        // Build host videos and statuses for each host
+        const hostVideos: Record<HostId, ExamQuestionVideo | null> = {
+          eisenhower: null,
+          journalist: null,
+          codebreaker: null,
+        };
+        const hostStatuses: Record<HostId, VideoStatus> = {
+          eisenhower: 'missing',
+          journalist: 'missing',
+          codebreaker: 'missing',
+        };
+
+        WW2_HOSTS.forEach(host => {
+          const video = questionHostVideos[host.id] || null;
+          hostVideos[host.id] = video;
+
+          if (video) {
+            if (video.duration !== undefined && (video.duration < 8 || video.duration > 12)) {
+              hostStatuses[host.id] = 'wrong-duration';
+            } else {
+              hostStatuses[host.id] = 'ready';
+            }
           } else {
-            status = 'ready';
+            hostStatuses[host.id] = 'missing';
           }
-        }
+        });
 
         return {
           questionId: q.id,
           questionNumber: q.questionNumber,
           prompt: q.prompt,
           difficulty: q.difficulty,
-          video,
-          status,
+          hostVideos,
+          hostStatuses,
         };
       });
 
@@ -69,7 +99,7 @@ export function ExamVideoManager() {
   }, []);
 
   const handleSelectVideo = async (file: MediaFile) => {
-    if (!selectedQuestion) return;
+    if (!selectedQuestion || !selectedHost) return;
 
     // Create video element to get duration
     const video = document.createElement('video');
@@ -80,14 +110,16 @@ export function ExamVideoManager() {
 
       const videoData: ExamQuestionVideo = {
         questionId: selectedQuestion,
+        hostId: selectedHost,
         videoUrl: file.url,
         duration,
       };
 
-      const success = await updateExamQuestionVideo(selectedQuestion, videoData);
+      const success = await updateExamQuestionVideo(selectedQuestion, selectedHost, videoData);
 
       if (success) {
-        toast.success('Video assigned to question');
+        const hostName = WW2_HOSTS.find(h => h.id === selectedHost)?.name || selectedHost;
+        toast.success(`Video assigned for ${hostName}`);
 
         // Warn about duration if not ~10 seconds
         if (duration < 8 || duration > 12) {
@@ -105,10 +137,11 @@ export function ExamVideoManager() {
       // Still save even if we can't get duration
       const videoData: ExamQuestionVideo = {
         questionId: selectedQuestion,
+        hostId: selectedHost,
         videoUrl: file.url,
       };
 
-      const success = await updateExamQuestionVideo(selectedQuestion, videoData);
+      const success = await updateExamQuestionVideo(selectedQuestion, selectedHost, videoData);
 
       if (success) {
         toast.success('Video assigned (duration unknown)');
@@ -123,11 +156,12 @@ export function ExamVideoManager() {
     video.src = file.url;
   };
 
-  const handleRemoveVideo = async (questionId: string) => {
-    const success = await updateExamQuestionVideo(questionId, null);
+  const handleRemoveVideo = async (questionId: string, hostId: HostId) => {
+    const success = await updateExamQuestionVideo(questionId, hostId, null);
 
     if (success) {
-      toast.success('Video removed');
+      const hostName = WW2_HOSTS.find(h => h.id === hostId)?.name || hostId;
+      toast.success(`Video removed for ${hostName}`);
     } else {
       toast.error('Failed to remove video');
     }
@@ -157,8 +191,31 @@ export function ExamVideoManager() {
     }
   };
 
-  const readyCount = questionVideos.filter(q => q.status === 'ready').length;
-  const totalCount = questionVideos.length;
+  // Calculate progress for the active host tab
+  const getHostProgress = (hostId: HostId) => {
+    const readyCount = questionVideos.filter(q => q.hostStatuses[hostId] === 'ready').length;
+    const wrongDurationCount = questionVideos.filter(q => q.hostStatuses[hostId] === 'wrong-duration').length;
+    const missingCount = questionVideos.filter(q => q.hostStatuses[hostId] === 'missing').length;
+    return { readyCount, wrongDurationCount, missingCount, total: questionVideos.length };
+  };
+
+  const activeHostProgress = getHostProgress(activeHostTab);
+
+  // Calculate total progress across all hosts
+  const getTotalProgress = () => {
+    let totalReady = 0;
+    let totalVideos = questionVideos.length * WW2_HOSTS.length;
+
+    questionVideos.forEach(q => {
+      WW2_HOSTS.forEach(host => {
+        if (q.hostStatuses[host.id] === 'ready') totalReady++;
+      });
+    });
+
+    return { totalReady, totalVideos };
+  };
+
+  const totalProgress = getTotalProgress();
 
   if (loading) {
     return (
@@ -172,37 +229,81 @@ export function ExamVideoManager() {
     <div className="p-6">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground mb-2">Exam Video Manager</h1>
+        <div className="flex items-center gap-3 mb-2">
+          <h1 className="text-2xl font-bold text-foreground">Exam Video Manager</h1>
+          <span className="flex items-center gap-1.5 px-2 py-1 bg-primary/10 text-primary rounded-full text-xs font-medium">
+            <Users size={12} />
+            3 Hosts
+          </span>
+        </div>
         <p className="text-muted-foreground">
           Upload 10-second video clips for each of the 15 final exam questions.
-          These videos play during the game show countdown timer.
+          Each question needs a video for each of the 3 hosts ({totalProgress.totalReady}/{totalProgress.totalVideos} total).
         </p>
       </div>
 
-      {/* Progress Summary */}
+      {/* Host Tabs */}
+      <div className="mb-6">
+        <div className="flex gap-2 p-1 bg-muted rounded-xl">
+          {WW2_HOSTS.map(host => {
+            const hostProgress = getHostProgress(host.id);
+            const isActive = activeHostTab === host.id;
+            return (
+              <button
+                key={host.id}
+                onClick={() => setActiveHostTab(host.id)}
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-all ${
+                  isActive
+                    ? 'bg-card shadow-sm text-foreground'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <span className="text-xl">{host.avatar}</span>
+                <span className="hidden sm:inline">{host.name}</span>
+                <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                  hostProgress.readyCount === hostProgress.total
+                    ? 'bg-green-500/20 text-green-400'
+                    : hostProgress.readyCount > 0
+                    ? 'bg-amber-500/20 text-amber-400'
+                    : 'bg-red-500/20 text-red-400'
+                }`}>
+                  {hostProgress.readyCount}/{hostProgress.total}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Progress Summary for Active Host */}
       <div className="mb-6 p-4 bg-card border border-border rounded-xl">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-foreground">Video Coverage</span>
-          <span className="text-sm text-muted-foreground">{readyCount}/{totalCount} questions</span>
+          <span className="text-sm font-medium text-foreground flex items-center gap-2">
+            <span className="text-lg">{WW2_HOSTS.find(h => h.id === activeHostTab)?.avatar}</span>
+            {WW2_HOSTS.find(h => h.id === activeHostTab)?.name} Videos
+          </span>
+          <span className="text-sm text-muted-foreground">
+            {activeHostProgress.readyCount}/{activeHostProgress.total} questions
+          </span>
         </div>
         <div className="h-2 bg-muted rounded-full overflow-hidden">
           <div
             className="h-full bg-green-500 transition-all duration-500"
-            style={{ width: `${(readyCount / totalCount) * 100}%` }}
+            style={{ width: `${(activeHostProgress.readyCount / activeHostProgress.total) * 100}%` }}
           />
         </div>
         <div className="flex gap-4 mt-3 text-xs">
           <span className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-green-500" />
-            Ready: {questionVideos.filter(q => q.status === 'ready').length}
+            Ready: {activeHostProgress.readyCount}
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-amber-500" />
-            Wrong Duration: {questionVideos.filter(q => q.status === 'wrong-duration').length}
+            Wrong Duration: {activeHostProgress.wrongDurationCount}
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-red-500" />
-            Missing: {questionVideos.filter(q => q.status === 'missing').length}
+            Missing: {activeHostProgress.missingCount}
           </span>
         </div>
       </div>
@@ -213,14 +314,16 @@ export function ExamVideoManager() {
           <QuestionVideoCard
             key={question.questionId}
             question={question}
+            activeHost={activeHostTab}
             getDifficultyColor={getDifficultyColor}
             getStatusIcon={getStatusIcon}
             getStatusText={getStatusText}
             onUpload={() => {
               setSelectedQuestion(question.questionId);
+              setSelectedHost(activeHostTab);
               setIsMediaPickerOpen(true);
             }}
-            onRemove={() => handleRemoveVideo(question.questionId)}
+            onRemove={() => handleRemoveVideo(question.questionId, activeHostTab)}
             onPreview={() => setPreviewVideoId(question.questionId)}
             isPreviewOpen={previewVideoId === question.questionId}
             onClosePreview={() => setPreviewVideoId(null)}
@@ -237,7 +340,7 @@ export function ExamVideoManager() {
         }}
         onSelect={handleSelectVideo}
         allowedTypes={['video']}
-        title={`Select Video for Q${questionVideos.find(q => q.questionId === selectedQuestion)?.questionNumber || ''}`}
+        title={`Select Video for Q${questionVideos.find(q => q.questionId === selectedQuestion)?.questionNumber || ''} - ${WW2_HOSTS.find(h => h.id === selectedHost)?.name || ''}`}
       />
     </div>
   );
@@ -245,6 +348,7 @@ export function ExamVideoManager() {
 
 interface QuestionVideoCardProps {
   question: QuestionVideoState;
+  activeHost: HostId;
   getDifficultyColor: (difficulty: 'easy' | 'medium' | 'hard') => string;
   getStatusIcon: (status: VideoStatus) => React.ReactNode;
   getStatusText: (status: VideoStatus) => string;
@@ -257,6 +361,7 @@ interface QuestionVideoCardProps {
 
 function QuestionVideoCard({
   question,
+  activeHost,
   getDifficultyColor,
   getStatusIcon,
   getStatusText,
@@ -268,6 +373,13 @@ function QuestionVideoCard({
 }: QuestionVideoCardProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+
+  // Get video and status for the active host
+  const video = question.hostVideos[activeHost];
+  const status = question.hostStatuses[activeHost];
+
+  // Count how many hosts have videos for this question
+  const hostVideoCount = WW2_HOSTS.filter(h => question.hostVideos[h.id]).length;
 
   const togglePlay = () => {
     if (videoRef.current) {
@@ -287,11 +399,11 @@ function QuestionVideoCard({
     >
       {/* Video Preview / Upload Area */}
       <div className="relative aspect-video bg-muted">
-        {question.video ? (
+        {video ? (
           <>
             <video
               ref={videoRef}
-              src={question.video.videoUrl}
+              src={video.videoUrl}
               className="w-full h-full object-cover"
               loop
               muted
@@ -312,9 +424,9 @@ function QuestionVideoCard({
                 )}
               </div>
             </button>
-            {question.video.duration && (
+            {video.duration && (
               <div className="absolute bottom-2 right-2 px-2 py-1 rounded bg-black/70 text-white text-xs">
-                {question.video.duration.toFixed(1)}s
+                {video.duration.toFixed(1)}s
               </div>
             )}
           </>
@@ -327,6 +439,25 @@ function QuestionVideoCard({
             <span className="text-sm font-medium">Add Video</span>
           </button>
         )}
+
+        {/* Host video indicator */}
+        <div className="absolute top-2 left-2 flex gap-1">
+          {WW2_HOSTS.map(host => (
+            <div
+              key={host.id}
+              className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${
+                question.hostVideos[host.id]
+                  ? host.id === activeHost
+                    ? `${host.color} text-white ring-2 ring-white`
+                    : `${host.color} text-white opacity-60`
+                  : 'bg-black/50 text-white/50'
+              }`}
+              title={`${host.name}: ${question.hostVideos[host.id] ? 'Has video' : 'No video'}`}
+            >
+              {host.avatar}
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Question Info */}
@@ -337,13 +468,13 @@ function QuestionVideoCard({
             {question.difficulty}
           </span>
           <span className="flex items-center gap-1 ml-auto text-xs">
-            {getStatusIcon(question.status)}
+            {getStatusIcon(status)}
             <span className={
-              question.status === 'ready' ? 'text-green-400' :
-              question.status === 'wrong-duration' ? 'text-amber-400' :
+              status === 'ready' ? 'text-green-400' :
+              status === 'wrong-duration' ? 'text-amber-400' :
               'text-red-400'
             }>
-              {getStatusText(question.status)}
+              {getStatusText(status)}
             </span>
           </span>
         </div>
@@ -358,9 +489,9 @@ function QuestionVideoCard({
             className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
           >
             <Upload size={16} />
-            {question.video ? 'Replace' : 'Upload'}
+            {video ? 'Replace' : 'Upload'}
           </button>
-          {question.video && (
+          {video && (
             <button
               onClick={onRemove}
               className="flex items-center justify-center px-3 py-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"

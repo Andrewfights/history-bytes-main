@@ -1459,10 +1459,14 @@ export interface WW2BeatStatement {
 
 export interface ExamQuestionVideo {
   questionId: string;
+  hostId: string;  // 'eisenhower' | 'journalist' | 'codebreaker'
   videoUrl: string;
   duration?: number; // Duration in seconds
   uploadedAt?: Timestamp;
 }
+
+// Map of hostId -> ExamQuestionVideo for a single question
+export type ExamQuestionHostVideos = Record<string, ExamQuestionVideo>;
 
 export interface TheaterMediaConfig {
   cinematicVideoUrl?: string;      // Entry cinematic video (e.g., 40 seconds)
@@ -1479,8 +1483,8 @@ export interface FirestoreWW2ModuleAssets {
   customQuestions?: Record<string, WW2BeatQuestion[]>;  // Key: beat ID
   // Editable statements (overrides default)
   customStatements?: Record<string, WW2BeatStatement[]>;  // Key: beat ID
-  // Exam question videos for game show mode
-  examQuestionVideos?: Record<string, ExamQuestionVideo>;  // Key: question ID (e.g., 'exam-q1')
+  // Exam question videos for game show mode (per host)
+  examQuestionVideos?: Record<string, ExamQuestionHostVideos>;  // Key: question ID -> hostId -> video
   // Theater-level media config (cinematic videos, background music)
   theaterMedia?: Record<string, TheaterMediaConfig>;  // Key: theater ID (e.g., 'pearl-harbor', 'normandy')
   updatedAt?: Timestamp;
@@ -1532,22 +1536,44 @@ export async function updateWW2BeatStatements(beatId: string, statements: WW2Bea
   return saveWW2ModuleAssets({ customStatements });
 }
 
-export async function updateExamQuestionVideo(questionId: string, video: ExamQuestionVideo | null): Promise<boolean> {
+export async function updateExamQuestionVideo(
+  questionId: string,
+  hostId: string,
+  video: ExamQuestionVideo | null
+): Promise<boolean> {
   const current = await getWW2ModuleAssets();
   const examQuestionVideos = current?.examQuestionVideos || {};
 
+  // Initialize question's host videos if needed
+  if (!examQuestionVideos[questionId]) {
+    examQuestionVideos[questionId] = {};
+  }
+
   if (video) {
-    examQuestionVideos[questionId] = video;
+    examQuestionVideos[questionId][hostId] = video;
   } else {
-    delete examQuestionVideos[questionId];
+    delete examQuestionVideos[questionId][hostId];
+    // Clean up empty question entries
+    if (Object.keys(examQuestionVideos[questionId]).length === 0) {
+      delete examQuestionVideos[questionId];
+    }
   }
 
   return saveWW2ModuleAssets({ examQuestionVideos });
 }
 
-export async function getExamQuestionVideos(): Promise<Record<string, ExamQuestionVideo>> {
+export async function getExamQuestionVideos(): Promise<Record<string, ExamQuestionHostVideos>> {
   const assets = await getWW2ModuleAssets();
   return assets?.examQuestionVideos || {};
+}
+
+// Get video for a specific question and host
+export async function getExamQuestionVideoForHost(
+  questionId: string,
+  hostId: string
+): Promise<ExamQuestionVideo | null> {
+  const assets = await getWW2ModuleAssets();
+  return assets?.examQuestionVideos?.[questionId]?.[hostId] || null;
 }
 
 export async function updateTheaterMedia(theaterId: string, config: TheaterMediaConfig | null): Promise<boolean> {
