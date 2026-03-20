@@ -21,6 +21,7 @@ import {
   GripVertical,
   Upload,
   Image as ImageIcon,
+  Loader2,
 } from 'lucide-react';
 import { MediaPicker } from './MediaPicker';
 import type { MediaFile } from '@/lib/supabase';
@@ -32,7 +33,7 @@ interface ImageHotspotEditorProps {
   imageUrl?: string;
   hotspots: ModuleHotspot[];
   onImageChange: (url: string) => void;
-  onHotspotsChange: (hotspots: ModuleHotspot[]) => void;
+  onHotspotsChange: (hotspots: ModuleHotspot[]) => Promise<void> | void;
   onClose: () => void;
   title?: string;
   instructions?: string;
@@ -53,6 +54,7 @@ export function ImageHotspotEditor({
   const [zoom, setZoom] = useState(1);
   const [showMediaPicker, setShowMediaPicker] = useState(false);
   const [editingHotspot, setEditingHotspot] = useState<ModuleHotspot | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const canvasRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
@@ -171,9 +173,15 @@ export function ImageHotspotEditor({
   };
 
   // Save and close
-  const handleSave = () => {
-    onHotspotsChange(localHotspots);
-    onClose();
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await onHotspotsChange(localHotspots);
+      onClose();
+    } catch (error) {
+      console.error('Error saving hotspots:', error);
+      setIsSaving(false);
+    }
   };
 
   // Handle image selection
@@ -206,10 +214,11 @@ export function ImageHotspotEditor({
           <div className="flex items-center gap-2">
             <button
               onClick={handleSave}
-              className="px-4 py-2 bg-green-500 hover:bg-green-400 text-black font-bold rounded-lg flex items-center gap-2 transition-colors"
+              disabled={isSaving}
+              className="px-4 py-2 bg-green-500 hover:bg-green-400 disabled:bg-green-500/50 text-black font-bold rounded-lg flex items-center gap-2 transition-colors"
             >
-              <Save size={18} />
-              Save Hotspots
+              {isSaving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+              {isSaving ? 'Saving...' : 'Save Hotspots'}
             </button>
             <button
               onClick={onClose}
