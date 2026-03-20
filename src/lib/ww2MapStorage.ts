@@ -11,7 +11,7 @@ export interface WW2MapProgress {
 }
 
 const DB_NAME = 'history_bytes_media';
-const DB_VERSION = 3; // Bumped to ensure ww2_map_data store exists
+const DB_VERSION = 5; // Must match adminStorage.ts version
 const STORE_NAME = 'ww2_map_data';
 
 // Initialize IndexedDB
