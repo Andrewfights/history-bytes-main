@@ -1487,7 +1487,7 @@ export type ExamQuestionHostVideos = Record<string, ExamQuestionVideo>;
 export interface TheaterMediaConfig {
   cinematicVideoUrl?: string;      // Entry cinematic video (e.g., 40 seconds)
   backgroundMusicUrl?: string;     // Background music for the theater/module
-  backgroundMusicVolume?: number;  // 0-1, default 0.3
+  backgroundMusicVolume?: number;  // 0-1, default 0.1
   musicFadeDuration?: number;      // ms, default 500
 }
 

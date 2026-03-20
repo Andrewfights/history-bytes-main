@@ -19,11 +19,11 @@ class ModuleAudioManager {
   private currentAudio: HTMLAudioElement | null = null;
   private preloadCache: Map<string, HTMLAudioElement> = new Map();
   private isMuted: boolean = false;
-  private volume: number = 0.3;
+  private volume: number = 0.1;
   private currentModuleId: string | null = null;
   private fadeInterval: ReturnType<typeof setInterval> | null = null;
   private videoPlayingCount: number = 0;
-  private targetVolume: number = 0.3;
+  private targetVolume: number = 0.1;
   private wasPlayingBeforeVideo: boolean = false;
 
   constructor() {
@@ -312,6 +312,13 @@ class ModuleAudioManager {
   }
 
   /**
+   * Check if music is loaded (may be paused/faded but exists)
+   */
+  hasMusic(): boolean {
+    return this.currentAudio !== null;
+  }
+
+  /**
    * Get current module ID
    */
   getCurrentModuleId(): string | null {
@@ -357,6 +364,7 @@ export function useModuleAudio() {
     setVolume: (volume: number) => moduleAudioManager.setVolume(volume),
     getVolume: () => moduleAudioManager.getVolume(),
     isPlaying: () => moduleAudioManager.isPlaying(),
+    hasMusic: () => moduleAudioManager.hasMusic(),
     getCurrentModuleId: () => moduleAudioManager.getCurrentModuleId(),
     dispose: () => moduleAudioManager.dispose(),
   };

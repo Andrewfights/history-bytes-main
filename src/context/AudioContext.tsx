@@ -12,6 +12,7 @@ interface AudioContextType {
   musicVolume: number;
   currentMusicModuleId: string | null;
   isMusicPlaying: boolean;
+  hasMusic: boolean;
 
   // Actions
   toggleMusicMute: () => void;
@@ -20,7 +21,7 @@ interface AudioContextType {
   stopModuleMusic: () => void;
   preloadModuleMusic: (moduleId: string, musicUrl: string) => void;
 
-  // Video coordination - components call these when videos play/end
+  // Video/Audio coordination - components call these when media plays/ends
   notifyVideoStart: () => void;
   notifyVideoEnd: () => void;
 }
@@ -36,12 +37,14 @@ export function AudioProvider({ children }: AudioProviderProps) {
   const [musicVolume, setMusicVolumeState] = useState(() => moduleAudioManager.getVolume());
   const [currentMusicModuleId, setCurrentMusicModuleId] = useState<string | null>(null);
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
+  const [hasMusic, setHasMusic] = useState(false);
 
   // Sync state with audio manager periodically
   useEffect(() => {
     const interval = setInterval(() => {
       setIsMusicPlaying(moduleAudioManager.isPlaying());
       setCurrentMusicModuleId(moduleAudioManager.getCurrentModuleId());
+      setHasMusic(moduleAudioManager.hasMusic());
     }, 500);
 
     return () => clearInterval(interval);
@@ -97,6 +100,7 @@ export function AudioProvider({ children }: AudioProviderProps) {
     musicVolume,
     currentMusicModuleId,
     isMusicPlaying,
+    hasMusic,
     toggleMusicMute,
     setMusicVolume,
     playModuleMusic,

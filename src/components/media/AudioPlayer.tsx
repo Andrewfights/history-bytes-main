@@ -6,6 +6,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Pause, Volume2, VolumeX, RotateCcw, SkipForward, Loader2 } from 'lucide-react';
+import { useAudioContextSafe } from '@/context/AudioContext';
 
 interface AudioPlayerProps {
   src: string;
@@ -40,6 +41,7 @@ export function AudioPlayer({
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [showTranscript, setShowTranscript] = useState(false);
+  const audioContext = useAudioContextSafe();
 
   // Handle audio events
   useEffect(() => {
@@ -72,8 +74,16 @@ export function AudioPlayer({
       setIsLoading(false);
     };
 
-    const handlePlay = () => setIsPlaying(true);
-    const handlePause = () => setIsPlaying(false);
+    const handlePlay = () => {
+      setIsPlaying(true);
+      // Fade out background music when audio starts
+      audioContext?.notifyVideoStart();
+    };
+    const handlePause = () => {
+      setIsPlaying(false);
+      // Fade background music back in when audio pauses
+      audioContext?.notifyVideoEnd();
+    };
 
     audio.addEventListener('loadeddata', handleLoadedData);
     audio.addEventListener('timeupdate', handleTimeUpdate);
@@ -89,8 +99,12 @@ export function AudioPlayer({
       audio.removeEventListener('error', handleError);
       audio.removeEventListener('play', handlePlay);
       audio.removeEventListener('pause', handlePause);
+      // If component unmounts while playing, notify to restore background music
+      if (!audio.paused) {
+        audioContext?.notifyVideoEnd();
+      }
     };
-  }, [autoPlay, onComplete]);
+  }, [autoPlay, onComplete, audioContext]);
 
   const togglePlay = () => {
     const audio = audioRef.current;

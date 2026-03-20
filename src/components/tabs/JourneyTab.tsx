@@ -364,7 +364,7 @@ export function JourneyTab() {
   const enterPearlHarborJourney = () => {
     // Start background music if configured
     const musicUrl = ww2ModuleAssets?.theaterMedia?.['pearl-harbor']?.backgroundMusicUrl;
-    const musicVolume = ww2ModuleAssets?.theaterMedia?.['pearl-harbor']?.backgroundMusicVolume ?? 0.3;
+    const musicVolume = ww2ModuleAssets?.theaterMedia?.['pearl-harbor']?.backgroundMusicVolume ?? 0.1;
     if (musicUrl) {
       playModuleMusic('pearl-harbor', musicUrl, musicVolume);
     }

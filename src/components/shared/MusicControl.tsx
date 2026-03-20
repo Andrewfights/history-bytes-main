@@ -17,11 +17,11 @@ export function MusicControl({
   position = 'bottom-left',
   className = '',
 }: MusicControlProps) {
-  const { isMusicMuted, isMusicPlaying, toggleMusicMute, musicVolume, setMusicVolume } = useAudioContext();
+  const { isMusicMuted, isMusicPlaying, hasMusic, toggleMusicMute, musicVolume, setMusicVolume } = useAudioContext();
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
 
-  // Don't show if no music is playing
-  if (!isMusicPlaying && !isMusicMuted) {
+  // Show if music exists (even if faded/paused) or if muted
+  if (!hasMusic && !isMusicMuted) {
     return null;
   }
 
@@ -102,9 +102,10 @@ interface MusicIndicatorProps {
 }
 
 export function MusicIndicator({ onClick, className = '' }: MusicIndicatorProps) {
-  const { isMusicMuted, isMusicPlaying, toggleMusicMute } = useAudioContext();
+  const { isMusicMuted, hasMusic, toggleMusicMute } = useAudioContext();
 
-  if (!isMusicPlaying && !isMusicMuted) {
+  // Show if music exists (even if faded/paused) or if muted
+  if (!hasMusic && !isMusicMuted) {
     return null;
   }
 

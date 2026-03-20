@@ -30,7 +30,7 @@ export function TheaterMediaEditor({
   // Media state
   const [cinematicVideoUrl, setCinematicVideoUrl] = useState<string>('');
   const [backgroundMusicUrl, setBackgroundMusicUrl] = useState<string>('');
-  const [backgroundMusicVolume, setBackgroundMusicVolume] = useState(0.3);
+  const [backgroundMusicVolume, setBackgroundMusicVolume] = useState(0.1);
   const [musicFadeDuration, setMusicFadeDuration] = useState(500);
 
   // Upload state
@@ -54,7 +54,7 @@ export function TheaterMediaEditor({
         if (config) {
           setCinematicVideoUrl(config.cinematicVideoUrl || '');
           setBackgroundMusicUrl(config.backgroundMusicUrl || '');
-          setBackgroundMusicVolume(config.backgroundMusicVolume ?? 0.3);
+          setBackgroundMusicVolume(config.backgroundMusicVolume ?? 0.1);
           setMusicFadeDuration(config.musicFadeDuration ?? 500);
         }
       } catch (error) {
