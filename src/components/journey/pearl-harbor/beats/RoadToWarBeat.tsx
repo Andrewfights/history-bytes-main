@@ -275,12 +275,8 @@ export function RoadToWarBeat({ host, onComplete, onSkip, onBack }: RoadToWarBea
           <h1 className="text-white font-bold">Why Pearl Harbor?</h1>
           <p className="text-white/50 text-xs">Beat 1 of 10</p>
         </div>
-        <div className="w-10 h-10 rounded-full overflow-hidden bg-amber-500/20">
-          <img
-            src={host.avatarUrl || '/assets/hosts/default.png'}
-            alt={host.name}
-            className="w-full h-full object-cover"
-          />
+        <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center text-xl">
+          🎖️
         </div>
       </div>
 
