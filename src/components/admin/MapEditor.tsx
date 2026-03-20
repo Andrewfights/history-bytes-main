@@ -32,6 +32,10 @@ import {
   Cloud,
   CloudOff,
   Loader2,
+  Play,
+  GripVertical,
+  Palette,
+  RefreshCw,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -43,6 +47,7 @@ import {
 } from '@/data/interactiveMaps';
 import { MediaPicker } from './MediaPicker';
 import type { MediaFile } from '@/lib/supabase';
+import { InteractiveMapPlayer } from '@/components/shared/InteractiveMapPlayer';
 import { isFirebaseConfigured } from '@/lib/firebase';
 import {
   getInteractiveMaps,
@@ -84,12 +89,15 @@ export default function MapEditor() {
 
   // UI state
   const [showMediaPicker, setShowMediaPicker] = useState(false);
+  const [showChangeImagePicker, setShowChangeImagePicker] = useState(false);
   const [showNewMapModal, setShowNewMapModal] = useState(false);
   const [newMapName, setNewMapName] = useState('');
   const [zoom, setZoom] = useState(1);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncedToCloud, setIsSyncedToCloud] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [draggingHotspotIndex, setDraggingHotspotIndex] = useState<number | null>(null);
 
   // Refs
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -332,6 +340,42 @@ export default function MapEditor() {
     img.src = file.url;
   }, [handleCreateMap]);
 
+  // Handle changing the map image
+  const handleChangeImage = useCallback((file: MediaFile) => {
+    if (!editingMap) return;
+    setShowChangeImagePicker(false);
+
+    // Get new image dimensions
+    const img = new Image();
+    img.onload = () => {
+      setEditingMap({
+        ...editingMap,
+        imageUrl: file.url,
+        imageWidth: img.width,
+        imageHeight: img.height,
+      });
+      toast.success('Map image updated');
+    };
+    img.src = file.url;
+  }, [editingMap]);
+
+  // Reorder hotspots via drag
+  const handleReorderHotspots = useCallback((fromIndex: number, toIndex: number) => {
+    if (!editingMap) return;
+
+    const newHotspots = [...editingMap.hotspots];
+    const [moved] = newHotspots.splice(fromIndex, 1);
+    newHotspots.splice(toIndex, 0, moved);
+
+    // Update order property
+    const orderedHotspots = newHotspots.map((h, i) => ({ ...h, order: i }));
+
+    setEditingMap({
+      ...editingMap,
+      hotspots: orderedHotspots,
+    });
+  }, [editingMap]);
+
   // Delete map from Firebase
   const handleDeleteMap = useCallback(async (mapId: string) => {
     if (!confirm('Are you sure you want to delete this map?')) return;
@@ -379,14 +423,23 @@ export default function MapEditor() {
 
         <div className="flex items-center gap-2">
           {editingMap && (
-            <button
-              onClick={handleSave}
-              disabled={isSaving}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
-            >
-              <Save size={18} />
-              {isSaving ? 'Saving...' : 'Save Map'}
-            </button>
+            <>
+              <button
+                onClick={() => setShowPreview(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors"
+              >
+                <Play size={18} />
+                Preview
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={isSaving}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+              >
+                <Save size={18} />
+                {isSaving ? 'Saving...' : 'Save Map'}
+              </button>
+            </>
           )}
           <button
             onClick={() => setShowNewMapModal(true)}
@@ -616,6 +669,8 @@ export default function MapEditor() {
                 <MapSettings
                   map={editingMap}
                   onUpdate={(updates) => setEditingMap({ ...editingMap, ...updates })}
+                  onChangeImage={() => setShowChangeImagePicker(true)}
+                  onReorderHotspots={handleReorderHotspots}
                 />
               )}
             </aside>
@@ -695,7 +750,7 @@ export default function MapEditor() {
         )}
       </AnimatePresence>
 
-      {/* Media Picker */}
+      {/* Media Picker for new map */}
       <MediaPicker
         isOpen={showMediaPicker}
         onClose={() => setShowMediaPicker(false)}
@@ -703,6 +758,59 @@ export default function MapEditor() {
         allowedTypes={['image']}
         title="Select Map Image"
       />
+
+      {/* Media Picker for changing map image */}
+      <MediaPicker
+        isOpen={showChangeImagePicker}
+        onClose={() => setShowChangeImagePicker(false)}
+        onSelect={handleChangeImage}
+        allowedTypes={['image']}
+        title="Change Map Image"
+      />
+
+      {/* Preview Modal */}
+      <AnimatePresence>
+        {showPreview && editingMap && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80"
+            onClick={() => setShowPreview(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.95 }}
+              className="bg-card rounded-xl max-w-4xl w-full max-h-[90vh] overflow-auto"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between p-4 border-b border-border">
+                <div>
+                  <h2 className="text-xl font-bold">Preview: {editingMap.name}</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Click hotspots to test their actions
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowPreview(false)}
+                  className="p-2 rounded-lg hover:bg-muted text-muted-foreground"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="p-4">
+                <InteractiveMapPlayer
+                  map={editingMap}
+                  onNavigate={(route) => toast.info(`Navigate to: ${route}`)}
+                  onLessonStart={(id) => toast.info(`Start lesson: ${id}`)}
+                  onQuizStart={(id) => toast.info(`Start quiz: ${id}`)}
+                />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -1027,6 +1135,162 @@ function HotspotEditor({
           </div>
         )}
       </div>
+
+      {/* Styling */}
+      <div className="space-y-3 pt-3 border-t border-border">
+        <h4 className="text-xs font-semibold text-muted-foreground uppercase flex items-center gap-2">
+          <Palette size={12} />
+          Styling
+        </h4>
+
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Background</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="color"
+                value={hotspot.style?.backgroundColor?.replace(/rgba?\([^)]+\)/, '#3b82f6') || '#3b82f6'}
+                onChange={(e) => onUpdate({
+                  style: { ...hotspot.style, backgroundColor: e.target.value + '4D' }
+                })}
+                className="w-8 h-8 rounded cursor-pointer border border-border"
+              />
+              <input
+                type="text"
+                value={hotspot.style?.backgroundColor || 'rgba(59,130,246,0.3)'}
+                onChange={(e) => onUpdate({
+                  style: { ...hotspot.style, backgroundColor: e.target.value }
+                })}
+                placeholder="rgba(59,130,246,0.3)"
+                className="flex-1 px-2 py-1 rounded bg-background border border-border text-xs"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Border</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="color"
+                value={hotspot.style?.borderColor?.replace(/rgba?\([^)]+\)/, '#3b82f6') || '#3b82f6'}
+                onChange={(e) => onUpdate({
+                  style: { ...hotspot.style, borderColor: e.target.value }
+                })}
+                className="w-8 h-8 rounded cursor-pointer border border-border"
+              />
+              <input
+                type="text"
+                value={hotspot.style?.borderColor || 'rgba(59,130,246,0.8)'}
+                onChange={(e) => onUpdate({
+                  style: { ...hotspot.style, borderColor: e.target.value }
+                })}
+                placeholder="rgba(59,130,246,0.8)"
+                className="flex-1 px-2 py-1 rounded bg-background border border-border text-xs"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Hover BG</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="color"
+                value={hotspot.style?.hoverBackgroundColor?.replace(/rgba?\([^)]+\)/, '#3b82f6') || '#3b82f6'}
+                onChange={(e) => onUpdate({
+                  style: { ...hotspot.style, hoverBackgroundColor: e.target.value + '80' }
+                })}
+                className="w-8 h-8 rounded cursor-pointer border border-border"
+              />
+              <input
+                type="text"
+                value={hotspot.style?.hoverBackgroundColor || 'rgba(59,130,246,0.5)'}
+                onChange={(e) => onUpdate({
+                  style: { ...hotspot.style, hoverBackgroundColor: e.target.value }
+                })}
+                placeholder="rgba(59,130,246,0.5)"
+                className="flex-1 px-2 py-1 rounded bg-background border border-border text-xs"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Hover Border</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="color"
+                value={hotspot.style?.hoverBorderColor?.replace(/rgba?\([^)]+\)/, '#3b82f6') || '#3b82f6'}
+                onChange={(e) => onUpdate({
+                  style: { ...hotspot.style, hoverBorderColor: e.target.value }
+                })}
+                className="w-8 h-8 rounded cursor-pointer border border-border"
+              />
+              <input
+                type="text"
+                value={hotspot.style?.hoverBorderColor || 'rgba(59,130,246,1)'}
+                onChange={(e) => onUpdate({
+                  style: { ...hotspot.style, hoverBorderColor: e.target.value }
+                })}
+                placeholder="rgba(59,130,246,1)"
+                className="flex-1 px-2 py-1 rounded bg-background border border-border text-xs"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Border Width</label>
+            <input
+              type="number"
+              value={hotspot.style?.borderWidth || 2}
+              onChange={(e) => onUpdate({
+                style: { ...hotspot.style, borderWidth: parseInt(e.target.value) || 2 }
+              })}
+              min={0}
+              max={10}
+              className="w-full px-3 py-2 rounded-lg bg-background border border-border focus:border-primary outline-none text-sm"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Hover Scale</label>
+            <input
+              type="number"
+              value={hotspot.style?.hoverScale || 1.1}
+              onChange={(e) => onUpdate({
+                style: { ...hotspot.style, hoverScale: parseFloat(e.target.value) || 1.1 }
+              })}
+              min={1}
+              max={2}
+              step={0.1}
+              className="w-full px-3 py-2 rounded-lg bg-background border border-border focus:border-primary outline-none text-sm"
+            />
+          </div>
+        </div>
+
+        <label className="flex items-center gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={hotspot.style?.pulseAnimation || false}
+            onChange={(e) => onUpdate({
+              style: { ...hotspot.style, pulseAnimation: e.target.checked }
+            })}
+            className="w-4 h-4 rounded border-border"
+          />
+          <span className="text-sm">Pulse Animation</span>
+        </label>
+
+        <label className="flex items-center gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={hotspot.style?.glowEffect || false}
+            onChange={(e) => onUpdate({
+              style: { ...hotspot.style, glowEffect: e.target.checked }
+            })}
+            className="w-4 h-4 rounded border-border"
+          />
+          <span className="text-sm">Glow Effect</span>
+        </label>
+      </div>
     </div>
   );
 }
@@ -1035,87 +1299,185 @@ function HotspotEditor({
 function MapSettings({
   map,
   onUpdate,
+  onChangeImage,
+  onReorderHotspots,
 }: {
   map: InteractiveMap;
   onUpdate: (updates: Partial<InteractiveMap>) => void;
+  onChangeImage: () => void;
+  onReorderHotspots: (fromIndex: number, toIndex: number) => void;
 }) {
+  const [expandedSection, setExpandedSection] = useState<string | null>('settings');
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    e.dataTransfer.setData('text/plain', index.toString());
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = (e: React.DragEvent, toIndex: number) => {
+    e.preventDefault();
+    const fromIndex = parseInt(e.dataTransfer.getData('text/plain'), 10);
+    if (fromIndex !== toIndex) {
+      onReorderHotspots(fromIndex, toIndex);
+    }
+  };
+
   return (
-    <div className="p-4 space-y-4">
-      <h3 className="font-semibold">Map Settings</h3>
-
+    <div className="divide-y divide-border">
+      {/* Settings Section */}
       <div>
-        <label className="text-xs font-medium text-muted-foreground mb-1 block">Map Name</label>
-        <input
-          type="text"
-          value={map.name}
-          onChange={(e) => onUpdate({ name: e.target.value })}
-          className="w-full px-3 py-2 rounded-lg bg-background border border-border focus:border-primary outline-none text-sm"
-        />
+        <button
+          onClick={() => setExpandedSection(expandedSection === 'settings' ? null : 'settings')}
+          className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+        >
+          <span className="font-semibold">Map Settings</span>
+          <ChevronRight
+            size={16}
+            className={`transform transition-transform ${expandedSection === 'settings' ? 'rotate-90' : ''}`}
+          />
+        </button>
+        {expandedSection === 'settings' && (
+          <div className="px-4 pb-4 space-y-4">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Map Name</label>
+              <input
+                type="text"
+                value={map.name}
+                onChange={(e) => onUpdate({ name: e.target.value })}
+                className="w-full px-3 py-2 rounded-lg bg-background border border-border focus:border-primary outline-none text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Description</label>
+              <textarea
+                value={map.description || ''}
+                onChange={(e) => onUpdate({ description: e.target.value })}
+                rows={3}
+                className="w-full px-3 py-2 rounded-lg bg-background border border-border focus:border-primary outline-none text-sm resize-none"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Category</label>
+              <input
+                type="text"
+                value={map.category || ''}
+                onChange={(e) => onUpdate({ category: e.target.value })}
+                placeholder="e.g., ww2, geography"
+                className="w-full px-3 py-2 rounded-lg bg-background border border-border focus:border-primary outline-none text-sm"
+              />
+            </div>
+
+            <div className="space-y-3 pt-3 border-t border-border">
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase">Options</h4>
+
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={map.showAllHotspots}
+                  onChange={(e) => onUpdate({ showAllHotspots: e.target.checked })}
+                  className="w-4 h-4 rounded border-border"
+                />
+                <span className="text-sm">Show All Hotspots</span>
+              </label>
+
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={map.enableZoom}
+                  onChange={(e) => onUpdate({ enableZoom: e.target.checked })}
+                  className="w-4 h-4 rounded border-border"
+                />
+                <span className="text-sm">Enable Zoom</span>
+              </label>
+
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={map.enablePan}
+                  onChange={(e) => onUpdate({ enablePan: e.target.checked })}
+                  className="w-4 h-4 rounded border-border"
+                />
+                <span className="text-sm">Enable Pan</span>
+              </label>
+            </div>
+
+            <div className="pt-3 border-t border-border">
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-2">Background Image</h4>
+              <div className="flex items-center gap-3 mb-2">
+                <img
+                  src={map.imageUrl}
+                  alt={map.name}
+                  className="w-16 h-12 object-cover rounded border border-border"
+                />
+                <div className="flex-1">
+                  <p className="text-xs text-muted-foreground">
+                    {map.imageWidth} x {map.imageHeight}px
+                  </p>
+                  <button
+                    onClick={onChangeImage}
+                    className="mt-1 flex items-center gap-1.5 text-xs text-primary hover:underline"
+                  >
+                    <RefreshCw size={12} />
+                    Change Image
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
+      {/* Hotspots List Section */}
       <div>
-        <label className="text-xs font-medium text-muted-foreground mb-1 block">Description</label>
-        <textarea
-          value={map.description || ''}
-          onChange={(e) => onUpdate({ description: e.target.value })}
-          rows={3}
-          className="w-full px-3 py-2 rounded-lg bg-background border border-border focus:border-primary outline-none text-sm resize-none"
-        />
-      </div>
-
-      <div>
-        <label className="text-xs font-medium text-muted-foreground mb-1 block">Category</label>
-        <input
-          type="text"
-          value={map.category || ''}
-          onChange={(e) => onUpdate({ category: e.target.value })}
-          placeholder="e.g., ww2, geography"
-          className="w-full px-3 py-2 rounded-lg bg-background border border-border focus:border-primary outline-none text-sm"
-        />
-      </div>
-
-      <div className="space-y-3 pt-3 border-t border-border">
-        <h4 className="text-xs font-semibold text-muted-foreground uppercase">Options</h4>
-
-        <label className="flex items-center gap-3 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={map.showAllHotspots}
-            onChange={(e) => onUpdate({ showAllHotspots: e.target.checked })}
-            className="w-4 h-4 rounded border-border"
+        <button
+          onClick={() => setExpandedSection(expandedSection === 'hotspots' ? null : 'hotspots')}
+          className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+        >
+          <span className="font-semibold">Hotspots ({map.hotspots.length})</span>
+          <ChevronRight
+            size={16}
+            className={`transform transition-transform ${expandedSection === 'hotspots' ? 'rotate-90' : ''}`}
           />
-          <span className="text-sm">Show All Hotspots</span>
-        </label>
-
-        <label className="flex items-center gap-3 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={map.enableZoom}
-            onChange={(e) => onUpdate({ enableZoom: e.target.checked })}
-            className="w-4 h-4 rounded border-border"
-          />
-          <span className="text-sm">Enable Zoom</span>
-        </label>
-
-        <label className="flex items-center gap-3 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={map.enablePan}
-            onChange={(e) => onUpdate({ enablePan: e.target.checked })}
-            className="w-4 h-4 rounded border-border"
-          />
-          <span className="text-sm">Enable Pan</span>
-        </label>
-      </div>
-
-      <div className="pt-3 border-t border-border">
-        <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-2">Image Info</h4>
-        <p className="text-xs text-muted-foreground">
-          Dimensions: {map.imageWidth} x {map.imageHeight}px
-        </p>
-        <p className="text-xs text-muted-foreground">
-          Hotspots: {map.hotspots.length}
-        </p>
+        </button>
+        {expandedSection === 'hotspots' && (
+          <div className="px-4 pb-4">
+            {map.hotspots.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No hotspots yet. Click the crosshair icon and click on the map to add one.
+              </p>
+            ) : (
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground mb-2">
+                  Drag to reorder. First hotspot appears on top.
+                </p>
+                {map.hotspots.map((hotspot, index) => (
+                  <div
+                    key={hotspot.id}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, index)}
+                    onDragOver={handleDragOver}
+                    onDrop={(e) => handleDrop(e, index)}
+                    className="flex items-center gap-2 p-2 rounded-lg bg-muted/50 hover:bg-muted cursor-grab active:cursor-grabbing group"
+                  >
+                    <GripVertical size={14} className="text-muted-foreground" />
+                    <span className="text-lg">{hotspot.iconEmoji || '📍'}</span>
+                    <span className="flex-1 text-sm truncate">{hotspot.label}</span>
+                    <span className="text-xs text-muted-foreground opacity-0 group-hover:opacity-100">
+                      #{index + 1}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

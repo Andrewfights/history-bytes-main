@@ -11,8 +11,8 @@ interface CourseCatalogProps {
 }
 
 export function CourseCatalog({ courseProgress, onCourseClick }: CourseCatalogProps) {
-  const allCourses = useLiveCourses();
-  const featuredCourse = useLiveFeaturedCourse();
+  const { data: allCourses } = useLiveCourses();
+  const { data: featuredCourse } = useLiveFeaturedCourse();
 
   // Get courses with progress for "Continue Learning"
   const inProgressCourses = useMemo(() => {

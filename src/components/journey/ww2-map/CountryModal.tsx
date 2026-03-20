@@ -65,7 +65,8 @@ export function CountryModal({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="fixed inset-x-4 bottom-24 z-50 max-w-md mx-auto max-h-[70vh] overflow-y-auto"
+            className="fixed inset-x-4 z-50 max-w-md mx-auto max-h-[70vh] overflow-y-auto"
+            style={{ bottom: 'max(6rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}
           >
             <div className="bg-card rounded-2xl border border-border shadow-2xl overflow-hidden">
               {/* Header with faction color accent */}

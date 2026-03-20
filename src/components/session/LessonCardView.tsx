@@ -113,7 +113,7 @@ export function LessonCardView({ cards, onComplete, topicTitle }: LessonCardView
       </div>
 
       {/* Navigation */}
-      <div className="p-4 flex items-center gap-3">
+      <div className="p-4 flex items-center gap-3" style={{ paddingBottom: 'max(1rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}>
         <motion.button
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}

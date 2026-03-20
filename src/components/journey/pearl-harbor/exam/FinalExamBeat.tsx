@@ -43,12 +43,12 @@ function evaluateAnswer(question: ExamQuestion, value: unknown): boolean {
       return value === question.correctIndex;
 
     case 'fill-in-blank': {
-      const userAnswer = String(value).trim().toLowerCase();
+      const trimmedValue = String(value).trim();
       return question.correctAnswers.some(
         (correct) =>
           question.caseSensitive
-            ? String(value).trim() === correct
-            : userAnswer === correct.toLowerCase()
+            ? trimmedValue === correct
+            : trimmedValue.toLowerCase() === correct.toLowerCase()
       );
     }
 
@@ -64,7 +64,12 @@ function evaluateAnswer(question: ExamQuestion, value: unknown): boolean {
       }
       // Full slider version - check both values within tolerance
       if (typeof value === 'object' && value !== null) {
-        const { partA, partB } = value as { partA: number; partB: number };
+        const obj = value as Record<string, unknown>;
+        // Validate that partA and partB exist and are numbers
+        if (typeof obj.partA !== 'number' || typeof obj.partB !== 'number') {
+          return false;
+        }
+        const { partA, partB } = obj as { partA: number; partB: number };
         const partACorrect =
           Math.abs(partA - question.partA.correctValue) <= question.partA.tolerance;
         const partBCorrect =
@@ -555,7 +560,8 @@ export function FinalExamBeat({
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 20 }}
-                    className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-slate-950 via-slate-950 to-transparent pt-8 pb-6 px-4"
+                    className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-slate-950 via-slate-950 to-transparent pt-8 px-4"
+                    style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}
                   >
                     <div className="bg-white/5 rounded-xl p-4 border border-white/10">
                       <p className="text-white/80 text-sm leading-relaxed">

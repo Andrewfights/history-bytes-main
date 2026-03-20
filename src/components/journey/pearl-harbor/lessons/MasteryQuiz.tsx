@@ -156,7 +156,7 @@ export function MasteryQuiz({ host, onComplete, onSkip, onBack }: MasteryQuizPro
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-950 to-black flex flex-col">
+    <div className="min-h-dvh bg-gradient-to-b from-slate-900 via-slate-950 to-black flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
         <button onClick={onBack} className="p-2 -ml-2 text-white/60 hover:text-white">
@@ -202,6 +202,7 @@ export function MasteryQuiz({ host, onComplete, onSkip, onBack }: MasteryQuizPro
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="flex-1 flex flex-col items-center justify-center px-6 text-center"
+              style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}
             >
               <motion.div
                 initial={{ scale: 0, rotate: -180 }}
@@ -270,6 +271,7 @@ export function MasteryQuiz({ host, onComplete, onSkip, onBack }: MasteryQuizPro
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="flex-1 flex flex-col px-6 py-6"
+              style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}
             >
               {/* Score and progress */}
               <div className="flex items-center justify-between mb-4">
@@ -382,6 +384,7 @@ export function MasteryQuiz({ host, onComplete, onSkip, onBack }: MasteryQuizPro
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="flex-1 flex flex-col items-center justify-center px-6 text-center"
+              style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}
             >
               {passed ? (
                 <>

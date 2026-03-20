@@ -93,7 +93,13 @@ function subscribeToStorage(key: string, callback: StorageCallback): () => void 
 
 // ============ Spirit Guides Hook ============
 
-export function useLiveGuides(): DbSpiritGuide[] {
+export interface UseLiveDataResult<T> {
+  data: T;
+  loading: boolean;
+  error: string | null;
+}
+
+export function useLiveGuides(): UseLiveDataResult<DbSpiritGuide[]> {
   const [guides, setGuides] = useState<DbSpiritGuide[]>(() => {
     // Start with localStorage cache for instant display
     const stored = loadStoredGuides();
@@ -109,23 +115,33 @@ export function useLiveGuides(): DbSpiritGuide[] {
       stylePrompt: '',
     }));
   });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Fetch fresh data from Firestore
     const fetchFromFirestore = async () => {
+      setLoading(true);
+      setError(null);
       try {
         const data = await loadGuides();
         if (data && data.length > 0) {
           setGuides(data);
         }
       } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to fetch guides';
         console.error('Failed to fetch guides:', err);
+        setError(message);
+      } finally {
+        setLoading(false);
       }
     };
 
     // Initial fetch
     if (isFirebaseConfigured()) {
       fetchFromFirestore();
+    } else {
+      setLoading(false);
     }
 
     // Subscribe to real-time changes from Firestore
@@ -162,6 +178,7 @@ export function useLiveGuides(): DbSpiritGuide[] {
             stylePrompt: g.stylePrompt || '',
           }));
           setGuides(converted);
+          setError(null);
         }
       });
     }
@@ -180,32 +197,37 @@ export function useLiveGuides(): DbSpiritGuide[] {
     };
   }, []);
 
-  return guides;
+  return { data: guides, loading, error };
 }
 
 // Get a single guide by ID
-export function useLiveGuide(id: string): DbSpiritGuide | undefined {
-  const guides = useLiveGuides();
-  return guides.find(g => g.id === id);
+export function useLiveGuide(id: string): { data: DbSpiritGuide | undefined; loading: boolean; error: string | null } {
+  const { data: guides, loading, error } = useLiveGuides();
+  return { data: guides.find(g => g.id === id), loading, error };
 }
 
 // Get guides sorted by display order
-export function useSortedGuides(): DbSpiritGuide[] {
-  const guides = useLiveGuides();
-  return [...guides].sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+export function useSortedGuides(): UseLiveDataResult<DbSpiritGuide[]> {
+  const { data: guides, loading, error } = useLiveGuides();
+  const sortedGuides = [...guides].sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+  return { data: sortedGuides, loading, error };
 }
 
 // ============ Courses Hook ============
 
-export function useLiveCourses(): Course[] {
+export function useLiveCourses(): UseLiveDataResult<Course[]> {
   const [courses, setCourses] = useState<Course[]>(() => {
     const stored = loadStoredCourses();
     return stored && stored.length > 0 ? stored : [...defaultCourses];
   });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Fetch fresh data from Firestore and convert to Course type
     const fetchFromFirestore = async () => {
+      setLoading(true);
+      setError(null);
       try {
         const data = await loadCourses();
         if (data && data.length > 0) {
@@ -233,13 +255,19 @@ export function useLiveCourses(): Course[] {
           setCourses(converted);
         }
       } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to fetch courses';
         console.error('Failed to fetch courses:', err);
+        setError(message);
+      } finally {
+        setLoading(false);
       }
     };
 
     // Initial fetch
     if (isFirebaseConfigured()) {
       fetchFromFirestore();
+    } else {
+      setLoading(false);
     }
 
     // Subscribe to real-time changes
@@ -269,6 +297,7 @@ export function useLiveCourses(): Course[] {
             isFeatured: c.isFeatured,
           }));
           setCourses(converted);
+          setError(null);
         }
       });
     }
@@ -287,21 +316,25 @@ export function useLiveCourses(): Course[] {
     };
   }, []);
 
-  return courses;
+  return { data: courses, loading, error };
 }
 
 // ============ Units Hook ============
 
-export function useLiveUnits(courseId?: string): Unit[] {
+export function useLiveUnits(courseId?: string): UseLiveDataResult<Unit[]> {
   const [units, setUnits] = useState<Unit[]>(() => {
     const stored = loadStoredUnits();
     const data = stored && stored.length > 0 ? stored : [...defaultUnits];
     return courseId ? data.filter(u => u.courseId === courseId) : data;
   });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Fetch fresh data from Firestore
     const fetchFromFirestore = async () => {
+      setLoading(true);
+      setError(null);
       try {
         const data = await loadUnits(courseId);
         if (data) {
@@ -318,13 +351,19 @@ export function useLiveUnits(courseId?: string): Unit[] {
           setUnits(converted);
         }
       } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to fetch units';
         console.error('Failed to fetch units:', err);
+        setError(message);
+      } finally {
+        setLoading(false);
       }
     };
 
     // Initial fetch
     if (isFirebaseConfigured()) {
       fetchFromFirestore();
+    } else {
+      setLoading(false);
     }
 
     // Subscribe to real-time changes
@@ -346,6 +385,7 @@ export function useLiveUnits(courseId?: string): Unit[] {
             totalDurationMinutes: 0,
           }));
           setUnits(converted);
+          setError(null);
         }
       });
     }
@@ -363,21 +403,25 @@ export function useLiveUnits(courseId?: string): Unit[] {
     };
   }, [courseId]);
 
-  return units;
+  return { data: units, loading, error };
 }
 
 // ============ Lessons Hook ============
 
-export function useLiveLessons(unitId?: string): Lesson[] {
+export function useLiveLessons(unitId?: string): UseLiveDataResult<Lesson[]> {
   const [lessons, setLessons] = useState<Lesson[]>(() => {
     const stored = loadStoredLessons();
     const data = stored && stored.length > 0 ? stored : [...defaultLessons];
     return unitId ? data.filter(l => l.unitId === unitId) : data;
   });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Fetch fresh data from Firestore
     const fetchFromFirestore = async () => {
+      setLoading(true);
+      setError(null);
       try {
         const data = await loadLessons(unitId);
         if (data) {
@@ -395,13 +439,19 @@ export function useLiveLessons(unitId?: string): Lesson[] {
           setLessons(converted);
         }
       } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to fetch lessons';
         console.error('Failed to fetch lessons:', err);
+        setError(message);
+      } finally {
+        setLoading(false);
       }
     };
 
     // Initial fetch
     if (isFirebaseConfigured()) {
       fetchFromFirestore();
+    } else {
+      setLoading(false);
     }
 
     // Subscribe to real-time changes
@@ -424,6 +474,7 @@ export function useLiveLessons(unitId?: string): Lesson[] {
             xpReward: l.xpReward || 25,
           }));
           setLessons(converted);
+          setError(null);
         }
       });
     }
@@ -441,7 +492,7 @@ export function useLiveLessons(unitId?: string): Lesson[] {
     };
   }, [unitId]);
 
-  return lessons;
+  return { data: lessons, loading, error };
 }
 
 // ============ Lesson Content Hook ============
@@ -577,38 +628,40 @@ export function useLiveCauseEffectPairs() {
 // ============ Course Helper Hooks ============
 
 // Get a single course by ID
-export function useLiveCourseById(courseId: string): Course | undefined {
-  const courses = useLiveCourses();
-  return courses.find(c => c.id === courseId);
+export function useLiveCourseById(courseId: string): { data: Course | undefined; loading: boolean; error: string | null } {
+  const { data: courses, loading, error } = useLiveCourses();
+  return { data: courses.find(c => c.id === courseId), loading, error };
 }
 
 // Get featured course
-export function useLiveFeaturedCourse(): Course | undefined {
-  const courses = useLiveCourses();
-  return courses.find(c => c.isFeatured);
+export function useLiveFeaturedCourse(): { data: Course | undefined; loading: boolean; error: string | null } {
+  const { data: courses, loading, error } = useLiveCourses();
+  return { data: courses.find(c => c.isFeatured), loading, error };
 }
 
 // Get units for a course (sorted by order)
-export function useLiveUnitsByCourseId(courseId: string): Unit[] {
-  const units = useLiveUnits();
-  return units
+export function useLiveUnitsByCourseId(courseId: string): UseLiveDataResult<Unit[]> {
+  const { data: units, loading, error } = useLiveUnits();
+  const filtered = units
     .filter(u => u.courseId === courseId)
     .sort((a, b) => a.order - b.order);
+  return { data: filtered, loading, error };
 }
 
 // Get lessons for a unit (sorted by order)
-export function useLiveLessonsByUnitId(unitId: string): Lesson[] {
-  const lessons = useLiveLessons();
-  return lessons
+export function useLiveLessonsByUnitId(unitId: string): UseLiveDataResult<Lesson[]> {
+  const { data: lessons, loading, error } = useLiveLessons();
+  const filtered = lessons
     .filter(l => l.unitId === unitId)
     .sort((a, b) => a.order - b.order);
+  return { data: filtered, loading, error };
 }
 
 // Combined hook for course data with all relationships
 export function useLiveCourseData() {
-  const courses = useLiveCourses();
-  const units = useLiveUnits();
-  const lessons = useLiveLessons();
+  const { data: courses, loading: coursesLoading, error: coursesError } = useLiveCourses();
+  const { data: units, loading: unitsLoading, error: unitsError } = useLiveUnits();
+  const { data: lessons, loading: lessonsLoading, error: lessonsError } = useLiveLessons();
 
   const getCourseById = useCallback((id: string) => {
     return courses.find(c => c.id === id);
@@ -626,6 +679,9 @@ export function useLiveCourseData() {
       .sort((a, b) => a.order - b.order);
   }, [lessons]);
 
+  const loading = coursesLoading || unitsLoading || lessonsLoading;
+  const error = coursesError || unitsError || lessonsError;
+
   const getFeaturedCourse = useCallback(() => {
     return courses.find(c => c.isFeatured);
   }, [courses]);
@@ -634,6 +690,8 @@ export function useLiveCourseData() {
     courses,
     units,
     lessons,
+    loading,
+    error,
     getCourseById,
     getUnitsByCourseId,
     getLessonsByUnitId,

@@ -217,17 +217,21 @@ export function DragTimeline({
       {!isGameShowMode && (
         <AnimatePresence>
           {!isSubmitted && (
-            <motion.button
+            <motion.div
               initial={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={handleSubmit}
-              disabled={!allPlaced}
-              className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}
             >
-              {allPlaced
-                ? 'Check Answers'
-                : `Place ${unplacedItems.length} more item${unplacedItems.length > 1 ? 's' : ''}`}
-            </motion.button>
+              <motion.button
+                onClick={handleSubmit}
+                disabled={!allPlaced}
+                className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {allPlaced
+                  ? 'Check Answers'
+                  : `Place ${unplacedItems.length} more item${unplacedItems.length > 1 ? 's' : ''}`}
+              </motion.button>
+            </motion.div>
           )}
         </AnimatePresence>
       )}

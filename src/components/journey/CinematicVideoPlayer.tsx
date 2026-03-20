@@ -5,7 +5,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { SkipForward } from 'lucide-react';
+import { SkipForward, Volume2, VolumeX } from 'lucide-react';
 import { useAudioContextSafe } from '@/context/AudioContext';
 
 interface CinematicVideoPlayerProps {
@@ -29,6 +29,7 @@ export function CinematicVideoPlayer({
   const [isLoaded, setIsLoaded] = useState(false);
   const [showSkip, setShowSkip] = useState(false);
   const [hasEnded, setHasEnded] = useState(false);
+  const [isMuted, setIsMuted] = useState(true); // Start muted for iOS autoplay
   const audioContext = useAudioContextSafe();
 
   // Notify audio context when video starts/ends
@@ -80,6 +81,13 @@ export function CinematicVideoPlayer({
     }
   };
 
+  const toggleMute = () => {
+    if (videoRef.current) {
+      videoRef.current.muted = !isMuted;
+      setIsMuted(!isMuted);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -92,11 +100,23 @@ export function CinematicVideoPlayer({
         ref={videoRef}
         src={videoUrl}
         autoPlay
+        muted={isMuted}
         playsInline
         onLoadedData={handleLoadedData}
         onEnded={handleEnded}
         className="w-full h-full object-contain"
       />
+
+      {/* Mute toggle button */}
+      {isLoaded && !hasEnded && (
+        <button
+          onClick={toggleMute}
+          className="absolute top-8 right-8 flex items-center justify-center w-12 h-12 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 rounded-full text-white transition-colors"
+          aria-label={isMuted ? 'Unmute video' : 'Mute video'}
+        >
+          {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+        </button>
+      )}
 
       {/* Loading indicator */}
       <AnimatePresence>

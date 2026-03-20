@@ -181,29 +181,29 @@ export function HeroCarousel({ onContinueJourney, onPlayDaily }: HeroCarouselPro
           ))}
         </div>
 
-        {/* Arrows */}
-        <div className="flex gap-1 sm:gap-1.5">
+        {/* Arrows - minimum 44x44px touch target for accessibility */}
+        <div className="flex gap-1.5 sm:gap-2">
           <button
             onClick={() => go(-1)}
-            className={`w-7 h-7 sm:w-8 sm:h-8 rounded-md border flex items-center justify-center transition-colors ${
+            className={`w-11 h-11 rounded-md border flex items-center justify-center transition-colors ${
               hasImage
                 ? 'border-foreground/20 bg-background/50 backdrop-blur-sm hover:border-primary/40'
                 : 'border-border bg-card hover:border-primary/40'
             }`}
             aria-label="Previous slide"
           >
-            <ChevronLeft size={14} className={`sm:w-4 sm:h-4 ${hasImage ? 'text-foreground/80' : 'text-muted-foreground'}`} />
+            <ChevronLeft size={18} className={hasImage ? 'text-foreground/80' : 'text-muted-foreground'} />
           </button>
           <button
             onClick={() => go(1)}
-            className={`w-7 h-7 sm:w-8 sm:h-8 rounded-md border flex items-center justify-center transition-colors ${
+            className={`w-11 h-11 rounded-md border flex items-center justify-center transition-colors ${
               hasImage
                 ? 'border-foreground/20 bg-background/50 backdrop-blur-sm hover:border-primary/40'
                 : 'border-border bg-card hover:border-primary/40'
             }`}
             aria-label="Next slide"
           >
-            <ChevronRight size={14} className={`sm:w-4 sm:h-4 ${hasImage ? 'text-foreground/80' : 'text-muted-foreground'}`} />
+            <ChevronRight size={18} className={hasImage ? 'text-foreground/80' : 'text-muted-foreground'} />
           </button>
         </div>
       </div>

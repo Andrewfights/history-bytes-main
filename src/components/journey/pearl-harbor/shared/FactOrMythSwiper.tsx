@@ -262,7 +262,7 @@ export function FactOrMythSwiper({
       </div>
 
       {/* Bottom buttons */}
-      <div className="p-4 border-t border-white/10">
+      <div className="p-4 border-t border-white/10" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
         {!showExplanation ? (
           // Fact/Myth buttons
           <div className="flex gap-4">

@@ -139,21 +139,21 @@ export function ThisDayCard({ onNavigateToArc }: ThisDayCardProps) {
               ))}
             </div>
 
-            {/* Arrow controls */}
+            {/* Arrow controls - minimum 44x44px touch target */}
             <div className="flex gap-1">
               <button
                 onClick={prevEvent}
-                className="p-1.5 rounded hover:bg-muted transition-colors"
+                className="w-11 h-11 flex items-center justify-center rounded hover:bg-muted transition-colors"
                 aria-label="Previous event"
               >
-                <ChevronLeft size={14} className="text-muted-foreground" />
+                <ChevronLeft size={18} className="text-muted-foreground" />
               </button>
               <button
                 onClick={nextEvent}
-                className="p-1.5 rounded hover:bg-muted transition-colors"
+                className="w-11 h-11 flex items-center justify-center rounded hover:bg-muted transition-colors"
                 aria-label="Next event"
               >
-                <ChevronRight size={14} className="text-muted-foreground" />
+                <ChevronRight size={18} className="text-muted-foreground" />
               </button>
             </div>
           </div>

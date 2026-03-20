@@ -218,6 +218,7 @@ export function FillInTheBlank({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20 }}
               className="mt-6"
+              style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}
             >
               <button
                 onClick={handleSubmit}

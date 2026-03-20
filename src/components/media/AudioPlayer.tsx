@@ -233,6 +233,7 @@ export function AudioPlayer({
           <button
             onClick={handleRestart}
             className="p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted"
+            aria-label="Restart audio"
           >
             <RotateCcw size={18} />
           </button>
@@ -242,12 +243,14 @@ export function AudioPlayer({
             className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center disabled:opacity-50"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
+            aria-label={isPlaying ? 'Pause audio' : 'Play audio'}
           >
             {isPlaying ? <Pause size={24} /> : <Play size={24} className="ml-0.5" />}
           </motion.button>
           <button
             onClick={toggleMute}
             className="p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted"
+            aria-label={isMuted ? 'Unmute audio' : 'Mute audio'}
           >
             {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
           </button>

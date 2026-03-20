@@ -217,7 +217,7 @@ export function BreakingNewsBeat({ host, onComplete, onSkip, onBack }: BreakingN
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto" style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
         <AnimatePresence mode="wait">
           {/* INTRO */}
           {screen === 'intro' && (

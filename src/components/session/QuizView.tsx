@@ -32,8 +32,8 @@ export function QuizView({ questions, onComplete }: QuizViewProps) {
 
   const handleNext = () => {
     if (isLast) {
-      const finalScore = isCorrect ? correctAnswers + 1 : correctAnswers;
-      onComplete(finalScore, userAnswers);
+      // correctAnswers was already updated in handleSubmit(), so use it directly
+      onComplete(correctAnswers, userAnswers);
     } else {
       setCurrentIndex(prev => prev + 1);
       setSelectedAnswer(null);
@@ -144,7 +144,7 @@ export function QuizView({ questions, onComplete }: QuizViewProps) {
       </div>
 
       {/* Action button */}
-      <div className="p-4">
+      <div className="p-4" style={{ paddingBottom: 'max(1rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}>
         {!hasSubmitted ? (
           <motion.button
             whileHover={{ scale: 1.02 }}

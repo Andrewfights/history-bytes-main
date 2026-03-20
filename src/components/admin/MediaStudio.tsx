@@ -1830,7 +1830,7 @@ function MusicAssignmentPanel({
   onAssign: (type: 'module' | 'game' | 'lesson' | 'course', id: string, name: string) => void;
   onPlayModeChange: (mode: 'once' | 'loop') => void;
 }) {
-  const courses = useLiveCourses();
+  const { data: courses } = useLiveCourses();
 
   // Predefined game/module types
   const gameModules = [

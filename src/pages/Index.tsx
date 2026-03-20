@@ -49,7 +49,7 @@ function AppContent() {
   // Show loading state while hydrating from localStorage
   if (!isHydrated) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-dvh bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="text-4xl mb-4 animate-pulse">📜</div>
           <p className="text-muted-foreground text-sm">Loading your journey...</p>
@@ -69,7 +69,7 @@ function AppContent() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-dvh bg-background">
       <AnimatePresence>
         {isSessionActive && (
           <SessionFlow

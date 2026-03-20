@@ -13,7 +13,7 @@ export function ArcOverview({ arc, onBack, onStartNode }: ArcOverviewProps) {
   const host = getHostById(arc.hostId);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-dvh bg-background">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b border-border/50">
         <div className="px-4 py-3">

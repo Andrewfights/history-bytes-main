@@ -173,7 +173,8 @@ export function ResultsView({
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.6 }}
-        className="space-y-3 pb-4"
+        className="space-y-3"
+        style={{ paddingBottom: 'max(1rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}
       >
         <motion.button
           whileHover={{ scale: 1.02 }}

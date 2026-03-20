@@ -73,7 +73,7 @@ export function PearlHarborJourneyMap({
   }, [currentLessonIndex]);
 
   return (
-    <div className="min-h-screen bg-black flex flex-col">
+    <div className="min-h-dvh bg-black flex flex-col">
       {/* Header */}
       <div className="sticky top-0 z-20 bg-black/95 backdrop-blur-sm pt-4 pb-4">
         {/* Back button */}

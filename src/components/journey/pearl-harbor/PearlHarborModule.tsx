@@ -103,7 +103,7 @@ export function PearlHarborModule({ host, onBack }: PearlHarborModuleProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-950 to-black">
+    <div className="min-h-dvh bg-gradient-to-b from-slate-900 via-slate-950 to-black">
       <AnimatePresence mode="wait">
         {view === 'overview' && (
           <motion.div

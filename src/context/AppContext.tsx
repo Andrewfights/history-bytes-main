@@ -316,6 +316,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     let unsubscribeEraTiles: (() => void) | null = null;
     let unsubscribePantheon: (() => void) | null = null;
     let unsubscribeGameThumbnails: (() => void) | null = null;
+    let unsubscribeTrivia: (() => void) | null = null;
 
     if (isFirebaseConfigured()) {
       // Initialize caches for admin-controlled content
@@ -339,7 +340,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       });
 
       // Subscribe to trivia updates
-      subscribeToTriviaUpdates(() => {
+      unsubscribeTrivia = subscribeToTriviaUpdates(() => {
         console.log('[AppContext] Trivia sets updated');
       });
       unsubscribeCourses = subscribeToCourses((firestoreCourses) => {
@@ -427,6 +428,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       unsubscribeEraTiles?.();
       unsubscribePantheon?.();
       unsubscribeGameThumbnails?.();
+      unsubscribeTrivia?.();
     };
   }, []);
 

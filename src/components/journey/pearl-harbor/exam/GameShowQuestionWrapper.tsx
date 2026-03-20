@@ -80,14 +80,14 @@ export function GameShowQuestionWrapper({
   const handleLockIn = useCallback(() => {
     if (!hasSelection || isLockedIn || isTimedOut || completedRef.current) return;
 
+    // Mark as completed IMMEDIATELY to prevent race with timer expiration
+    completedRef.current = true;
     setIsLockedIn(true);
     setIsPaused(true);
     audio.play('lockIn');
 
     // Brief pause before completing
     setTimeout(() => {
-      if (completedRef.current) return;
-      completedRef.current = true;
       audio.play('whoosh');
 
       onQuestionComplete({
@@ -104,14 +104,14 @@ export function GameShowQuestionWrapper({
   const handleTimeUp = useCallback(() => {
     if (isLockedIn || completedRef.current) return;
 
+    // Mark as completed IMMEDIATELY to prevent race with lock-in
+    completedRef.current = true;
     setIsTimedOut(true);
     setIsPaused(true);
     audio.play('buzzer');
 
     // Brief pause to show "TIME!" then complete
     setTimeout(() => {
-      if (completedRef.current) return;
-      completedRef.current = true;
       audio.play('whoosh');
 
       onQuestionComplete({
@@ -212,7 +212,7 @@ export function GameShowQuestionWrapper({
       </div>
 
       {/* Lock-in button (fixed at bottom) */}
-      <div className="shrink-0 pt-4 pb-2">
+      <div className="shrink-0 pt-4" style={{ paddingBottom: 'max(0.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}>
         <AnimatePresence>
           {isTimedOut ? (
             <motion.div

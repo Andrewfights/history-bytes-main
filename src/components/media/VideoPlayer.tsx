@@ -235,12 +235,14 @@ export function VideoPlayer({
                   <button
                     onClick={togglePlay}
                     className="p-2 text-white/80 hover:text-white"
+                    aria-label={isPlaying ? 'Pause video' : 'Play video'}
                   >
                     {isPlaying ? <Pause size={20} /> : <Play size={20} />}
                   </button>
                   <button
                     onClick={toggleMute}
                     className="p-2 text-white/80 hover:text-white"
+                    aria-label={isMuted ? 'Unmute video' : 'Mute video'}
                   >
                     {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
                   </button>
@@ -254,6 +256,7 @@ export function VideoPlayer({
                     <button
                       onClick={onSkip}
                       className="px-3 py-1 rounded-lg bg-white/10 text-white/80 text-sm hover:bg-white/20 flex items-center gap-1"
+                      aria-label="Skip video"
                     >
                       <SkipForward size={16} />
                       Skip

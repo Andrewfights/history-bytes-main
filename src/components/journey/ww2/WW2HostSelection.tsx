@@ -135,9 +135,15 @@ export function WW2HostSelection({ onSelectHost, onClose }: WW2HostSelectionProp
 
     setCurrentIndex(api.selectedScrollSnap());
 
-    api.on('select', () => {
+    const onSelect = () => {
       setCurrentIndex(api.selectedScrollSnap());
-    });
+    };
+
+    api.on('select', onSelect);
+
+    return () => {
+      api.off('select', onSelect);
+    };
   }, [api]);
 
   // Single click to choose the current guide
@@ -231,18 +237,25 @@ export function WW2HostSelection({ onSelectHost, onClose }: WW2HostSelectionProp
               opts={{
                 align: 'center',
                 loop: false,
+                containScroll: false,
               }}
-              className="w-full"
+              className="w-full overflow-visible"
             >
-              <CarouselContent className="-ml-2 sm:-ml-4">
+              <CarouselContent className="ml-0">
                 {hosts.map((host, index) => (
-                  <CarouselItem key={host.id} className="pl-2 sm:pl-4 basis-[90%] sm:basis-[85%]">
-                    <HostCarouselCard
-                      host={host}
-                      isActive={currentIndex === index}
-                      isSelected={currentIndex === index}
-                      onClick={() => handleCardClick(index)}
-                    />
+                  <CarouselItem
+                    key={host.id}
+                    className="pl-0 flex items-center justify-center"
+                    style={{ flexBasis: '85%' }}
+                  >
+                    <div className="w-full max-w-[320px] sm:max-w-none">
+                      <HostCarouselCard
+                        host={host}
+                        isActive={currentIndex === index}
+                        isSelected={currentIndex === index}
+                        onClick={() => handleCardClick(index)}
+                      />
+                    </div>
                   </CarouselItem>
                 ))}
               </CarouselContent>
@@ -352,7 +365,7 @@ function HostCarouselCard({ host, isActive, isSelected, onClick }: HostCarouselC
       }`}
     >
       {/* Image/Video Container - limit height on desktop so buttons are visible */}
-      <div className="relative aspect-[4/5] md:aspect-[3/4] lg:aspect-[4/5] md:max-h-[55vh] bg-gradient-to-b from-neutral-800 to-neutral-900">
+      <div className="relative w-full aspect-[4/5] md:aspect-[3/4] lg:aspect-[4/5] md:max-h-[55vh] bg-gradient-to-b from-neutral-800 to-neutral-900">
         {/* Video - always render but hide when not active */}
         {host.introVideoUrl && (
           <video
@@ -375,6 +388,7 @@ function HostCarouselCard({ host, isActive, isSelected, onClick }: HostCarouselC
           <button
             onClick={toggleMute}
             className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/70 transition-colors"
+            aria-label={isMuted ? 'Unmute video' : 'Mute video'}
           >
             {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
           </button>
