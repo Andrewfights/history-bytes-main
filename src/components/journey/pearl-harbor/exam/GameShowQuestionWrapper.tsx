@@ -1,7 +1,7 @@
 /**
  * GameShowQuestionWrapper - Orchestrates the HQ-style game show experience
  * Wraps each question with:
- * - Video playback
+ * - Video playback (top 40% of screen)
  * - Countdown timer
  * - Lock-in functionality
  * - No immediate feedback
@@ -11,10 +11,9 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CountdownTimer } from './CountdownTimer';
 import { LockInButton } from './LockInButton';
-import { ResponsiveVideoContainer } from './QuestionVideoPlayer';
 import { GAME_SHOW_CONFIG } from './examConfig';
 import { useExamAudio } from '@/lib/audioManager';
-import type { ExamQuestion, PendingAnswer, VideoLayoutMode } from './types';
+import type { ExamQuestion, PendingAnswer } from './types';
 
 interface GameShowQuestionWrapperProps {
   question: ExamQuestion;
@@ -31,23 +30,6 @@ export interface GameShowChildProps {
   isLockedIn: boolean;
   isTimedOut: boolean;
   disabled: boolean;
-}
-
-// Determine video layout mode based on question type
-function getVideoLayoutMode(questionType: string): VideoLayoutMode {
-  switch (questionType) {
-    case 'drag-timeline':
-    case 'sequence-order':
-      // These need full width, use background
-      return 'background';
-    case 'fill-in-blank':
-    case 'two-part':
-      // These need keyboard space, use top banner
-      return 'top-banner';
-    default:
-      // Standard questions use side panel
-      return 'side-panel';
-  }
 }
 
 export function GameShowQuestionWrapper({
@@ -141,16 +123,64 @@ export function GameShowQuestionWrapper({
     completedRef.current = false;
   }, [question.id]);
 
-  const layoutMode = getVideoLayoutMode(question.type);
   const isDisabled = isLockedIn || isTimedOut;
+  const [videoLoaded, setVideoLoaded] = useState(false);
+  const [videoError, setVideoError] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Reset video state when URL changes
+  useEffect(() => {
+    setVideoLoaded(false);
+    setVideoError(false);
+  }, [videoUrl]);
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Header with question number and timer */}
-      <div className="flex items-center justify-between mb-4">
+    <div className="flex flex-col h-full pb-20">
+      {/* Video Section - Top 40% */}
+      <div className="h-[40vh] shrink-0 bg-black relative overflow-hidden">
+        {videoUrl && !videoError ? (
+          <>
+            {/* Loading spinner */}
+            {!videoLoaded && (
+              <div className="absolute inset-0 flex items-center justify-center bg-slate-900">
+                <div className="w-10 h-10 border-3 border-amber-500 border-t-transparent rounded-full animate-spin" />
+              </div>
+            )}
+            {/* Video */}
+            <motion.video
+              ref={videoRef}
+              src={videoUrl}
+              autoPlay
+              loop
+              muted
+              playsInline
+              onLoadedData={() => setVideoLoaded(true)}
+              onError={() => setVideoError(true)}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: videoLoaded ? 1 : 0 }}
+              className="w-full h-full object-cover"
+            />
+          </>
+        ) : (
+          /* Fallback gradient when no video */
+          <div className="w-full h-full bg-gradient-to-br from-amber-900/30 via-slate-900 to-slate-950 flex items-center justify-center">
+            <div className="w-20 h-20 rounded-full bg-amber-500/20 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-full bg-amber-500/30 animate-pulse" />
+            </div>
+          </div>
+        )}
+
+        {/* Preload next video */}
+        {nextVideoUrl && (
+          <video src={nextVideoUrl} preload="auto" muted className="hidden" />
+        )}
+      </div>
+
+      {/* Question Header with Timer */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-slate-900/80">
         <div className="flex items-center gap-3">
-          <span className="text-white/60 text-sm">
-            Question {questionNumber}/{totalQuestions}
+          <span className="text-white font-medium">
+            Q{questionNumber}/{totalQuestions}
           </span>
           {question.category && (
             <span className="px-2 py-1 bg-white/10 rounded text-xs text-white/60">
@@ -159,8 +189,8 @@ export function GameShowQuestionWrapper({
           )}
         </div>
 
-        {/* Timer */}
-        <div className="w-24 h-24">
+        {/* Timer - smaller, inline */}
+        <div className="w-16 h-16">
           <CountdownTimer
             duration={GAME_SHOW_CONFIG.questionTimeLimit}
             warningThreshold={GAME_SHOW_CONFIG.countdownWarningThreshold}
@@ -171,48 +201,40 @@ export function GameShowQuestionWrapper({
         </div>
       </div>
 
-      {/* Main content area with video and question */}
-      <div className="flex-1 overflow-y-auto">
-        <ResponsiveVideoContainer
-          videoUrl={videoUrl}
-          desktopLayout={layoutMode}
-          nextVideoUrl={nextVideoUrl}
+      {/* Question + Answers Section - Scrollable */}
+      <div className="flex-1 overflow-y-auto px-4 py-4">
+        {/* Question prompt */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white/5 rounded-xl p-4 border border-white/10 mb-4"
         >
-          <div className="flex flex-col gap-4">
-            {/* Question prompt */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white/5 rounded-xl p-4 border border-white/10"
-            >
-              <p className="text-white text-lg leading-relaxed">
-                {question.prompt}
-              </p>
-            </motion.div>
+          <p className="text-white text-lg leading-relaxed">
+            {question.prompt}
+          </p>
+        </motion.div>
 
-            {/* Question content (rendered by child) */}
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={question.id}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.2 }}
-              >
-                {children({
-                  onSelectionChange: handleSelectionChange,
-                  isLockedIn,
-                  isTimedOut,
-                  disabled: isDisabled,
-                })}
-              </motion.div>
-            </AnimatePresence>
-          </div>
-        </ResponsiveVideoContainer>
+        {/* Question content (answer options rendered by child) */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={question.id}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+          >
+            {children({
+              onSelectionChange: handleSelectionChange,
+              isLockedIn,
+              isTimedOut,
+              disabled: isDisabled,
+            })}
+          </motion.div>
+        </AnimatePresence>
       </div>
 
-      {/* Lock-in button (fixed at bottom) */}
-      <div className="shrink-0 pt-4" style={{ paddingBottom: 'max(0.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}>
+      {/* Lock-in button - Fixed at bottom, above nav */}
+      <div className="shrink-0 px-4 pb-4">
         <AnimatePresence>
           {isTimedOut ? (
             <motion.div
