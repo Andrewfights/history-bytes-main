@@ -14,6 +14,7 @@ import { WW2Host } from '@/types';
 import { InteractiveMap, MapHotspot, TimedChallenge, TimedQuestion } from '../shared';
 import { usePearlHarborProgress } from '../hooks/usePearlHarborProgress';
 import { subscribeToWW2ModuleAssets, type WW2BeatHotspotConfig } from '@/lib/firestore';
+import { BEAT_1_DEFAULT_IMAGE } from '@/data/pearlHarborDefaults';
 
 type Screen = 'intro' | 'map-explore' | 'timed-challenge' | 'reveal' | 'completion';
 const SCREENS: Screen[] = ['intro', 'map-explore', 'timed-challenge', 'reveal', 'completion'];
@@ -351,7 +352,7 @@ export function RoadToWarBeat({ host, onComplete, onSkip, onBack }: RoadToWarBea
 
               <div className="flex-1">
                 <InteractiveMap
-                  mapImage={customHotspotConfig?.imageUrl || "/assets/pearl-harbor/world-map-1941.jpg"}
+                  mapImage={customHotspotConfig?.imageUrl || BEAT_1_DEFAULT_IMAGE}
                   hotspots={activeHotspots}
                   viewedHotspots={viewedHotspots}
                   onHotspotView={handleHotspotView}

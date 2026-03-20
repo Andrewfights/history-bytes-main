@@ -41,6 +41,7 @@ import {
   MapPin,
 } from 'lucide-react';
 import { PEARL_HARBOR_LESSONS, TOTAL_XP, FINAL_EXAM_SCORING } from '@/data/pearlHarborLessons';
+import { BEAT_1_DEFAULT_IMAGE, BEAT_1_DEFAULT_HOTSPOTS } from '@/data/pearlHarborDefaults';
 import { ARENA_QUESTIONS, ARENA_TIERS, RECOGNITION_TIERS } from '@/data/arenaQuestions';
 import { FINAL_EXAM_QUESTIONS } from '@/components/journey/pearl-harbor/exam/examQuestions';
 import { WW2_HOSTS } from '@/data/ww2Hosts';
@@ -1953,7 +1954,9 @@ export function WW2ModuleEditor() {
   // Handle opening hotspot editor
   const handleEditHotspots = useCallback((beatId: string) => {
     const config = uploadedAssets?.customHotspots?.[beatId];
-    setEditingHotspotsImageUrl(config?.imageUrl || '');
+    // Fall back to Beat 1 default image if no custom config exists
+    const defaultImage = beatId === 'ph-beat-1' ? BEAT_1_DEFAULT_IMAGE : '';
+    setEditingHotspotsImageUrl(config?.imageUrl || defaultImage);
     setEditingHotspotsBeatId(beatId);
   }, [uploadedAssets]);
 
@@ -2183,16 +2186,26 @@ export function WW2ModuleEditor() {
         {editingHotspotsBeatId && (
           <ImageHotspotEditor
             imageUrl={editingHotspotsImageUrl}
-            hotspots={(getHotspotConfig(editingHotspotsBeatId)?.hotspots || []).map(h => ({
-              id: h.id,
-              x: h.x,
-              y: h.y,
-              label: h.label,
-              description: h.description,
-              revealFact: h.revealFact,
-              isCorrect: h.isCorrect,
-              order: h.order,
-            }))}
+            hotspots={(() => {
+              const customHotspots = getHotspotConfig(editingHotspotsBeatId)?.hotspots;
+              if (customHotspots && customHotspots.length > 0) {
+                return customHotspots.map(h => ({
+                  id: h.id,
+                  x: h.x,
+                  y: h.y,
+                  label: h.label,
+                  description: h.description,
+                  revealFact: h.revealFact,
+                  isCorrect: h.isCorrect,
+                  order: h.order,
+                }));
+              }
+              // Fall back to Beat 1 defaults if no custom hotspots
+              if (editingHotspotsBeatId === 'ph-beat-1') {
+                return BEAT_1_DEFAULT_HOTSPOTS;
+              }
+              return [];
+            })()}
             onImageChange={setEditingHotspotsImageUrl}
             onHotspotsChange={handleSaveHotspots}
             onClose={() => {
