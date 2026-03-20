@@ -13,6 +13,7 @@ import { ArrowLeft, ArrowRight, Map, Clock, Sparkles } from 'lucide-react';
 import { WW2Host } from '@/types';
 import { InteractiveMap, MapHotspot, TimedChallenge, TimedQuestion } from '../shared';
 import { usePearlHarborProgress } from '../hooks/usePearlHarborProgress';
+import { subscribeToWW2ModuleAssets, type WW2BeatHotspotConfig } from '@/lib/firestore';
 
 type Screen = 'intro' | 'map-explore' | 'timed-challenge' | 'reveal' | 'completion';
 const SCREENS: Screen[] = ['intro', 'map-explore', 'timed-challenge', 'reveal', 'completion'];
@@ -142,8 +143,19 @@ export function RoadToWarBeat({ host, onComplete, onSkip, onBack }: RoadToWarBea
   const [viewedHotspots, setViewedHotspots] = useState<Set<string>>(new Set());
   const [challengeScore, setChallengeScore] = useState(0);
   const [skippedScreens, setSkippedScreens] = useState<Set<Screen>>(new Set());
+  const [customHotspotConfig, setCustomHotspotConfig] = useState<WW2BeatHotspotConfig | null>(null);
 
   const { saveCheckpoint, clearCheckpoint, getCheckpoint } = usePearlHarborProgress();
+
+  // Subscribe to Firestore for custom hotspot image
+  useEffect(() => {
+    const unsubscribe = subscribeToWW2ModuleAssets((assets) => {
+      if (assets?.customHotspots?.[LESSON_DATA.id]) {
+        setCustomHotspotConfig(assets.customHotspots[LESSON_DATA.id]);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   // Restore checkpoint on mount
   useEffect(() => {
@@ -315,7 +327,7 @@ export function RoadToWarBeat({ host, onComplete, onSkip, onBack }: RoadToWarBea
 
               <div className="flex-1">
                 <InteractiveMap
-                  mapImage="/assets/pearl-harbor/world-map-1941.jpg"
+                  mapImage={customHotspotConfig?.imageUrl || "/assets/pearl-harbor/world-map-1941.jpg"}
                   hotspots={MAP_HOTSPOTS}
                   viewedHotspots={viewedHotspots}
                   onHotspotView={handleHotspotView}
