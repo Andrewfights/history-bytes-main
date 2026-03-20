@@ -9,6 +9,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Volume2, VolumeX } from 'lucide-react';
 import { CountdownTimer } from './CountdownTimer';
 import { LockInButton } from './LockInButton';
 import { GAME_SHOW_CONFIG } from './examConfig';
@@ -133,6 +134,7 @@ export function GameShowQuestionWrapper({
   const isDisabled = isLockedIn || isTimedOut;
   const [videoLoaded, setVideoLoaded] = useState(false);
   const [videoError, setVideoError] = useState(false);
+  const [isVideoMuted, setIsVideoMuted] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   // Trim settings
@@ -178,73 +180,87 @@ export function GameShowQuestionWrapper({
 
   return (
     <div className="flex flex-col h-full" style={{ paddingBottom: 'max(1rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}>
-      {/* Video Section - Compact 25% for single-view layout */}
-      <div className="h-[25vh] shrink-0 bg-black relative overflow-hidden">
-        {videoUrl && !videoError ? (
-          <>
-            {/* Loading spinner */}
-            {!videoLoaded && (
-              <div className="absolute inset-0 flex items-center justify-center bg-slate-900">
-                <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+      {/* Video Section - Constrained to ~30% of viewport, maintains aspect ratio */}
+      <div className="shrink-0 bg-black relative overflow-hidden flex items-center justify-center" style={{ maxHeight: '30vh' }}>
+        <div className="w-full h-full max-h-[30vh] aspect-video relative">
+          {videoUrl && !videoError ? (
+            <>
+              {/* Loading spinner */}
+              {!videoLoaded && (
+                <div className="absolute inset-0 flex items-center justify-center bg-slate-900">
+                  <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+                </div>
+              )}
+              {/* Video */}
+              <motion.video
+                ref={videoRef}
+                src={videoUrl}
+                autoPlay
+                muted={isVideoMuted}
+                playsInline
+                onLoadedData={handleVideoLoaded}
+                onTimeUpdate={handleTimeUpdate}
+                onError={() => setVideoError(true)}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: videoLoaded ? 1 : 0 }}
+                className="w-full h-full object-contain bg-black"
+              />
+            </>
+          ) : (
+            /* Fallback gradient when no video */
+            <div className="w-full h-full bg-gradient-to-br from-amber-900/30 via-slate-900 to-slate-950 flex items-center justify-center">
+              <div className="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center">
+                <div className="w-6 h-6 rounded-full bg-amber-500/30 animate-pulse" />
               </div>
-            )}
-            {/* Video */}
-            <motion.video
-              ref={videoRef}
-              src={videoUrl}
-              autoPlay
-              muted
-              playsInline
-              onLoadedData={handleVideoLoaded}
-              onTimeUpdate={handleTimeUpdate}
-              onError={() => setVideoError(true)}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: videoLoaded ? 1 : 0 }}
-              className="w-full h-full object-cover"
-            />
-          </>
-        ) : (
-          /* Fallback gradient when no video */
-          <div className="w-full h-full bg-gradient-to-br from-amber-900/30 via-slate-900 to-slate-950 flex items-center justify-center">
-            <div className="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center">
-              <div className="w-6 h-6 rounded-full bg-amber-500/30 animate-pulse" />
             </div>
+          )}
+
+          {/* Preload next video */}
+          {nextVideoUrl && (
+            <video src={nextVideoUrl} preload="auto" muted className="hidden" />
+          )}
+
+          {/* Timer overlay on video - compact */}
+          <div className="absolute top-2 right-2 w-10 h-10">
+            <CountdownTimer
+              duration={GAME_SHOW_CONFIG.questionTimeLimit}
+              warningThreshold={GAME_SHOW_CONFIG.countdownWarningThreshold}
+              onTimeUp={handleTimeUp}
+              isPaused={isPaused}
+              onTick={handleTick}
+            />
           </div>
-        )}
 
-        {/* Preload next video */}
-        {nextVideoUrl && (
-          <video src={nextVideoUrl} preload="auto" muted className="hidden" />
-        )}
+          {/* Question number overlay */}
+          <div className="absolute top-2 left-2 px-2 py-0.5 bg-black/60 rounded">
+            <span className="text-white text-xs font-medium">
+              Q{questionNumber}/{totalQuestions}
+            </span>
+          </div>
 
-        {/* Timer overlay on video - compact */}
-        <div className="absolute top-2 right-2 w-12 h-12">
-          <CountdownTimer
-            duration={GAME_SHOW_CONFIG.questionTimeLimit}
-            warningThreshold={GAME_SHOW_CONFIG.countdownWarningThreshold}
-            onTimeUp={handleTimeUp}
-            isPaused={isPaused}
-            onTick={handleTick}
-          />
-        </div>
-
-        {/* Question number overlay */}
-        <div className="absolute top-2 left-2 px-2 py-1 bg-black/60 rounded-lg">
-          <span className="text-white text-xs font-medium">
-            Q{questionNumber}/{totalQuestions}
-          </span>
+          {/* Mute/unmute button */}
+          <button
+            onClick={() => setIsVideoMuted(!isVideoMuted)}
+            className="absolute bottom-2 right-2 p-1.5 bg-black/60 hover:bg-black/80 rounded-full transition-colors"
+          >
+            {isVideoMuted ? (
+              <VolumeX size={16} className="text-white/70" />
+            ) : (
+              <Volume2 size={16} className="text-white" />
+            )}
+          </button>
         </div>
       </div>
 
-      {/* Question + Answers Section - Non-scrolling, fits in view */}
-      <div className="flex-1 flex flex-col px-3 py-2">
+      {/* Question + Answers Section - Fits remaining space */}
+      <div className="flex-1 flex flex-col px-3 py-2 min-h-0">
         {/* Question prompt - compact */}
         <motion.div
           initial={{ opacity: 0, y: 5 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white/5 rounded-lg p-3 border border-white/10 mb-2"
+          className="bg-white/5 rounded-lg p-2 border border-white/10 mb-2 shrink-0"
         >
-          <p className="text-white text-sm leading-snug">
+          <p className="text-white text-sm leading-tight">
             {question.prompt}
           </p>
         </motion.div>
