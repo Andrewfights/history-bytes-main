@@ -217,7 +217,31 @@ export function RoadToWarBeat({ host, onComplete, onSkip, onBack }: RoadToWarBea
     nextScreen();
   };
 
-  const allHotspotsViewed = viewedHotspots.size === MAP_HOTSPOTS.length;
+  // Convert custom hotspots from Firestore to MapHotspot format
+  const customMapHotspots: MapHotspot[] = customHotspotConfig?.hotspots?.map((h) => ({
+    id: h.id,
+    x: h.x,
+    y: h.y,
+    label: h.label,
+    icon: '📍', // Default icon for custom hotspots
+    pulseColor: 'rgb(251, 191, 36)', // Amber color
+    content: (
+      <div className="space-y-3">
+        {h.description && <p>{h.description}</p>}
+        {h.revealFact && (
+          <p className="text-amber-400 text-xs mt-2">{h.revealFact}</p>
+        )}
+        {!h.description && !h.revealFact && (
+          <p className="text-white/60 italic">No description added</p>
+        )}
+      </div>
+    ),
+  })) || [];
+
+  // Use custom hotspots if available and has at least one, otherwise use defaults
+  const activeHotspots = customMapHotspots.length > 0 ? customMapHotspots : MAP_HOTSPOTS;
+
+  const allHotspotsViewed = viewedHotspots.size >= activeHotspots.length;
 
   return (
     <div className="fixed inset-0 bg-gradient-to-b from-slate-900 via-slate-950 to-black flex flex-col">
@@ -328,7 +352,7 @@ export function RoadToWarBeat({ host, onComplete, onSkip, onBack }: RoadToWarBea
               <div className="flex-1">
                 <InteractiveMap
                   mapImage={customHotspotConfig?.imageUrl || "/assets/pearl-harbor/world-map-1941.jpg"}
-                  hotspots={MAP_HOTSPOTS}
+                  hotspots={activeHotspots}
                   viewedHotspots={viewedHotspots}
                   onHotspotView={handleHotspotView}
                   onAllHotspotsViewed={handleAllHotspotsViewed}
@@ -345,7 +369,7 @@ export function RoadToWarBeat({ host, onComplete, onSkip, onBack }: RoadToWarBea
                       : 'bg-white/10 text-white/30 cursor-not-allowed'
                   }`}
                 >
-                  {allHotspotsViewed ? 'Continue to Challenge' : `Explore ${MAP_HOTSPOTS.length - viewedHotspots.size} more`}
+                  {allHotspotsViewed ? 'Continue to Challenge' : `Explore ${activeHotspots.length - viewedHotspots.size} more`}
                 </button>
               </div>
             </motion.div>
