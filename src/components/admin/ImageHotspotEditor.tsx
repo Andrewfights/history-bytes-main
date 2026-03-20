@@ -570,14 +570,13 @@ export function ImageHotspotEditor({
       </motion.div>
 
       {/* Media Picker Modal */}
-      {showMediaPicker && (
-        <MediaPicker
-          onSelect={handleImageSelect}
-          onClose={() => setShowMediaPicker(false)}
-          accept="image"
-          title="Select Image for Hotspots"
-        />
-      )}
+      <MediaPicker
+        isOpen={showMediaPicker}
+        onSelect={handleImageSelect}
+        onClose={() => setShowMediaPicker(false)}
+        allowedTypes={['image']}
+        title="Select Image for Hotspots"
+      />
     </motion.div>
   );
 }
