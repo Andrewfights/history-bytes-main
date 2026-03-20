@@ -546,6 +546,7 @@ export function ExamResults({
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.7 }}
         className="mt-auto p-4 space-y-3"
+        style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}
       >
         {/* Continue button */}
         <button

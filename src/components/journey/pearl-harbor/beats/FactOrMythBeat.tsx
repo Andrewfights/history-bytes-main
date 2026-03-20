@@ -256,7 +256,7 @@ export function FactOrMythBeat({ host, onComplete, onSkip, onBack }: FactOrMythB
                 </div>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-3" style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}>
                 <button
                   onClick={() => nextScreen()}
                   className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors"
@@ -331,12 +331,14 @@ export function FactOrMythBeat({ host, onComplete, onSkip, onBack }: FactOrMythB
                 Next: Day of Infamy - Analyze FDR's historic speech
               </p>
 
-              <button
-                onClick={() => nextScreen()}
-                className="mt-6 w-full max-w-sm py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors"
-              >
-                Continue
-              </button>
+              <div style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}>
+                <button
+                  onClick={() => nextScreen()}
+                  className="mt-6 w-full max-w-sm py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors"
+                >
+                  Continue
+                </button>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

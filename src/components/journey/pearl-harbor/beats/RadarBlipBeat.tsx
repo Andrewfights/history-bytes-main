@@ -184,7 +184,7 @@ export function RadarBlipBeat({ host, onComplete, onSkip, onBack }: RadarBlipBea
                   </p>
                 </div>
               </div>
-              <div className="space-y-3">
+              <div className="space-y-3" style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}>
                 <button onClick={nextScreen} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors">
                   Continue
                 </button>
@@ -239,9 +239,11 @@ export function RadarBlipBeat({ host, onComplete, onSkip, onBack }: RadarBlipBea
                   </p>
                 </div>
               </div>
-              <button onClick={nextScreen} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors">
-                Keep Watching...
-              </button>
+              <div style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}>
+                <button onClick={nextScreen} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors">
+                  Keep Watching...
+                </button>
+              </div>
             </motion.div>
           )}
 
@@ -283,9 +285,11 @@ export function RadarBlipBeat({ host, onComplete, onSkip, onBack }: RadarBlipBea
                   </p>
                 </motion.div>
               </div>
-              <button onClick={nextScreen} className="w-full py-4 bg-red-500 hover:bg-red-400 text-white font-bold rounded-xl transition-colors">
-                What Do You Do?
-              </button>
+              <div style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}>
+                <button onClick={nextScreen} className="w-full py-4 bg-red-500 hover:bg-red-400 text-white font-bold rounded-xl transition-colors">
+                  What Do You Do?
+                </button>
+              </div>
             </motion.div>
           )}
 
@@ -336,9 +340,11 @@ export function RadarBlipBeat({ host, onComplete, onSkip, onBack }: RadarBlipBea
                   </p>
                 </div>
               </div>
-              <button onClick={nextScreen} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors">
-                What Happened to Lockard?
-              </button>
+              <div style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}>
+                <button onClick={nextScreen} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors">
+                  What Happened to Lockard?
+                </button>
+              </div>
             </motion.div>
           )}
 
@@ -370,9 +376,11 @@ export function RadarBlipBeat({ host, onComplete, onSkip, onBack }: RadarBlipBea
                   "I did my job. I reported what I saw. The failure was in the system, not the soldiers."
                 </p>
               </div>
-              <button onClick={nextScreen} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors">
-                Complete Beat 2
-              </button>
+              <div style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}>
+                <button onClick={nextScreen} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors">
+                  Complete Beat 2
+                </button>
+              </div>
             </motion.div>
           )}
 
@@ -391,9 +399,11 @@ export function RadarBlipBeat({ host, onComplete, onSkip, onBack }: RadarBlipBea
                   Next: Tora! Tora! Tora! - Experience the attack minute by minute
                 </p>
               </div>
-              <button onClick={nextScreen} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors">
-                Continue
-              </button>
+              <div style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}>
+                <button onClick={nextScreen} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors">
+                  Continue
+                </button>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

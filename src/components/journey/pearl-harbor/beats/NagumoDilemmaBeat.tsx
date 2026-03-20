@@ -192,7 +192,7 @@ export function NagumoDilemmaBeat({ host, onComplete, onSkip, onBack }: NagumoDi
                   Should Japan launch a third strike against Pearl Harbor?
                 </p>
               </div>
-              <div className="space-y-3">
+              <div className="space-y-3" style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}>
                 <button onClick={nextScreen} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors">
                   See the Situation
                 </button>
@@ -274,9 +274,11 @@ export function NagumoDilemmaBeat({ host, onComplete, onSkip, onBack }: NagumoDi
                 </div>
               </div>
 
-              <button onClick={nextScreen} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors">
-                Hear the Arguments
-              </button>
+              <div style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}>
+                <button onClick={nextScreen} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors">
+                  Hear the Arguments
+                </button>
+              </div>
             </motion.div>
           )}
 
@@ -322,9 +324,11 @@ export function NagumoDilemmaBeat({ host, onComplete, onSkip, onBack }: NagumoDi
                 ))}
               </div>
 
-              <button onClick={nextScreen} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors">
-                Make Your Decision
-              </button>
+              <div style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}>
+                <button onClick={nextScreen} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors">
+                  Make Your Decision
+                </button>
+              </div>
             </motion.div>
           )}
 
@@ -411,9 +415,11 @@ export function NagumoDilemmaBeat({ host, onComplete, onSkip, onBack }: NagumoDi
                   </div>
                 </div>
               </div>
-              <button onClick={nextScreen} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors">
-                One More Thing...
-              </button>
+              <div style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}>
+                <button onClick={nextScreen} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors">
+                  One More Thing...
+                </button>
+              </div>
             </motion.div>
           )}
 
@@ -440,9 +446,11 @@ export function NagumoDilemmaBeat({ host, onComplete, onSkip, onBack }: NagumoDi
                   Even eyewitnesses reshape history. Always check the sources.
                 </p>
               </div>
-              <button onClick={nextScreen} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors">
-                Complete Beat 6
-              </button>
+              <div style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}>
+                <button onClick={nextScreen} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors">
+                  Complete Beat 6
+                </button>
+              </div>
             </motion.div>
           )}
 
@@ -461,9 +469,11 @@ export function NagumoDilemmaBeat({ host, onComplete, onSkip, onBack }: NagumoDi
                   Next: Fact or Myth? - Challenge common misconceptions
                 </p>
               </div>
-              <button onClick={nextScreen} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors">
-                Continue
-              </button>
+              <div style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}>
+                <button onClick={nextScreen} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors">
+                  Continue
+                </button>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

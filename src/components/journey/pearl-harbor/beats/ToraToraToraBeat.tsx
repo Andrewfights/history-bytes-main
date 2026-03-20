@@ -252,7 +252,7 @@ export function ToraToraToraBeat({ host, onComplete, onSkip, onBack }: ToraToraT
                   <p className="text-white/50 text-xs mt-2 text-center">— First radio transmission, 7:58 AM</p>
                 </div>
               </div>
-              <div className="space-y-3">
+              <div className="space-y-3" style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}>
                 <button onClick={nextScreen} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors">
                   Experience the Attack
                 </button>
@@ -303,9 +303,11 @@ export function ToraToraToraBeat({ host, onComplete, onSkip, onBack }: ToraToraT
                   </ul>
                 </div>
               </div>
-              <button onClick={nextScreen} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors">
-                See the Timeline
-              </button>
+              <div style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}>
+                <button onClick={nextScreen} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors">
+                  See the Timeline
+                </button>
+              </div>
             </motion.div>
           )}
 

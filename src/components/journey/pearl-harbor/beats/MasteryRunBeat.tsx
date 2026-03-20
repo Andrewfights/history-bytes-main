@@ -266,7 +266,7 @@ export function MasteryRunBeat({ host, onComplete, onSkip, onBack }: MasteryRunB
                 </div>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-3" style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}>
                 <button onClick={nextScreen} className="w-full py-4 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-black font-bold rounded-xl transition-colors">
                   Begin Mastery Run
                 </button>

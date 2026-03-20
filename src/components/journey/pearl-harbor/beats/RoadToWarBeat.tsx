@@ -325,7 +325,7 @@ export function RoadToWarBeat({ host, onComplete, onSkip, onBack }: RoadToWarBea
                 </div>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-3" style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}>
                 <button
                   onClick={() => nextScreen()}
                   className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors"
@@ -373,7 +373,7 @@ export function RoadToWarBeat({ host, onComplete, onSkip, onBack }: RoadToWarBea
                 />
               </div>
 
-              <div className="mt-4">
+              <div className="mt-4" style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}>
                 <button
                   onClick={() => nextScreen()}
                   disabled={!allHotspotsViewed}
@@ -456,12 +456,14 @@ export function RoadToWarBeat({ host, onComplete, onSkip, onBack }: RoadToWarBea
                 </p>
               </div>
 
-              <button
-                onClick={() => nextScreen()}
-                className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors"
-              >
-                Complete Beat 1
-              </button>
+              <div style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}>
+                <button
+                  onClick={() => nextScreen()}
+                  className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors"
+                >
+                  Complete Beat 1
+                </button>
+              </div>
             </motion.div>
           )}
 
@@ -498,12 +500,14 @@ export function RoadToWarBeat({ host, onComplete, onSkip, onBack }: RoadToWarBea
                 </p>
               </div>
 
-              <button
-                onClick={() => nextScreen()}
-                className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors"
-              >
-                Continue
-              </button>
+              <div style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}>
+                <button
+                  onClick={() => nextScreen()}
+                  className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors"
+                >
+                  Continue
+                </button>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

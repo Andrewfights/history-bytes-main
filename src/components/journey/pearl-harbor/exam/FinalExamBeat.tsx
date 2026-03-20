@@ -419,6 +419,7 @@ export function FinalExamBeat({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="flex flex-col h-full p-6"
+              style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}
             >
               <div className="flex-1 flex flex-col items-center justify-center text-center">
                 {/* Host avatar */}

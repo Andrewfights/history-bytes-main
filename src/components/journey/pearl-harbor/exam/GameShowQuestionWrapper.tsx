@@ -135,15 +135,15 @@ export function GameShowQuestionWrapper({
   }, [videoUrl]);
 
   return (
-    <div className="flex flex-col h-full pb-20">
-      {/* Video Section - Top 40% */}
-      <div className="h-[40vh] shrink-0 bg-black relative overflow-hidden">
+    <div className="flex flex-col h-full" style={{ paddingBottom: 'max(1rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}>
+      {/* Video Section - Compact 25% for single-view layout */}
+      <div className="h-[25vh] shrink-0 bg-black relative overflow-hidden">
         {videoUrl && !videoError ? (
           <>
             {/* Loading spinner */}
             {!videoLoaded && (
               <div className="absolute inset-0 flex items-center justify-center bg-slate-900">
-                <div className="w-10 h-10 border-3 border-amber-500 border-t-transparent rounded-full animate-spin" />
+                <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
               </div>
             )}
             {/* Video */}
@@ -164,8 +164,8 @@ export function GameShowQuestionWrapper({
         ) : (
           /* Fallback gradient when no video */
           <div className="w-full h-full bg-gradient-to-br from-amber-900/30 via-slate-900 to-slate-950 flex items-center justify-center">
-            <div className="w-20 h-20 rounded-full bg-amber-500/20 flex items-center justify-center">
-              <div className="w-10 h-10 rounded-full bg-amber-500/30 animate-pulse" />
+            <div className="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center">
+              <div className="w-6 h-6 rounded-full bg-amber-500/30 animate-pulse" />
             </div>
           </div>
         )}
@@ -174,23 +174,9 @@ export function GameShowQuestionWrapper({
         {nextVideoUrl && (
           <video src={nextVideoUrl} preload="auto" muted className="hidden" />
         )}
-      </div>
 
-      {/* Question Header with Timer */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-slate-900/80">
-        <div className="flex items-center gap-3">
-          <span className="text-white font-medium">
-            Q{questionNumber}/{totalQuestions}
-          </span>
-          {question.category && (
-            <span className="px-2 py-1 bg-white/10 rounded text-xs text-white/60">
-              {question.category}
-            </span>
-          )}
-        </div>
-
-        {/* Timer - smaller, inline */}
-        <div className="w-16 h-16">
+        {/* Timer overlay on video - compact */}
+        <div className="absolute top-2 right-2 w-12 h-12">
           <CountdownTimer
             duration={GAME_SHOW_CONFIG.questionTimeLimit}
             warningThreshold={GAME_SHOW_CONFIG.countdownWarningThreshold}
@@ -199,62 +185,71 @@ export function GameShowQuestionWrapper({
             onTick={handleTick}
           />
         </div>
+
+        {/* Question number overlay */}
+        <div className="absolute top-2 left-2 px-2 py-1 bg-black/60 rounded-lg">
+          <span className="text-white text-xs font-medium">
+            Q{questionNumber}/{totalQuestions}
+          </span>
+        </div>
       </div>
 
-      {/* Question + Answers Section - Scrollable */}
-      <div className="flex-1 overflow-y-auto px-4 py-4">
-        {/* Question prompt */}
+      {/* Question + Answers Section - Non-scrolling, fits in view */}
+      <div className="flex-1 flex flex-col px-3 py-2">
+        {/* Question prompt - compact */}
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
+          initial={{ opacity: 0, y: 5 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white/5 rounded-xl p-4 border border-white/10 mb-4"
+          className="bg-white/5 rounded-lg p-3 border border-white/10 mb-2"
         >
-          <p className="text-white text-lg leading-relaxed">
+          <p className="text-white text-sm leading-snug">
             {question.prompt}
           </p>
         </motion.div>
 
         {/* Question content (answer options rendered by child) */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={question.id}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-          >
-            {children({
-              onSelectionChange: handleSelectionChange,
-              isLockedIn,
-              isTimedOut,
-              disabled: isDisabled,
-            })}
-          </motion.div>
-        </AnimatePresence>
-      </div>
-
-      {/* Lock-in button - Fixed at bottom, above nav */}
-      <div className="shrink-0 px-4 pb-4">
-        <AnimatePresence>
-          {isTimedOut ? (
+        <div className="flex-1">
+          <AnimatePresence mode="wait">
             <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="flex justify-center"
+              key={question.id}
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -5 }}
+              transition={{ duration: 0.15 }}
             >
-              <div className="px-6 py-3 bg-red-500/20 border border-red-500/50 rounded-xl">
-                <span className="text-red-400 font-bold">Time's Up!</span>
-              </div>
+              {children({
+                onSelectionChange: handleSelectionChange,
+                isLockedIn,
+                isTimedOut,
+                disabled: isDisabled,
+              })}
             </motion.div>
-          ) : (
-            <LockInButton
-              hasSelection={hasSelection}
-              isLockedIn={isLockedIn}
-              onLockIn={handleLockIn}
-              disabled={isTimedOut}
-            />
-          )}
-        </AnimatePresence>
+          </AnimatePresence>
+        </div>
+
+        {/* Lock-in button - Compact, above nav */}
+        <div className="shrink-0 pt-2">
+          <AnimatePresence>
+            {isTimedOut ? (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="flex justify-center"
+              >
+                <div className="px-4 py-2 bg-red-500/20 border border-red-500/50 rounded-lg">
+                  <span className="text-red-400 font-bold text-sm">Time's Up!</span>
+                </div>
+              </motion.div>
+            ) : (
+              <LockInButton
+                hasSelection={hasSelection}
+                isLockedIn={isLockedIn}
+                onLockIn={handleLockIn}
+                disabled={isTimedOut}
+              />
+            )}
+          </AnimatePresence>
+        </div>
       </div>
     </div>
   );
