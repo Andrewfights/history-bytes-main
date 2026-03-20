@@ -186,6 +186,7 @@ export function ImageHotspotEditor({
 
   // Handle image selection
   const handleImageSelect = (media: MediaFile) => {
+    console.log('[ImageHotspotEditor] Image selected:', media.url);
     onImageChange(media.url);
     setShowMediaPicker(false);
   };

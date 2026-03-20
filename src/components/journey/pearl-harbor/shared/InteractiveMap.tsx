@@ -5,7 +5,7 @@
 
 import { useState, useCallback, ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Clock, ImageOff } from 'lucide-react';
 
 export interface MapHotspot {
   id: string;
@@ -54,6 +54,8 @@ export function InteractiveMap({
   const [selectedHotspot, setSelectedHotspot] = useState<MapHotspot | null>(null);
   const [currentTimeIndex, setCurrentTimeIndex] = useState(0);
   const [localViewedHotspots, setLocalViewedHotspots] = useState<Set<string>>(viewedHotspots);
+  const [imageError, setImageError] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   const handleHotspotClick = useCallback((hotspot: MapHotspot) => {
     setSelectedHotspot(hotspot);
@@ -88,12 +90,22 @@ export function InteractiveMap({
     <div className={`relative w-full ${className}`}>
       {/* Map Container */}
       <div className="relative w-full aspect-[16/10] rounded-xl overflow-hidden bg-slate-900">
-        {/* Map Image */}
-        <img
-          src={mapImage}
-          alt="Interactive Map"
-          className="w-full h-full object-cover"
-        />
+        {/* Map Image or Placeholder */}
+        {imageError || !mapImage ? (
+          <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900 text-white/60">
+            <ImageOff size={48} className="mb-3 text-white/40" />
+            <p className="text-sm">Map image not available</p>
+            <p className="text-xs text-white/40 mt-1">Upload an image in the admin panel</p>
+          </div>
+        ) : (
+          <img
+            src={mapImage}
+            alt="Interactive Map"
+            className={`w-full h-full object-cover transition-opacity duration-300 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+            onLoad={() => setImageLoaded(true)}
+            onError={() => setImageError(true)}
+          />
+        )}
 
         {/* Darkening overlay for better hotspot visibility */}
         <div className="absolute inset-0 bg-black/20" />

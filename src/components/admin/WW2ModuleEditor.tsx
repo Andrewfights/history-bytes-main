@@ -1964,6 +1964,12 @@ export function WW2ModuleEditor() {
   const handleSaveHotspots = useCallback(async (hotspots: ModuleHotspot[]) => {
     if (!editingHotspotsBeatId) return;
 
+    console.log('[WW2ModuleEditor] Saving hotspots:', {
+      beatId: editingHotspotsBeatId,
+      imageUrl: editingHotspotsImageUrl,
+      hotspotCount: hotspots.length,
+    });
+
     try {
       // Convert ModuleHotspot to WW2BeatHotspot
       const ww2Hotspots: WW2BeatHotspot[] = hotspots.map(h => ({
@@ -1977,12 +1983,12 @@ export function WW2ModuleEditor() {
         order: h.order,
       }));
 
-      await updateWW2BeatHotspots(editingHotspotsBeatId, editingHotspotsImageUrl, ww2Hotspots);
-      console.log('Hotspots saved for beat:', editingHotspotsBeatId);
+      const success = await updateWW2BeatHotspots(editingHotspotsBeatId, editingHotspotsImageUrl, ww2Hotspots);
+      console.log('[WW2ModuleEditor] Save result:', success);
       setEditingHotspotsBeatId(null);
       setEditingHotspotsImageUrl('');
     } catch (error) {
-      console.error('Error saving hotspots:', error);
+      console.error('[WW2ModuleEditor] Error saving hotspots:', error);
       throw error;
     }
   }, [editingHotspotsBeatId, editingHotspotsImageUrl]);

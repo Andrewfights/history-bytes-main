@@ -5,8 +5,8 @@
 
 import type { ModuleHotspot } from '@/types/moduleTypes';
 
-// Default map image for Beat 1
-export const BEAT_1_DEFAULT_IMAGE = '/assets/pearl-harbor/world-map-1941.jpg';
+// Default map image for Beat 1 - empty string means admin needs to upload an image
+export const BEAT_1_DEFAULT_IMAGE = '';
 
 // Default hotspots for Beat 1 - The Road to War
 // These are the 3 key narrative points that explain why Pearl Harbor happened

@@ -148,9 +148,12 @@ export function RoadToWarBeat({ host, onComplete, onSkip, onBack }: RoadToWarBea
 
   const { saveCheckpoint, clearCheckpoint, getCheckpoint } = usePearlHarborProgress();
 
-  // Subscribe to Firestore for custom hotspot image
+  // Subscribe to Firestore for custom hotspot config
   useEffect(() => {
+    console.log('[RoadToWarBeat] Setting up Firestore subscription for:', LESSON_DATA.id);
     const unsubscribe = subscribeToWW2ModuleAssets((assets) => {
+      console.log('[RoadToWarBeat] Received assets:', assets);
+      console.log('[RoadToWarBeat] Custom hotspots for beat:', assets?.customHotspots?.[LESSON_DATA.id]);
       if (assets?.customHotspots?.[LESSON_DATA.id]) {
         setCustomHotspotConfig(assets.customHotspots[LESSON_DATA.id]);
       }
