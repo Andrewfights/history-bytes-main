@@ -20,7 +20,7 @@ import type { MediaFile } from '@/lib/supabase';
 
 // WW2 Hosts configuration
 const WW2_HOSTS = [
-  { id: 'eisenhower', name: 'General Eisenhower', avatar: '🎖️', color: 'bg-blue-500' },
+  { id: 'sergeant', name: 'Sergeant', avatar: '🎖️', color: 'bg-blue-500' },
   { id: 'journalist', name: 'War Correspondent', avatar: '📰', color: 'bg-amber-500' },
   { id: 'codebreaker', name: 'Codebreaker', avatar: '🔐', color: 'bg-purple-500' },
 ] as const;
