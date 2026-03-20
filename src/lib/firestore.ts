@@ -1457,6 +1457,22 @@ export interface WW2BeatStatement {
   explanation: string;
 }
 
+export interface WW2BeatHotspot {
+  id: string;
+  x: number;           // percentage position (0-100)
+  y: number;           // percentage position (0-100)
+  label: string;
+  description?: string;
+  revealFact?: string; // Additional fact shown on tap
+  isCorrect?: boolean; // For quiz-type hotspots
+  order?: number;      // For ordered sequences
+}
+
+export interface WW2BeatHotspotConfig {
+  imageUrl: string;
+  hotspots: WW2BeatHotspot[];
+}
+
 export interface ExamQuestionVideo {
   questionId: string;
   hostId: string;  // 'eisenhower' | 'journalist' | 'codebreaker'
@@ -1483,6 +1499,8 @@ export interface FirestoreWW2ModuleAssets {
   customQuestions?: Record<string, WW2BeatQuestion[]>;  // Key: beat ID
   // Editable statements (overrides default)
   customStatements?: Record<string, WW2BeatStatement[]>;  // Key: beat ID
+  // Editable hotspots (overrides default)
+  customHotspots?: Record<string, WW2BeatHotspotConfig>;  // Key: beat ID -> {imageUrl, hotspots}
   // Exam question videos for game show mode (per host)
   examQuestionVideos?: Record<string, ExamQuestionHostVideos>;  // Key: question ID -> hostId -> video
   // Theater-level media config (cinematic videos, background music)
@@ -1534,6 +1552,18 @@ export async function updateWW2BeatStatements(beatId: string, statements: WW2Bea
   customStatements[beatId] = statements;
 
   return saveWW2ModuleAssets({ customStatements });
+}
+
+export async function updateWW2BeatHotspots(
+  beatId: string,
+  imageUrl: string,
+  hotspots: WW2BeatHotspot[]
+): Promise<boolean> {
+  const current = await getWW2ModuleAssets();
+  const customHotspots = current?.customHotspots || {};
+  customHotspots[beatId] = { imageUrl, hotspots };
+
+  return saveWW2ModuleAssets({ customHotspots });
 }
 
 export async function updateExamQuestionVideo(

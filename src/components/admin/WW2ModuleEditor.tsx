@@ -38,6 +38,7 @@ import {
   Music,
   Maximize2,
   Minimize2,
+  MapPin,
 } from 'lucide-react';
 import { PEARL_HARBOR_LESSONS, TOTAL_XP, FINAL_EXAM_SCORING } from '@/data/pearlHarborLessons';
 import { ARENA_QUESTIONS, ARENA_TIERS, RECOGNITION_TIERS } from '@/data/arenaQuestions';
@@ -49,12 +50,17 @@ import {
   updateWW2BeatMedia,
   updateWW2BeatQuestions,
   updateWW2BeatStatements,
+  updateWW2BeatHotspots,
   type FirestoreWW2ModuleAssets,
   type WW2BeatQuestion,
   type WW2BeatStatement,
+  type WW2BeatHotspot,
+  type WW2BeatHotspotConfig,
 } from '@/lib/firestore';
 import { uploadFile } from '@/lib/supabase';
 import { isFirebaseConfigured } from '@/lib/firebase';
+import { ImageHotspotEditor } from './ImageHotspotEditor';
+import type { ModuleHotspot } from '@/types/moduleTypes';
 
 // Import beat components for preview
 import {
@@ -946,23 +952,82 @@ function StatementList({ statements }: { statements: BeatStatement[] }) {
   );
 }
 
-function HotspotList({ hotspots }: { hotspots: BeatHotspot[] }) {
-  if (!hotspots || hotspots.length === 0) return null;
+interface EditableHotspotListProps {
+  beatId: string;
+  hotspots: BeatHotspot[];
+  customHotspotConfig?: WW2BeatHotspotConfig;
+  uploadedMedia: Record<string, string>;
+  onEditHotspots: (beatId: string) => void;
+}
+
+function EditableHotspotList({
+  beatId,
+  hotspots,
+  customHotspotConfig,
+  uploadedMedia,
+  onEditHotspots
+}: EditableHotspotListProps) {
+  // Use custom hotspots if available, otherwise fall back to default
+  const displayHotspots = customHotspotConfig?.hotspots || hotspots || [];
+  const hasImage = customHotspotConfig?.imageUrl || Object.keys(uploadedMedia).length > 0;
 
   return (
     <div className="space-y-2">
-      <h4 className="text-white/60 text-xs uppercase tracking-wide flex items-center gap-2">
-        <Target size={14} />
-        Map Hotspots ({hotspots.length})
-      </h4>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-        {hotspots.map((h) => (
-          <div key={h.id} className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
-            <p className="text-white text-sm font-medium mb-1">{h.label}</p>
-            <p className="text-slate-400 text-xs">{h.description}</p>
-          </div>
-        ))}
+      <div className="flex items-center justify-between">
+        <h4 className="text-white/60 text-xs uppercase tracking-wide flex items-center gap-2">
+          <Target size={14} />
+          Map Hotspots ({displayHotspots.length})
+          <span className="text-amber-400 text-[10px]">Editable</span>
+        </h4>
+        <button
+          onClick={() => onEditHotspots(beatId)}
+          className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold rounded-lg flex items-center gap-1.5 transition-colors"
+        >
+          <Edit3 size={12} />
+          Edit Hotspots
+        </button>
       </div>
+
+      {customHotspotConfig?.imageUrl && (
+        <div className="relative rounded-lg overflow-hidden bg-slate-800 mb-2">
+          <img
+            src={customHotspotConfig.imageUrl}
+            alt="Hotspot map"
+            className="w-full h-32 object-cover opacity-70"
+          />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="px-2 py-1 bg-black/60 text-white text-xs rounded">
+              {displayHotspots.length} hotspots placed
+            </span>
+          </div>
+        </div>
+      )}
+
+      {displayHotspots.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+          {displayHotspots.map((h: BeatHotspot | WW2BeatHotspot) => (
+            <div key={h.id} className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
+              <div className="flex items-start gap-2">
+                <MapPin size={14} className="text-amber-400 shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-white text-sm font-medium mb-1">{h.label}</p>
+                  <p className="text-slate-400 text-xs">{h.description}</p>
+                  {'x' in h && 'y' in h && (
+                    <p className="text-slate-500 text-[10px] mt-1">
+                      Position: ({(h as WW2BeatHotspot).x.toFixed(1)}%, {(h as WW2BeatHotspot).y.toFixed(1)}%)
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="bg-slate-800/30 rounded-lg p-4 border border-dashed border-slate-700 text-center">
+          <p className="text-slate-500 text-sm">No hotspots defined yet</p>
+          <p className="text-slate-600 text-xs mt-1">Click "Edit Hotspots" to add locations</p>
+        </div>
+      )}
     </div>
   );
 }
@@ -1224,10 +1289,12 @@ function BeatCard({
   onToggle,
   onPreview,
   uploadedMedia,
+  customHotspotConfig,
   onUpload,
   onRemove,
   onSaveQuestions,
   onSaveStatements,
+  onEditHotspots,
 }: {
   lesson: typeof PEARL_HARBOR_LESSONS[0];
   index: number;
@@ -1235,10 +1302,12 @@ function BeatCard({
   onToggle: () => void;
   onPreview: (beatType: string) => void;
   uploadedMedia: Record<string, string>;
+  customHotspotConfig?: WW2BeatHotspotConfig;
   onUpload: (beatId: string, mediaKey: string, file: File) => Promise<void>;
   onRemove: (beatId: string, mediaKey: string) => Promise<void>;
   onSaveQuestions: (beatId: string, questions: WW2BeatQuestion[]) => Promise<void>;
   onSaveStatements: (beatId: string, statements: WW2BeatStatement[]) => Promise<void>;
+  onEditHotspots: (beatId: string) => void;
 }) {
   const content = BEAT_CONTENT_MAP[lesson.id];
   const isExam = lesson.type === 'final-exam';
@@ -1367,7 +1436,15 @@ function BeatCard({
               )}
 
               {/* Content Sections */}
-              {content?.hotspots && <HotspotList hotspots={content.hotspots} />}
+              {(content?.hotspots || customHotspotConfig) && (
+                <EditableHotspotList
+                  beatId={lesson.id}
+                  hotspots={content?.hotspots || []}
+                  customHotspotConfig={customHotspotConfig}
+                  uploadedMedia={uploadedMedia}
+                  onEditHotspots={onEditHotspots}
+                />
+              )}
               {content?.questions && content.questions.length > 0 && (
                 <EditableQuestionList
                   beatId={lesson.id}
@@ -1864,6 +1941,49 @@ export function WW2ModuleEditor() {
     }
   }, []);
 
+  // Hotspot editor state
+  const [editingHotspotsBeatId, setEditingHotspotsBeatId] = useState<string | null>(null);
+  const [editingHotspotsImageUrl, setEditingHotspotsImageUrl] = useState<string>('');
+
+  // Get hotspot config for a beat
+  const getHotspotConfig = useCallback((beatId: string): WW2BeatHotspotConfig | undefined => {
+    return uploadedAssets?.customHotspots?.[beatId];
+  }, [uploadedAssets]);
+
+  // Handle opening hotspot editor
+  const handleEditHotspots = useCallback((beatId: string) => {
+    const config = uploadedAssets?.customHotspots?.[beatId];
+    setEditingHotspotsImageUrl(config?.imageUrl || '');
+    setEditingHotspotsBeatId(beatId);
+  }, [uploadedAssets]);
+
+  // Handle saving hotspots
+  const handleSaveHotspots = useCallback(async (hotspots: ModuleHotspot[]) => {
+    if (!editingHotspotsBeatId) return;
+
+    try {
+      // Convert ModuleHotspot to WW2BeatHotspot
+      const ww2Hotspots: WW2BeatHotspot[] = hotspots.map(h => ({
+        id: h.id,
+        x: h.x,
+        y: h.y,
+        label: h.label,
+        description: h.description,
+        revealFact: h.revealFact,
+        isCorrect: h.isCorrect,
+        order: h.order,
+      }));
+
+      await updateWW2BeatHotspots(editingHotspotsBeatId, editingHotspotsImageUrl, ww2Hotspots);
+      console.log('Hotspots saved for beat:', editingHotspotsBeatId);
+      setEditingHotspotsBeatId(null);
+      setEditingHotspotsImageUrl('');
+    } catch (error) {
+      console.error('Error saving hotspots:', error);
+      throw error;
+    }
+  }, [editingHotspotsBeatId, editingHotspotsImageUrl]);
+
   // Get uploaded media for a specific beat
   const getUploadedMedia = useCallback((beatId: string): Record<string, string> => {
     return uploadedAssets?.beatMedia?.[beatId] || {};
@@ -1973,10 +2093,12 @@ export function WW2ModuleEditor() {
             onToggle={() => toggleSection(lesson.id)}
             onPreview={handlePreview}
             uploadedMedia={getUploadedMedia(lesson.id)}
+            customHotspotConfig={getHotspotConfig(lesson.id)}
             onUpload={handleUpload}
             onRemove={handleRemove}
             onSaveQuestions={handleSaveQuestions}
             onSaveStatements={handleSaveStatements}
+            onEditHotspots={handleEditHotspots}
           />
         ))}
 
@@ -2052,6 +2174,33 @@ export function WW2ModuleEditor() {
             beatType={previewBeat}
             host={previewHost}
             onClose={closePreview}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Hotspot Editor Modal */}
+      <AnimatePresence>
+        {editingHotspotsBeatId && (
+          <ImageHotspotEditor
+            imageUrl={editingHotspotsImageUrl}
+            hotspots={(getHotspotConfig(editingHotspotsBeatId)?.hotspots || []).map(h => ({
+              id: h.id,
+              x: h.x,
+              y: h.y,
+              label: h.label,
+              description: h.description,
+              revealFact: h.revealFact,
+              isCorrect: h.isCorrect,
+              order: h.order,
+            }))}
+            onImageChange={setEditingHotspotsImageUrl}
+            onHotspotsChange={handleSaveHotspots}
+            onClose={() => {
+              setEditingHotspotsBeatId(null);
+              setEditingHotspotsImageUrl('');
+            }}
+            title={`Edit Hotspots - ${PEARL_HARBOR_LESSONS.find(l => l.id === editingHotspotsBeatId)?.title || 'Beat'}`}
+            instructions="Upload an image and click to place hotspots. Drag to reposition."
           />
         )}
       </AnimatePresence>
