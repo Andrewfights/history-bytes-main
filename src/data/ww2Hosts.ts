@@ -228,7 +228,11 @@ function mapFirestoreHostToWW2Host(h: {
   voiceStyle: string;
   description: string;
   displayOrder?: number;
-}): WW2Host & { displayOrder?: number } {
+  hidden?: boolean;
+}): (WW2Host & { displayOrder?: number }) | null {
+  // Filter out hidden hosts for user-facing display
+  if (h.hidden) return null;
+
   return {
     id: h.id as WW2Host['id'],
     name: h.name,
@@ -264,8 +268,9 @@ export function initWW2HostsSubscription(): () => void {
 
   const unsubscribe = subscribeToWW2Hosts((hosts) => {
     if (hosts && hosts.length > 0) {
-      // Map and sort by displayOrder
-      firestoreHostsCache = sortHostsByOrder(hosts.map(mapFirestoreHostToWW2Host));
+      // Map, filter out hidden hosts, and sort by displayOrder
+      const mapped = hosts.map(mapFirestoreHostToWW2Host).filter((h): h is NonNullable<typeof h> => h !== null);
+      firestoreHostsCache = sortHostsByOrder(mapped);
       console.log('[WW2Hosts] Cache updated from Firestore:', firestoreHostsCache.map(h => ({
         id: h.id,
         order: (h as { displayOrder?: number }).displayOrder
@@ -291,9 +296,10 @@ export async function loadWW2HostsFromFirestore(): Promise<WW2Host[]> {
   try {
     const hosts = await getFirestoreWW2Hosts();
     if (hosts && hosts.length > 0) {
-      // Map and sort by displayOrder
-      firestoreHostsCache = sortHostsByOrder(hosts.map(mapFirestoreHostToWW2Host));
-      console.log('[WW2Hosts] Loaded from Firestore:', firestoreHostsCache.length, 'hosts');
+      // Map, filter out hidden hosts, and sort by displayOrder
+      const mapped = hosts.map(mapFirestoreHostToWW2Host).filter((h): h is NonNullable<typeof h> => h !== null);
+      firestoreHostsCache = sortHostsByOrder(mapped);
+      console.log('[WW2Hosts] Loaded from Firestore:', firestoreHostsCache.length, 'visible hosts');
       return firestoreHostsCache;
     }
   } catch (e) {

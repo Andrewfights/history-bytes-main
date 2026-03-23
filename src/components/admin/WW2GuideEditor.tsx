@@ -8,7 +8,7 @@ import { uploadFile, type MediaFile, isFirebaseConfigured } from '@/lib/supabase
 import { saveAllWW2Hosts, getWW2Hosts, type FirestoreWW2Host } from '@/lib/firestore';
 import type { WW2Host } from '@/types';
 
-type EditableWW2Host = WW2Host & { localImageUrl?: string; displayOrder?: number };
+type EditableWW2Host = WW2Host & { localImageUrl?: string; displayOrder?: number; hidden?: boolean };
 
 // Load hosts from Firestore ONLY (Firebase required for admin)
 async function loadStoredHostsAsync(): Promise<EditableWW2Host[]> {
@@ -35,6 +35,7 @@ async function loadStoredHostsAsync(): Promise<EditableWW2Host[]> {
         voiceStyle: h.voiceStyle,
         description: h.description,
         displayOrder: h.displayOrder ?? i,
+        hidden: h.hidden ?? false,
       }));
     }
   } catch (e) {
@@ -94,6 +95,7 @@ async function saveStoredHostsAsync(hosts: EditableWW2Host[]): Promise<{ success
       if (h.imageUrl) host.imageUrl = h.imageUrl;
       if (h.introVideoUrl) host.introVideoUrl = h.introVideoUrl;
       if (h.welcomeVideoUrl) host.welcomeVideoUrl = h.welcomeVideoUrl;
+      if (h.hidden) host.hidden = h.hidden;
       return host;
     });
 
@@ -640,6 +642,44 @@ export default function WW2GuideEditor() {
                       This ID is used to reference this host in the app. Do not change it.
                     </p>
                   </div>
+
+                  {/* Visibility Toggle */}
+                  <div className={`p-4 rounded-lg border ${selectedHost.hidden ? 'bg-red-500/10 border-red-500/30' : 'bg-green-500/10 border-green-500/30'}`}>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-medium text-sm mb-1">
+                          {selectedHost.hidden ? 'Hidden from Users' : 'Visible to Users'}
+                        </h4>
+                        <p className="text-xs text-muted-foreground">
+                          {selectedHost.hidden
+                            ? 'This guide will not appear in the host selection screen.'
+                            : 'This guide is visible in the host selection screen.'}
+                        </p>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          const newHidden = !selectedHost.hidden;
+                          const updatedHosts = hosts.map(h =>
+                            h.id === selectedId ? { ...h, hidden: newHidden } : h
+                          );
+                          setHosts(updatedHosts);
+                          toast.loading('Saving...', { id: 'visibility' });
+                          await autoSaveHosts(updatedHosts);
+                          toast.dismiss('visibility');
+                          toast.success(newHidden ? 'Guide hidden' : 'Guide visible');
+                        }}
+                        className={`relative w-14 h-7 rounded-full transition-colors ${
+                          selectedHost.hidden ? 'bg-red-500' : 'bg-green-500'
+                        }`}
+                      >
+                        <div
+                          className={`absolute top-1 w-5 h-5 rounded-full bg-white transition-transform ${
+                            selectedHost.hidden ? 'translate-x-1' : 'translate-x-8'
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -751,6 +791,15 @@ function HostCard({
           style={{ backgroundColor: host.primaryColor }}
         >
           <span className="text-6xl">{host.avatar}</span>
+        </div>
+      )}
+
+      {/* Hidden overlay */}
+      {host.hidden && (
+        <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-10">
+          <span className="px-3 py-1.5 bg-red-500/80 text-white text-xs font-bold rounded-full">
+            HIDDEN
+          </span>
         </div>
       )}
 

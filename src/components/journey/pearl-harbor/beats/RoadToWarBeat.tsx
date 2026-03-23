@@ -11,13 +11,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, ArrowRight, Map, Clock, Sparkles } from 'lucide-react';
 import { WW2Host } from '@/types';
-import { InteractiveMap, MapHotspot, TimedChallenge, TimedQuestion } from '../shared';
+import { InteractiveMap, MapHotspot, TimedChallenge, TimedQuestion, PreModuleVideoScreen } from '../shared';
 import { usePearlHarborProgress } from '../hooks/usePearlHarborProgress';
-import { subscribeToWW2ModuleAssets, type WW2BeatHotspotConfig } from '@/lib/firestore';
+import { subscribeToWW2ModuleAssets, type WW2BeatHotspotConfig, type PreModuleVideoConfig } from '@/lib/firestore';
 import { BEAT_1_DEFAULT_IMAGE } from '@/data/pearlHarborDefaults';
 
-type Screen = 'intro' | 'map-explore' | 'timed-challenge' | 'reveal' | 'completion';
-const SCREENS: Screen[] = ['intro', 'map-explore', 'timed-challenge', 'reveal', 'completion'];
+type Screen = 'pre-video' | 'intro' | 'map-explore' | 'timed-challenge' | 'reveal' | 'completion';
+const SCREENS: Screen[] = ['pre-video', 'intro', 'map-explore', 'timed-challenge', 'reveal', 'completion'];
 
 const LESSON_DATA = {
   id: 'ph-beat-1',
@@ -146,10 +146,12 @@ export function RoadToWarBeat({ host, onComplete, onSkip, onBack }: RoadToWarBea
   const [skippedScreens, setSkippedScreens] = useState<Set<Screen>>(new Set());
   const [customHotspotConfig, setCustomHotspotConfig] = useState<WW2BeatHotspotConfig | null>(null);
   const [beatMediaImage, setBeatMediaImage] = useState<string | null>(null);
+  const [preModuleVideoConfig, setPreModuleVideoConfig] = useState<PreModuleVideoConfig | null>(null);
+  const [hasLoadedConfig, setHasLoadedConfig] = useState(false);
 
   const { saveCheckpoint, clearCheckpoint, getCheckpoint } = usePearlHarborProgress();
 
-  // Subscribe to Firestore for custom hotspot config AND beat media
+  // Subscribe to Firestore for custom hotspot config, beat media, and pre-module video
   useEffect(() => {
     console.log('[RoadToWarBeat] Setting up Firestore subscription for:', LESSON_DATA.id);
     const unsubscribe = subscribeToWW2ModuleAssets((assets) => {
@@ -171,9 +173,31 @@ export function RoadToWarBeat({ host, onComplete, onSkip, onBack }: RoadToWarBea
           setBeatMediaImage(imageUrl);
         }
       }
+
+      // Check for pre-module video config
+      const preModuleVideo = assets?.preModuleVideos?.[LESSON_DATA.id];
+      if (preModuleVideo?.enabled) {
+        console.log('[RoadToWarBeat] Found pre-module video:', preModuleVideo);
+        setPreModuleVideoConfig(preModuleVideo);
+      } else {
+        setPreModuleVideoConfig(null);
+      }
+
+      setHasLoadedConfig(true);
     });
     return () => unsubscribe();
   }, []);
+
+  // Set initial screen based on pre-module video availability (only on first load)
+  useEffect(() => {
+    if (hasLoadedConfig && screen === 'intro') {
+      const checkpoint = getCheckpoint();
+      // Only show pre-video if there's no checkpoint and video is configured
+      if (!checkpoint?.lessonId && preModuleVideoConfig?.enabled) {
+        setScreen('pre-video');
+      }
+    }
+  }, [hasLoadedConfig, preModuleVideoConfig]);
 
   // Restore checkpoint on mount
   useEffect(() => {

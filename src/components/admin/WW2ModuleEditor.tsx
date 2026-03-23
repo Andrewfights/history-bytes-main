@@ -52,11 +52,13 @@ import {
   updateWW2BeatQuestions,
   updateWW2BeatStatements,
   updateWW2BeatHotspots,
+  updateWW2BeatPreModuleVideo,
   type FirestoreWW2ModuleAssets,
   type WW2BeatQuestion,
   type WW2BeatStatement,
   type WW2BeatHotspot,
   type WW2BeatHotspotConfig,
+  type PreModuleVideoConfig,
 } from '@/lib/firestore';
 import { uploadFile } from '@/lib/supabase';
 import { isFirebaseConfigured } from '@/lib/firebase';
@@ -1178,6 +1180,181 @@ function MediaUploadSection({ beatId, mediaNeeded, uploadedMedia, onUpload, onRe
   );
 }
 
+interface PreModuleVideoSectionProps {
+  beatId: string;
+  config?: PreModuleVideoConfig;
+  onSave: (beatId: string, config: PreModuleVideoConfig | null) => Promise<void>;
+  onUploadVideo: (beatId: string, mediaKey: string, file: File) => Promise<void>;
+}
+
+function PreModuleVideoSection({ beatId, config, onSave, onUploadVideo }: PreModuleVideoSectionProps) {
+  const [isEnabled, setIsEnabled] = useState(config?.enabled ?? false);
+  const [videoUrl, setVideoUrl] = useState(config?.videoUrl ?? '');
+  const [title, setTitle] = useState(config?.title ?? '');
+  const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Sync state when config changes
+  useEffect(() => {
+    setIsEnabled(config?.enabled ?? false);
+    setVideoUrl(config?.videoUrl ?? '');
+    setTitle(config?.title ?? '');
+  }, [config]);
+
+  const handleToggle = async () => {
+    const newEnabled = !isEnabled;
+    setIsEnabled(newEnabled);
+
+    if (!newEnabled) {
+      // Disable - remove the config
+      setIsSaving(true);
+      try {
+        await onSave(beatId, null);
+      } finally {
+        setIsSaving(false);
+      }
+    }
+  };
+
+  const handleSave = async () => {
+    if (!videoUrl) return;
+
+    setIsSaving(true);
+    try {
+      await onSave(beatId, {
+        videoUrl,
+        enabled: isEnabled,
+        title: title || undefined,
+        skipAllowed: true,
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      // Upload with a specific key for pre-module videos
+      await onUploadVideo(beatId, `pre-module-video`, file);
+      // The URL will be available in beatMedia after upload
+      // For now, we need to wait for the subscription to update
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h4 className="text-white/60 text-xs uppercase tracking-wide flex items-center gap-2">
+          <Video size={14} />
+          Pre-Module Video
+          <span className="text-purple-400 text-[10px]">Intro Explainer</span>
+        </h4>
+
+        {/* Toggle Switch */}
+        <button
+          onClick={handleToggle}
+          disabled={isSaving}
+          className={`relative w-12 h-6 rounded-full transition-colors ${
+            isEnabled ? 'bg-purple-500' : 'bg-slate-600'
+          } ${isSaving ? 'opacity-50' : ''}`}
+        >
+          <div
+            className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
+              isEnabled ? 'translate-x-7' : 'translate-x-1'
+            }`}
+          />
+        </button>
+      </div>
+
+      {isEnabled && (
+        <div className="bg-slate-800/50 rounded-lg p-4 border border-purple-500/30 space-y-4">
+          <p className="text-slate-400 text-xs">
+            This video will play before the module starts, serving as an introduction or explainer for the content.
+          </p>
+
+          {/* Title Input */}
+          <div>
+            <label className="text-xs text-slate-400 mb-1.5 block">Video Title (optional)</label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g., Introduction to Pearl Harbor"
+              className="w-full bg-slate-700 text-white text-sm rounded-lg px-3 py-2 border border-slate-600 focus:border-purple-500 focus:outline-none"
+            />
+          </div>
+
+          {/* Video URL Input or Upload */}
+          <div>
+            <label className="text-xs text-slate-400 mb-1.5 block">Video URL</label>
+            <div className="flex gap-2">
+              <input
+                type="url"
+                value={videoUrl}
+                onChange={(e) => setVideoUrl(e.target.value)}
+                placeholder="https://example.com/video.mp4"
+                className="flex-1 bg-slate-700 text-white text-sm rounded-lg px-3 py-2 border border-slate-600 focus:border-purple-500 focus:outline-none"
+              />
+              <button
+                onClick={handleUploadClick}
+                disabled={isUploading}
+                className="px-3 py-2 bg-slate-600 hover:bg-slate-500 text-white text-xs rounded-lg flex items-center gap-1.5 transition-colors disabled:opacity-50"
+              >
+                {isUploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                Upload
+              </button>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                accept="video/*"
+                className="hidden"
+              />
+            </div>
+          </div>
+
+          {/* Video Preview */}
+          {videoUrl && (
+            <div className="rounded-lg overflow-hidden bg-black">
+              <video
+                src={videoUrl}
+                controls
+                className="w-full max-h-48"
+              />
+            </div>
+          )}
+
+          {/* Save Button */}
+          <div className="flex justify-end">
+            <button
+              onClick={handleSave}
+              disabled={isSaving || !videoUrl}
+              className="px-4 py-2 bg-purple-500 hover:bg-purple-400 text-white text-sm font-bold rounded-lg flex items-center gap-2 transition-colors disabled:opacity-50"
+            >
+              {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+              Save Configuration
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ExamQuestionsList() {
   return (
     <div className="space-y-4">
@@ -1291,11 +1468,13 @@ function BeatCard({
   onPreview,
   uploadedMedia,
   customHotspotConfig,
+  preModuleVideoConfig,
   onUpload,
   onRemove,
   onSaveQuestions,
   onSaveStatements,
   onEditHotspots,
+  onSavePreModuleVideo,
 }: {
   lesson: typeof PEARL_HARBOR_LESSONS[0];
   index: number;
@@ -1304,11 +1483,13 @@ function BeatCard({
   onPreview: (beatType: string) => void;
   uploadedMedia: Record<string, string>;
   customHotspotConfig?: WW2BeatHotspotConfig;
+  preModuleVideoConfig?: PreModuleVideoConfig;
   onUpload: (beatId: string, mediaKey: string, file: File) => Promise<void>;
   onRemove: (beatId: string, mediaKey: string) => Promise<void>;
   onSaveQuestions: (beatId: string, questions: WW2BeatQuestion[]) => Promise<void>;
   onSaveStatements: (beatId: string, statements: WW2BeatStatement[]) => Promise<void>;
   onEditHotspots: (beatId: string) => void;
+  onSavePreModuleVideo: (beatId: string, config: PreModuleVideoConfig | null) => Promise<void>;
 }) {
   const content = BEAT_CONTENT_MAP[lesson.id];
   const isExam = lesson.type === 'final-exam';
@@ -1458,6 +1639,16 @@ function BeatCard({
                   beatId={lesson.id}
                   statements={content.statements}
                   onSave={onSaveStatements}
+                />
+              )}
+
+              {/* Pre-Module Video - show for all beats except exam */}
+              {!isExam && (
+                <PreModuleVideoSection
+                  beatId={lesson.id}
+                  config={preModuleVideoConfig}
+                  onSave={onSavePreModuleVideo}
+                  onUploadVideo={onUpload}
                 />
               )}
 
@@ -2002,6 +2193,22 @@ export function WW2ModuleEditor() {
     return uploadedAssets?.beatMedia?.[beatId] || {};
   }, [uploadedAssets]);
 
+  // Get pre-module video config for a beat
+  const getPreModuleVideoConfig = useCallback((beatId: string): PreModuleVideoConfig | undefined => {
+    return uploadedAssets?.preModuleVideos?.[beatId];
+  }, [uploadedAssets]);
+
+  // Handle saving pre-module video config
+  const handleSavePreModuleVideo = useCallback(async (beatId: string, config: PreModuleVideoConfig | null) => {
+    try {
+      await updateWW2BeatPreModuleVideo(beatId, config);
+      console.log('Pre-module video saved for beat:', beatId);
+    } catch (error) {
+      console.error('Error saving pre-module video:', error);
+      throw error;
+    }
+  }, []);
+
   const handlePreview = (beatType: string) => {
     setPreviewBeat(beatType);
   };
@@ -2107,11 +2314,13 @@ export function WW2ModuleEditor() {
             onPreview={handlePreview}
             uploadedMedia={getUploadedMedia(lesson.id)}
             customHotspotConfig={getHotspotConfig(lesson.id)}
+            preModuleVideoConfig={getPreModuleVideoConfig(lesson.id)}
             onUpload={handleUpload}
             onRemove={handleRemove}
             onSaveQuestions={handleSaveQuestions}
             onSaveStatements={handleSaveStatements}
             onEditHotspots={handleEditHotspots}
+            onSavePreModuleVideo={handleSavePreModuleVideo}
           />
         ))}
 

@@ -110,6 +110,7 @@ export interface FirestoreWW2Host {
   voiceStyle: string;
   description: string;
   displayOrder: number;
+  hidden?: boolean;  // If true, host won't appear in user-facing selection
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 }
@@ -1509,6 +1510,14 @@ export interface TheaterMediaConfig {
   musicFadeDuration?: number;      // ms, default 500
 }
 
+// Pre-module intro video configuration (explainer video before a beat starts)
+export interface PreModuleVideoConfig {
+  videoUrl: string;           // URL of the video
+  enabled: boolean;           // Whether to show the pre-module video
+  title?: string;             // Optional title to display
+  skipAllowed?: boolean;      // Whether users can skip (default true)
+}
+
 export interface FirestoreWW2ModuleAssets {
   id: string;  // Always 'ww2ModuleAssets'
   // Beat media assets
@@ -1525,6 +1534,8 @@ export interface FirestoreWW2ModuleAssets {
   examMilestoneVideos?: Record<ExamMilestoneType, ExamMilestoneHostVideos>;  // Key: milestone type -> hostId -> video
   // Theater-level media config (cinematic videos, background music)
   theaterMedia?: Record<string, TheaterMediaConfig>;  // Key: theater ID (e.g., 'pearl-harbor', 'normandy')
+  // Pre-module intro videos (explainer videos before a beat starts)
+  preModuleVideos?: Record<string, PreModuleVideoConfig>;  // Key: beat ID -> video config
   updatedAt?: Timestamp;
 }
 
@@ -1584,6 +1595,22 @@ export async function updateWW2BeatHotspots(
   customHotspots[beatId] = { imageUrl, hotspots };
 
   return saveWW2ModuleAssets({ customHotspots });
+}
+
+export async function updateWW2BeatPreModuleVideo(
+  beatId: string,
+  config: PreModuleVideoConfig | null
+): Promise<boolean> {
+  const current = await getWW2ModuleAssets();
+  const preModuleVideos = current?.preModuleVideos || {};
+
+  if (config) {
+    preModuleVideos[beatId] = config;
+  } else {
+    delete preModuleVideos[beatId];
+  }
+
+  return saveWW2ModuleAssets({ preModuleVideos });
 }
 
 export async function updateExamQuestionVideo(

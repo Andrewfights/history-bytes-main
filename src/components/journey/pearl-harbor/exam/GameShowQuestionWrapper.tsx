@@ -252,8 +252,8 @@ export function GameShowQuestionWrapper({
         </div>
       </div>
 
-      {/* Question + Answers Section - Fits remaining space */}
-      <div className="flex-1 flex flex-col px-3 py-2 min-h-0">
+      {/* Question + Answers Section - Fits remaining space with scroll if needed */}
+      <div className="flex-1 flex flex-col px-3 py-2 min-h-0 overflow-hidden">
         {/* Question prompt - compact */}
         <motion.div
           initial={{ opacity: 0, y: 5 }}
@@ -265,8 +265,8 @@ export function GameShowQuestionWrapper({
           </p>
         </motion.div>
 
-        {/* Question content (answer options rendered by child) */}
-        <div className="flex-1">
+        {/* Question content (answer options rendered by child) - scrollable if content overflows */}
+        <div className="flex-1 overflow-y-auto min-h-0">
           <AnimatePresence mode="wait">
             <motion.div
               key={question.id}
@@ -274,6 +274,7 @@ export function GameShowQuestionWrapper({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -5 }}
               transition={{ duration: 0.15 }}
+              className="h-full"
             >
               {children({
                 onSelectionChange: handleSelectionChange,
@@ -285,8 +286,8 @@ export function GameShowQuestionWrapper({
           </AnimatePresence>
         </div>
 
-        {/* Lock-in button - Compact, above nav */}
-        <div className="shrink-0 pt-2">
+        {/* Lock-in button - Always visible at bottom */}
+        <div className="shrink-0 pt-2 pb-1">
           <AnimatePresence>
             {isTimedOut ? (
               <motion.div

@@ -43,7 +43,10 @@ function mapFirestoreHost(h: {
   voiceStyle: string;
   description: string;
   displayOrder?: number;
-}): WW2Host & { displayOrder?: number } {
+  hidden?: boolean;
+}): (WW2Host & { displayOrder?: number; hidden?: boolean }) | null {
+  // Filter out hidden hosts
+  if (h.hidden) return null;
   return {
     id: h.id as WW2Host['id'],
     name: h.name,
@@ -99,8 +102,8 @@ export function WW2HostSelection({ onSelectHost, onClose }: WW2HostSelectionProp
         // Load latest from Firestore
         const firestoreHosts = await loadWW2HostsFromFirestore();
         if (firestoreHosts.length > 0) {
-          const mapped = firestoreHosts.map(mapFirestoreHost);
-          console.log('[WW2HostSelection] Loaded from Firestore:', mapped.length, 'hosts');
+          const mapped = firestoreHosts.map(mapFirestoreHost).filter((h): h is NonNullable<typeof h> => h !== null);
+          console.log('[WW2HostSelection] Loaded from Firestore:', mapped.length, 'visible hosts');
           setHosts(sortByDisplayOrder(mapped));
         }
 
@@ -108,7 +111,7 @@ export function WW2HostSelection({ onSelectHost, onClose }: WW2HostSelectionProp
         console.log('[WW2HostSelection] Setting up Firestore subscription...');
         unsubscribe = subscribeToWW2Hosts((firestoreHosts) => {
           if (firestoreHosts && firestoreHosts.length > 0) {
-            const mapped = firestoreHosts.map(mapFirestoreHost);
+            const mapped = firestoreHosts.map(mapFirestoreHost).filter((h): h is NonNullable<typeof h> => h !== null);
             console.log('[WW2HostSelection] 🔥 Firestore update:', mapped.map(h => ({
               id: h.id,
               order: h.displayOrder,

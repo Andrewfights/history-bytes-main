@@ -25,7 +25,7 @@ export function LockInButton({
   const canLockIn = hasSelection && !isLockedIn && !disabled;
 
   return (
-    <div className="flex flex-col items-center gap-2">
+    <div className="flex flex-col items-center gap-1.5">
       <AnimatePresence mode="wait">
         {isLockedIn ? (
           <motion.div
@@ -33,16 +33,16 @@ export function LockInButton({
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.8, opacity: 0 }}
-            className="flex items-center gap-2 px-8 py-4 bg-green-500/20 border-2 border-green-500 rounded-xl"
+            className="flex items-center gap-2 px-6 py-3 sm:px-8 sm:py-4 bg-green-500/20 border-2 border-green-500 rounded-xl"
           >
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ type: 'spring', bounce: 0.5 }}
             >
-              <Check className="w-6 h-6 text-green-400" />
+              <Check className="w-5 h-5 sm:w-6 sm:h-6 text-green-400" />
             </motion.div>
-            <span className="text-green-400 font-bold text-lg">LOCKED IN</span>
+            <span className="text-green-400 font-bold text-base sm:text-lg">LOCKED IN</span>
           </motion.div>
         ) : (
           <motion.button
@@ -53,7 +53,7 @@ export function LockInButton({
             whileHover={canLockIn ? { scale: 1.02 } : {}}
             whileTap={canLockIn ? { scale: 0.98 } : {}}
             className={`
-              flex items-center gap-3 px-8 py-4 rounded-xl font-bold text-lg
+              flex items-center justify-center gap-2 sm:gap-3 w-full max-w-xs px-6 py-3 sm:px-8 sm:py-4 rounded-xl font-bold text-base sm:text-lg
               transition-all duration-200
               ${canLockIn
                 ? 'bg-amber-500 hover:bg-amber-400 text-black shadow-lg shadow-amber-500/30 hover:shadow-amber-500/50'
@@ -61,18 +61,18 @@ export function LockInButton({
               }
             `}
           >
-            <Lock className={`w-5 h-5 ${canLockIn ? 'text-black' : 'text-white/30'}`} />
-            <span>LOCK IN ANSWER</span>
+            <Lock className={`w-4 h-4 sm:w-5 sm:h-5 ${canLockIn ? 'text-black' : 'text-white/30'}`} />
+            <span>LOCK IN</span>
           </motion.button>
         )}
       </AnimatePresence>
 
-      {/* Helper text */}
+      {/* Helper text - hidden on very small screens */}
       {!hasSelection && !isLockedIn && (
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="text-white/40 text-sm"
+          className="text-white/40 text-xs sm:text-sm"
         >
           Select an answer to lock in
         </motion.p>

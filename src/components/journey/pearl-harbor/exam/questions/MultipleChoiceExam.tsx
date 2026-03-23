@@ -80,7 +80,7 @@ export function MultipleChoiceExam({
       )}
 
       {/* Options - 2x2 grid layout for game show mode, vertical stack otherwise */}
-      <div className={`flex-1 ${isGameShowMode ? 'grid grid-cols-2 gap-2' : 'space-y-3'}`}>
+      <div className={`${isGameShowMode ? 'grid grid-cols-2 gap-2 auto-rows-fr' : 'space-y-3'}`}>
         {question.options.map((option, index) => {
           const isSelected = selectedIndex === index;
           const isCorrectOption = index === question.correctIndex;
@@ -95,7 +95,7 @@ export function MultipleChoiceExam({
               whileTap={!isDisabled ? { scale: 0.98 } : {}}
               onClick={() => handleSelect(index)}
               disabled={isDisabled}
-              className={`w-full ${isGameShowMode ? 'p-2.5' : 'p-4'} rounded-xl text-left transition-all flex items-center gap-2 ${
+              className={`w-full h-full ${isGameShowMode ? 'p-2 sm:p-2.5 min-h-[3.5rem]' : 'p-4'} rounded-xl text-left transition-all flex items-start gap-2 ${
                 showCorrect
                   ? 'bg-green-500/20 border-2 border-green-500'
                   : showIncorrect
@@ -109,7 +109,7 @@ export function MultipleChoiceExam({
             >
               {/* Option letter */}
               <span
-                className={`${isGameShowMode ? 'w-6 h-6 text-xs' : 'w-8 h-8 text-sm'} rounded-full flex items-center justify-center font-bold shrink-0 ${
+                className={`${isGameShowMode ? 'w-5 h-5 text-[10px] sm:w-6 sm:h-6 sm:text-xs' : 'w-8 h-8 text-sm'} rounded-full flex items-center justify-center font-bold shrink-0 mt-0.5 ${
                   showCorrect
                     ? 'bg-green-500 text-white'
                     : showIncorrect
@@ -124,15 +124,15 @@ export function MultipleChoiceExam({
                 {String.fromCharCode(65 + index)}
               </span>
 
-              {/* Option text */}
-              <span className={`flex-1 text-white ${isGameShowMode ? 'text-sm leading-tight' : ''}`}>{option}</span>
+              {/* Option text - ensure it wraps and doesn't get cut off */}
+              <span className={`flex-1 text-white ${isGameShowMode ? 'text-xs sm:text-sm leading-snug' : ''} break-words`}>{option}</span>
 
               {/* Result icon (only in standard mode) */}
               {showCorrect && (
-                <CheckCircle2 size={isGameShowMode ? 18 : 24} className="text-green-400 shrink-0" />
+                <CheckCircle2 size={isGameShowMode ? 16 : 24} className="text-green-400 shrink-0 mt-0.5" />
               )}
               {showIncorrect && (
-                <XCircle size={isGameShowMode ? 18 : 24} className="text-red-400 shrink-0" />
+                <XCircle size={isGameShowMode ? 16 : 24} className="text-red-400 shrink-0 mt-0.5" />
               )}
             </motion.button>
           );
