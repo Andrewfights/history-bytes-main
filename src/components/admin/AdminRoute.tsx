@@ -15,6 +15,9 @@ const ADMIN_EMAILS = [
   'admin@historybytes.com',
   'andrew@historybytes.com',
   'fredgrinstein@gmail.com',
+  // Demo users (for testing without Firebase)
+  'newuser@historybytes.com',
+  'scholar@historybytes.com',
 ];
 
 // Also allow access in development mode for easier testing
