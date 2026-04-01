@@ -540,18 +540,18 @@ export function ExamResults({
         </motion.div>
       )}
 
-      {/* Actions */}
+      {/* Actions - improved mobile touch targets */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.7 }}
         className="mt-auto p-4 space-y-3"
-        style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}
+        style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))' }}
       >
         {/* Continue button */}
         <button
           onClick={() => onComplete(result.xp)}
-          className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors flex items-center justify-center gap-2"
+          className="w-full py-4 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-black font-bold rounded-xl transition-colors flex items-center justify-center gap-2 min-h-[52px]"
         >
           Continue
           <ChevronRight size={20} />
@@ -561,7 +561,7 @@ export function ExamResults({
         {result.promptRetry && (
           <button
             onClick={onRetry}
-            className="w-full py-3 bg-white/10 hover:bg-white/20 text-white font-medium rounded-xl transition-colors flex items-center justify-center gap-2"
+            className="w-full py-3.5 bg-white/10 hover:bg-white/20 active:bg-white/30 text-white font-medium rounded-xl transition-colors flex items-center justify-center gap-2 min-h-[48px]"
           >
             <RotateCcw size={18} />
             Try Again
@@ -571,7 +571,7 @@ export function ExamResults({
         {result.promptRevisit && (
           <button
             onClick={onReviewLessons}
-            className="w-full py-3 bg-white/10 hover:bg-white/20 text-white font-medium rounded-xl transition-colors flex items-center justify-center gap-2"
+            className="w-full py-3.5 bg-white/10 hover:bg-white/20 active:bg-white/30 text-white font-medium rounded-xl transition-colors flex items-center justify-center gap-2 min-h-[48px]"
           >
             <BookOpen size={18} />
             Review Lessons

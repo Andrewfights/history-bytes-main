@@ -265,28 +265,37 @@ export function WW2HostSelection({ onSelectHost, onClose }: WW2HostSelectionProp
             </Carousel>
           </div>
 
-          {/* Dot Indicators - hidden on mobile */}
-          <div className="hidden sm:flex gap-2 mt-4">
+          {/* Dot Indicators - visible on all screen sizes with better mobile touch targets */}
+          <div className="flex gap-2 sm:gap-2 mt-4 justify-center">
             {hosts.map((host, index) => (
               <button
                 key={host.id}
                 onClick={() => api?.scrollTo(index)}
-                className={`w-2.5 h-2.5 rounded-full transition-all ${
+                className={`h-2 sm:h-2.5 rounded-full transition-all min-w-[32px] sm:min-w-0 ${
                   currentIndex === index
-                    ? 'bg-white w-6'
-                    : 'bg-white/30 hover:bg-white/50'
+                    ? 'bg-white w-6 sm:w-6'
+                    : 'bg-white/30 hover:bg-white/50 active:bg-white/60 w-2 sm:w-2.5'
                 }`}
+                aria-label={`Go to ${host.name}`}
               />
             ))}
           </div>
 
-          {/* Choose Guide Button - always visible, fixed position on mobile */}
-          <div className="w-full px-4 mt-4 sm:mt-6 mb-4" style={{ paddingBottom: 'max(5rem, calc(env(safe-area-inset-bottom) + 4.5rem))' }}>
+          {/* Swipe hint - visible on mobile only */}
+          <p className="text-center text-xs text-white/40 mt-2 sm:hidden">
+            Swipe to explore guides
+          </p>
+
+          {/* Choose Guide Button - always visible, with proper safe area handling */}
+          <div
+            className="w-full px-4 mt-4 sm:mt-6"
+            style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))' }}
+          >
             <motion.button
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               onClick={handleChooseGuide}
-              className="w-full max-w-md mx-auto block py-3.5 sm:py-4 px-4 sm:px-8 rounded-xl bg-amber-500 text-black font-bold text-base sm:text-lg hover:bg-amber-400 transition-all active:scale-[0.98]"
+              className="w-full max-w-md mx-auto block py-4 sm:py-4 px-6 sm:px-8 rounded-xl bg-amber-500 text-black font-bold text-base sm:text-lg hover:bg-amber-400 active:bg-amber-600 transition-all active:scale-[0.98] min-h-[52px]"
             >
               Choose {hosts[currentIndex]?.name || 'Guide'}
             </motion.button>
@@ -386,14 +395,14 @@ function HostCarouselCard({ host, isActive, isSelected, onClick }: HostCarouselC
           />
         )}
 
-        {/* Mute Toggle - only when video is showing */}
+        {/* Mute Toggle - only when video is showing - improved touch target */}
         {showVideo && (
           <button
             onClick={toggleMute}
-            className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/70 transition-colors"
+            className="absolute top-3 right-3 sm:top-4 sm:right-4 z-10 w-11 h-11 sm:w-10 sm:h-10 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/70 active:bg-black/80 transition-colors"
             aria-label={isMuted ? 'Unmute video' : 'Mute video'}
           >
-            {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+            {isMuted ? <VolumeX size={20} className="sm:w-[18px] sm:h-[18px]" /> : <Volume2 size={20} className="sm:w-[18px] sm:h-[18px]" />}
           </button>
         )}
 

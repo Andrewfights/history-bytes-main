@@ -572,31 +572,31 @@ export function FinalExamBeat({
                   </div>
                 </motion.div>
 
-                {/* Difficulty tiers preview */}
+                {/* Difficulty tiers preview - stacks on mobile, row on larger screens */}
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.5 }}
-                  className="flex gap-3 mb-8"
+                  className="flex flex-col sm:flex-row gap-2 sm:gap-3 mb-6 sm:mb-8 w-full max-w-xs sm:max-w-none mx-auto"
                 >
-                  <div className="px-4 py-2 bg-green-500/20 border border-green-500/30 rounded-lg text-green-400 text-sm">
+                  <div className="px-4 py-2.5 sm:py-2 bg-green-500/20 border border-green-500/30 rounded-lg text-green-400 text-sm text-center">
                     Easy (1-5)
                   </div>
-                  <div className="px-4 py-2 bg-amber-500/20 border border-amber-500/30 rounded-lg text-amber-400 text-sm">
+                  <div className="px-4 py-2.5 sm:py-2 bg-amber-500/20 border border-amber-500/30 rounded-lg text-amber-400 text-sm text-center">
                     Medium (6-10)
                   </div>
-                  <div className="px-4 py-2 bg-red-500/20 border border-red-500/30 rounded-lg text-red-400 text-sm">
+                  <div className="px-4 py-2.5 sm:py-2 bg-red-500/20 border border-red-500/30 rounded-lg text-red-400 text-sm text-center">
                     Hard (11-15)
                   </div>
                 </motion.div>
 
-                {/* Start button */}
+                {/* Start button - improved touch target */}
                 <motion.button
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.6 }}
                   onClick={handleIntroStart}
-                  className="px-8 py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors"
+                  className="w-full sm:w-auto px-8 py-4 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-black font-bold rounded-xl transition-colors min-h-[52px] max-w-xs sm:max-w-none mx-auto"
                 >
                   Begin Exam
                 </motion.button>

@@ -157,7 +157,7 @@ export function VideoPlayer({
         onClick={togglePlay}
       />
 
-      {/* Play/Pause overlay */}
+      {/* Play/Pause overlay - larger touch target for mobile */}
       <AnimatePresence>
         {!isPlaying && (
           <motion.div
@@ -170,7 +170,7 @@ export function VideoPlayer({
             <motion.div
               initial={{ scale: 0.8 }}
               animate={{ scale: 1 }}
-              className="w-16 h-16 rounded-full bg-primary/90 flex items-center justify-center"
+              className="w-16 h-16 sm:w-16 sm:h-16 rounded-full bg-primary/90 flex items-center justify-center active:bg-primary transition-colors"
             >
               <Play size={32} className="text-primary-foreground ml-1" />
             </motion.div>
@@ -178,7 +178,7 @@ export function VideoPlayer({
         )}
       </AnimatePresence>
 
-      {/* Controls overlay */}
+      {/* Controls overlay - improved mobile touch targets */}
       {showControls && (
         <AnimatePresence>
           {showControlsOverlay && (
@@ -186,47 +186,50 @@ export function VideoPlayer({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent"
+              className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 bg-gradient-to-t from-black/80 to-transparent"
             >
-              {/* Progress bar */}
-              <div className="mb-2">
+              {/* Progress bar - larger touch target on mobile */}
+              <div className="mb-3 sm:mb-2">
                 <Slider
                   value={[progress]}
                   min={0}
                   max={100}
                   step={0.1}
                   onValueChange={handleSeek}
-                  className="[&_[role=slider]]:h-3 [&_[role=slider]]:w-3"
+                  className="[&_[role=slider]]:h-4 [&_[role=slider]]:w-4 sm:[&_[role=slider]]:h-3 sm:[&_[role=slider]]:w-3 touch-none"
                 />
               </div>
 
-              {/* Controls row */}
+              {/* Controls row - larger touch targets for mobile */}
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1 sm:gap-3">
                   <button
                     onClick={togglePlay}
-                    className="w-8 h-8 flex items-center justify-center text-white hover:text-primary transition-colors"
+                    className="w-11 h-11 sm:w-8 sm:h-8 flex items-center justify-center text-white hover:text-primary active:text-primary transition-colors"
+                    aria-label={isPlaying ? 'Pause' : 'Play'}
                   >
-                    {isPlaying ? <Pause size={20} /> : <Play size={20} />}
+                    {isPlaying ? <Pause size={22} className="sm:w-5 sm:h-5" /> : <Play size={22} className="sm:w-5 sm:h-5" />}
                   </button>
 
                   <button
                     onClick={toggleMute}
-                    className="w-8 h-8 flex items-center justify-center text-white hover:text-primary transition-colors"
+                    className="w-11 h-11 sm:w-8 sm:h-8 flex items-center justify-center text-white hover:text-primary active:text-primary transition-colors"
+                    aria-label={isMuted ? 'Unmute' : 'Mute'}
                   >
-                    {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+                    {isMuted ? <VolumeX size={22} className="sm:w-5 sm:h-5" /> : <Volume2 size={22} className="sm:w-5 sm:h-5" />}
                   </button>
 
-                  <span className="text-xs text-white/80 font-mono">
+                  <span className="text-xs sm:text-xs text-white/80 font-mono ml-1">
                     {formatTime(currentTime)} / {formatTime(duration)}
                   </span>
                 </div>
 
                 <button
                   onClick={toggleFullscreen}
-                  className="w-8 h-8 flex items-center justify-center text-white hover:text-primary transition-colors"
+                  className="w-11 h-11 sm:w-8 sm:h-8 flex items-center justify-center text-white hover:text-primary active:text-primary transition-colors"
+                  aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
                 >
-                  {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
+                  {isFullscreen ? <Minimize size={22} className="sm:w-5 sm:h-5" /> : <Maximize size={22} className="sm:w-5 sm:h-5" />}
                 </button>
               </div>
             </motion.div>

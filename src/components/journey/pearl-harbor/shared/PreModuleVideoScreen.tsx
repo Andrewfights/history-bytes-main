@@ -126,7 +126,7 @@ export function PreModuleVideoScreen({ config, beatTitle, onComplete }: PreModul
               Introduction to {beatTitle}
             </motion.p>
 
-            {/* Play Button */}
+            {/* Play Button - larger touch target for mobile */}
             <motion.button
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
@@ -135,9 +135,9 @@ export function PreModuleVideoScreen({ config, beatTitle, onComplete }: PreModul
                 e.stopPropagation();
                 handlePlay();
               }}
-              className="w-20 h-20 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center hover:bg-white/30 transition-colors"
+              className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center hover:bg-white/30 active:bg-white/40 transition-colors"
             >
-              <Play size={40} className="text-white ml-1" fill="white" />
+              <Play size={40} className="text-white ml-1 sm:w-12 sm:h-12" fill="white" />
             </motion.button>
 
             {/* Skip option */}
@@ -167,19 +167,19 @@ export function PreModuleVideoScreen({ config, beatTitle, onComplete }: PreModul
             exit={{ opacity: 0 }}
             className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/60 pointer-events-none"
           >
-            {/* Center play/pause */}
+            {/* Center play/pause - larger touch target for mobile */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-auto">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   handleTogglePlay();
                 }}
-                className="w-16 h-16 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center"
+                className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center active:bg-black/50 transition-colors"
               >
                 {isPlaying ? (
-                  <Pause size={32} className="text-white" />
+                  <Pause size={32} className="text-white sm:w-10 sm:h-10" />
                 ) : (
-                  <Play size={32} className="text-white ml-1" fill="white" />
+                  <Play size={32} className="text-white ml-1 sm:w-10 sm:h-10" fill="white" />
                 )}
               </button>
             </div>
@@ -187,40 +187,43 @@ export function PreModuleVideoScreen({ config, beatTitle, onComplete }: PreModul
         )}
       </div>
 
-      {/* Bottom controls bar */}
-      <div className="bg-black/80 backdrop-blur-sm border-t border-white/10 px-4 py-3 safe-area-bottom">
-        {/* Progress bar */}
-        <div className="h-1 bg-white/20 rounded-full mb-3 overflow-hidden">
+      {/* Bottom controls bar - improved mobile touch targets and safe area */}
+      <div
+        className="bg-black/80 backdrop-blur-sm border-t border-white/10 px-4 py-3"
+        style={{ paddingBottom: 'max(0.75rem, calc(env(safe-area-inset-bottom) + 0.75rem))' }}
+      >
+        {/* Progress bar - taller for easier touch interaction */}
+        <div className="h-2 bg-white/20 rounded-full mb-3 overflow-hidden touch-none">
           <motion.div
             className="h-full bg-purple-500"
             style={{ width: `${progress}%` }}
           />
         </div>
 
-        <div className="flex items-center justify-between">
-          {/* Mute toggle */}
+        <div className="flex items-center justify-between gap-2">
+          {/* Mute toggle - larger touch target */}
           <button
             onClick={() => setIsMuted(!isMuted)}
-            className="p-2 text-white/60 hover:text-white transition-colors"
+            className="p-3 -m-1 text-white/60 hover:text-white active:text-white transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
           >
-            {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+            {isMuted ? <VolumeX size={22} /> : <Volume2 size={22} />}
           </button>
 
-          {/* Title */}
-          <div className="text-center">
-            <p className="text-white/60 text-xs">
+          {/* Title - responsive text size */}
+          <div className="text-center flex-1 min-w-0">
+            <p className="text-white/60 text-xs sm:text-sm truncate px-2">
               {config.title || `Introduction to ${beatTitle}`}
             </p>
           </div>
 
-          {/* Skip button */}
+          {/* Skip button - larger touch target */}
           {(config.skipAllowed !== false) && (
             <button
               onClick={handleSkip}
-              className="px-3 py-1.5 text-white/60 hover:text-white text-sm flex items-center gap-1.5 transition-colors"
+              className="px-3 py-2 text-white/60 hover:text-white active:text-white text-sm flex items-center gap-1.5 transition-colors min-h-[44px]"
             >
               Skip
-              <SkipForward size={16} />
+              <SkipForward size={18} />
             </button>
           )}
         </div>

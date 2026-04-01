@@ -220,8 +220,8 @@ export function GameShowQuestionWrapper({
             <video src={nextVideoUrl} preload="auto" muted className="hidden" />
           )}
 
-          {/* Timer overlay on video - compact */}
-          <div className="absolute top-2 right-2 w-10 h-10">
+          {/* Timer overlay on video - larger for mobile visibility */}
+          <div className="absolute top-2 right-2 w-12 h-12 sm:w-10 sm:h-10">
             <CountdownTimer
               duration={GAME_SHOW_CONFIG.questionTimeLimit}
               warningThreshold={GAME_SHOW_CONFIG.countdownWarningThreshold}
@@ -231,36 +231,37 @@ export function GameShowQuestionWrapper({
             />
           </div>
 
-          {/* Question number overlay */}
-          <div className="absolute top-2 left-2 px-2 py-0.5 bg-black/60 rounded">
-            <span className="text-white text-xs font-medium">
+          {/* Question number overlay - larger touch-friendly text */}
+          <div className="absolute top-2 left-2 px-2.5 py-1 bg-black/60 rounded">
+            <span className="text-white text-xs sm:text-xs font-medium">
               Q{questionNumber}/{totalQuestions}
             </span>
           </div>
 
-          {/* Mute/unmute button */}
+          {/* Mute/unmute button - larger touch target */}
           <button
             onClick={() => setIsVideoMuted(!isVideoMuted)}
-            className="absolute bottom-2 right-2 p-1.5 bg-black/60 hover:bg-black/80 rounded-full transition-colors"
+            className="absolute bottom-2 right-2 p-2 sm:p-1.5 bg-black/60 hover:bg-black/80 active:bg-black/90 rounded-full transition-colors min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 flex items-center justify-center"
+            aria-label={isVideoMuted ? 'Unmute' : 'Mute'}
           >
             {isVideoMuted ? (
-              <VolumeX size={16} className="text-white/70" />
+              <VolumeX size={18} className="text-white/70 sm:w-4 sm:h-4" />
             ) : (
-              <Volume2 size={16} className="text-white" />
+              <Volume2 size={18} className="text-white sm:w-4 sm:h-4" />
             )}
           </button>
         </div>
       </div>
 
       {/* Question + Answers Section - Fits remaining space with scroll if needed */}
-      <div className="flex-1 flex flex-col px-3 py-2 min-h-0 overflow-hidden">
-        {/* Question prompt - compact */}
+      <div className="flex-1 flex flex-col px-3 sm:px-4 py-2 min-h-0 overflow-hidden">
+        {/* Question prompt - responsive sizing */}
         <motion.div
           initial={{ opacity: 0, y: 5 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white/5 rounded-lg p-2 border border-white/10 mb-2 shrink-0"
+          className="bg-white/5 rounded-lg p-3 sm:p-2 border border-white/10 mb-2 shrink-0"
         >
-          <p className="text-white text-sm leading-tight">
+          <p className="text-white text-sm sm:text-sm leading-snug sm:leading-tight">
             {question.prompt}
           </p>
         </motion.div>
