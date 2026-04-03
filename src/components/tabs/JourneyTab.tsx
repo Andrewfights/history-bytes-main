@@ -74,10 +74,13 @@ import {
   useWW2Preferences,
 } from '@/components/journey/ww2';
 import { PearlHarborModule, PearlHarborJourneyMap, PearlHarborLessonPlayer } from '@/components/journey/pearl-harbor';
+import { usePearlHarborProgress } from '@/components/journey/pearl-harbor/hooks/usePearlHarborProgress';
+import { getLessonById, PEARL_HARBOR_LESSONS } from '@/data/pearlHarborLessons';
 import { WW2TheaterSelection } from '@/components/journey/ww2-theaters';
 import { TrophyRoom } from '@/components/journey/trophy-room';
 import { PantheonRoom } from '@/components/journey/pantheon';
 import { getWW2HostById } from '@/data/ww2Hosts';
+import { Play, Target } from 'lucide-react';
 
 type JourneyView = 'landing' | 'arc' | 'node' | 'world-map' | 'ww2-entry' | 'ww2-theaters' | 'pearl-harbor' | 'pearl-harbor-journey' | 'pearl-harbor-lesson' | 'trophy-room' | 'pantheon';
 
@@ -97,6 +100,10 @@ export function JourneyTab() {
     funnelState,
     markWW2IntroViewed,
     completeGhostArmy,
+    totalQuizAttempts,
+    totalCorrectAnswers,
+    totalQuestions,
+    bossNodesDefeated,
   } = useApp();
   const [view, setView] = useState<JourneyView>('landing');
   const [selectedArcId, setSelectedArcId] = useState<string | null>(null);
@@ -113,6 +120,14 @@ export function JourneyTab() {
 
   // Audio context for background music
   const { playModuleMusic, stopModuleMusic } = useAudioContext();
+
+  // Pearl Harbor progress for resume functionality
+  const {
+    checkpoint: pearlHarborCheckpoint,
+    hasResumableCheckpoint,
+    getOverallProgress: getPearlHarborProgress,
+    progress: pearlHarborProgress,
+  } = usePearlHarborProgress();
 
   const selectedArc = selectedArcId ? getArcById(selectedArcId) : null;
 
@@ -450,6 +465,21 @@ export function JourneyTab() {
     setView('pearl-harbor-journey');
   };
 
+  // Handle resuming a Pearl Harbor lesson from checkpoint
+  const handleResumePearlHarborLesson = () => {
+    if (pearlHarborCheckpoint) {
+      // Ensure we have a host selected first
+      if (!hasSelectedHost || !selectedHostId) {
+        setShowWW2HostSelection(true);
+        return;
+      }
+      trackArcVisit(WW2_ARC_ID);
+      setSelectedArcId(WW2_ARC_ID);
+      setSelectedLessonId(pearlHarborCheckpoint.lessonId);
+      setView('pearl-harbor-lesson');
+    }
+  };
+
   // Handle opening world map from Pearl Harbor journey
   const handleOpenWorldMapFromPearlHarbor = () => {
     setView('world-map');
@@ -733,6 +763,38 @@ export function JourneyTab() {
             exit={{ opacity: 0, x: -20 }}
             className="px-4 py-6"
           >
+            {/* Continue Where You Left Off - Shows when there's a resumable checkpoint */}
+            {hasResumableCheckpoint() && pearlHarborCheckpoint && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-4"
+              >
+                <button
+                  onClick={handleResumePearlHarborLesson}
+                  className="w-full p-3 sm:p-4 rounded-xl bg-gradient-to-r from-green-900/40 to-emerald-900/30 border border-green-500/30 hover:border-green-500/50 transition-all group text-left"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-green-500/20 flex items-center justify-center">
+                      <Play size={20} className="text-green-400 sm:w-6 sm:h-6" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] sm:text-xs uppercase tracking-wider text-green-400 font-medium mb-0.5">
+                        Continue Where You Left Off
+                      </p>
+                      <h3 className="font-bold text-sm sm:text-base text-white truncate">
+                        {getLessonById(pearlHarborCheckpoint.lessonId)?.title || 'Pearl Harbor Lesson'}
+                      </h3>
+                      <p className="text-[10px] sm:text-xs text-white/60">
+                        Screen {pearlHarborCheckpoint.screenIndex + 1} • {pearlHarborCheckpoint.screen}
+                      </p>
+                    </div>
+                    <ArrowRight size={18} className="text-green-400 group-hover:translate-x-1 transition-transform sm:w-5 sm:h-5" />
+                  </div>
+                </button>
+              </motion.div>
+            )}
+
             {/* WW2/PEARL HARBOR HERO - Primary CTA */}
             <motion.div
               initial={{ opacity: 0, y: -10 }}
@@ -780,6 +842,22 @@ export function JourneyTab() {
                     December 7, 1941 — Experience the day that changed history
                   </p>
 
+                  {/* Progress bar - show if user has started */}
+                  {getPearlHarborProgress() > 0 && (
+                    <div className="mb-3">
+                      <div className="flex items-center justify-between text-[10px] sm:text-xs text-white/60 mb-1">
+                        <span>{pearlHarborProgress.completedActivities.filter(id => id.startsWith('ph-beat-')).length} of {PEARL_HARBOR_LESSONS.length} lessons completed</span>
+                        <span className="text-amber-400">{getPearlHarborProgress()}%</span>
+                      </div>
+                      <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-amber-500 to-amber-400 rounded-full transition-all duration-500"
+                          style={{ width: `${getPearlHarborProgress()}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-xs text-white/60">
                       <span>7 Lessons</span>
@@ -789,7 +867,7 @@ export function JourneyTab() {
                       <span className="text-amber-400">+280 XP</span>
                     </div>
                     <div className="flex items-center gap-1 text-amber-400 font-bold text-xs sm:text-sm group-hover:translate-x-1 transition-transform">
-                      Start Journey
+                      {getPearlHarborProgress() > 0 ? 'Continue' : 'Start Journey'}
                       <ArrowRight size={14} className="sm:w-4 sm:h-4" />
                     </div>
                   </div>
@@ -798,7 +876,15 @@ export function JourneyTab() {
             </motion.div>
 
             {/* Progress Overview Section */}
-            <ProgressOverview user={user} completedNodesCount={completedJourneyNodes.length} rankBadgeImages={journeyUIAssets?.rankBadgeImages} />
+            <ProgressOverview
+              user={user}
+              completedNodesCount={completedJourneyNodes.length}
+              rankBadgeImages={journeyUIAssets?.rankBadgeImages}
+              totalQuizAttempts={totalQuizAttempts}
+              totalCorrectAnswers={totalCorrectAnswers}
+              totalQuestions={totalQuestions}
+              bossNodesDefeated={bossNodesDefeated}
+            />
 
             {/* Pantheon - Souvenir Collection */}
             <motion.button
@@ -1220,6 +1306,10 @@ interface ProgressOverviewProps {
   user: { xp: number; streak: number };
   completedNodesCount: number;
   rankBadgeImages?: Record<string, string>;
+  totalQuizAttempts: number;
+  totalCorrectAnswers: number;
+  totalQuestions: number;
+  bossNodesDefeated: number;
 }
 
 const tierColors: Record<string, string> = {
@@ -1231,7 +1321,15 @@ const tierColors: Record<string, string> = {
   legendary: 'from-amber-400 via-amber-200 to-amber-400',
 };
 
-function ProgressOverview({ user, completedNodesCount, rankBadgeImages }: ProgressOverviewProps) {
+function ProgressOverview({
+  user,
+  completedNodesCount,
+  rankBadgeImages,
+  totalQuizAttempts,
+  totalCorrectAnswers,
+  totalQuestions,
+  bossNodesDefeated,
+}: ProgressOverviewProps) {
   const rankInfo = getRankInfo(user.xp);
   const nextRank = getNextRankXP(user.xp);
   const progressToNext = nextRank.next
@@ -1241,6 +1339,11 @@ function ProgressOverview({ user, completedNodesCount, rankBadgeImages }: Progre
 
   // Count arcs with content available
   const arcsWithContent = arcs.filter(arc => arc.chapters.length > 0).length;
+
+  // Calculate quiz accuracy
+  const quizAccuracy = totalQuestions > 0
+    ? Math.round((totalCorrectAnswers / totalQuestions) * 100)
+    : 0;
 
   // Get custom rank badge image if available
   const customRankBadge = rankBadgeImages?.[rankInfo.tier];
@@ -1313,9 +1416,33 @@ function ProgressOverview({ user, completedNodesCount, rankBadgeImages }: Progre
       <div className="grid grid-cols-4 gap-2">
         <StatCard icon={<Trophy size={16} className="text-amber-500" />} value={arcsWithContent} label="Eras" />
         <StatCard icon={<TrendingUp size={16} className="text-green-500" />} value={completedNodesCount} label="Nodes" />
-        <StatCard icon="👑" value="85%" label="Boss" />
-        <StatCard icon={<Flame size={16} className="text-orange-500" />} value={user.streak} label="Days" />
+        <StatCard icon={<Target size={16} className="text-blue-500" />} value={totalQuestions > 0 ? `${quizAccuracy}%` : '—'} label="Accuracy" />
+        <StatCard icon={<Flame size={16} className="text-orange-500" />} value={user.streak} label="Streak" />
       </div>
+
+      {/* Quiz Performance Card - Only show if user has answered questions */}
+      {totalQuestions > 0 && (
+        <div className="mt-4 p-3 sm:p-4 rounded-xl bg-card border border-border">
+          <div className="flex items-center gap-2 mb-3">
+            <Target size={16} className="text-blue-500" />
+            <h3 className="font-bold text-sm">Quiz Performance</h3>
+          </div>
+          <div className="grid grid-cols-3 gap-3 text-center">
+            <div>
+              <div className="text-lg sm:text-xl font-bold text-blue-500">{quizAccuracy}%</div>
+              <div className="text-[10px] sm:text-xs text-muted-foreground">Accuracy</div>
+            </div>
+            <div>
+              <div className="text-lg sm:text-xl font-bold">{totalCorrectAnswers}/{totalQuestions}</div>
+              <div className="text-[10px] sm:text-xs text-muted-foreground">Correct</div>
+            </div>
+            <div>
+              <div className="text-lg sm:text-xl font-bold text-amber-500">{totalQuizAttempts}</div>
+              <div className="text-[10px] sm:text-xs text-muted-foreground">Quizzes</div>
+            </div>
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 }
