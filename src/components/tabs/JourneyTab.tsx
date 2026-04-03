@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, ChevronDown, Trophy, Flame, TrendingUp, Clock, Globe, Map, ArrowRight, BookOpen, Zap } from 'lucide-react';
+import { ChevronRight, Trophy, Flame, TrendingUp, Clock, Globe, Map, ArrowRight } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { arcs, getArcById } from '@/data/journeyData';
 import { getEraImageUrl } from '@/data/historicalEras';
@@ -81,8 +81,6 @@ import { TrophyRoom } from '@/components/journey/trophy-room';
 import { PantheonRoom } from '@/components/journey/pantheon';
 import { getWW2HostById } from '@/data/ww2Hosts';
 import { Play, Target } from 'lucide-react';
-import { courses, getInstructorById, formatDuration } from '@/data/courseData';
-import { Course } from '@/types';
 
 type JourneyView = 'landing' | 'arc' | 'node' | 'world-map' | 'ww2-entry' | 'ww2-theaters' | 'pearl-harbor' | 'pearl-harbor-journey' | 'pearl-harbor-lesson' | 'trophy-room' | 'pantheon';
 
@@ -106,8 +104,6 @@ export function JourneyTab() {
     totalCorrectAnswers,
     totalQuestions,
     bossNodesDefeated,
-    courseProgress,
-    setActiveTab,
   } = useApp();
   const [view, setView] = useState<JourneyView>('landing');
   const [selectedArcId, setSelectedArcId] = useState<string | null>(null);
@@ -134,22 +130,6 @@ export function JourneyTab() {
   } = usePearlHarborProgress();
 
   const selectedArc = selectedArcId ? getArcById(selectedArcId) : null;
-
-  // Collapsible eras state
-  const [showAllEras, setShowAllEras] = useState(false);
-
-  // Get courses with progress (for Continue Learning section)
-  const coursesInProgress = courses.filter(course => {
-    const progress = courseProgress.get(course.id);
-    return progress && progress.percentComplete > 0 && progress.percentComplete < 100;
-  });
-
-  // Get courses to browse (all courses, sorted by featured first)
-  const browseCourses = [...courses].sort((a, b) => {
-    if (a.isFeatured && !b.isFeatured) return -1;
-    if (!a.isFeatured && b.isFeatured) return 1;
-    return (a.chronoOrder || 0) - (b.chronoOrder || 0);
-  });
 
   // Load thumbnails on mount
   useEffect(() => {
@@ -895,218 +875,16 @@ export function JourneyTab() {
               </button>
             </motion.div>
 
-            {/* Compact Progress Stats Row */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-4"
-            >
-              <div className="flex items-center gap-2 p-3 rounded-xl bg-card border border-border">
-                {/* XP */}
-                <div className="flex-1 flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center">
-                    <Zap size={16} className="text-amber-500" />
-                  </div>
-                  <div>
-                    <div className="font-bold text-sm">{user.xp.toLocaleString()}</div>
-                    <div className="text-[10px] text-muted-foreground">XP</div>
-                  </div>
-                </div>
-                {/* Streak */}
-                <div className="flex-1 flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-orange-500/20 flex items-center justify-center">
-                    <Flame size={16} className="text-orange-500" />
-                  </div>
-                  <div>
-                    <div className="font-bold text-sm">{user.streak}</div>
-                    <div className="text-[10px] text-muted-foreground">Streak</div>
-                  </div>
-                </div>
-                {/* Accuracy */}
-                <div className="flex-1 flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                    <Target size={16} className="text-blue-500" />
-                  </div>
-                  <div>
-                    <div className="font-bold text-sm">
-                      {totalQuestions > 0 ? `${Math.round((totalCorrectAnswers / totalQuestions) * 100)}%` : '—'}
-                    </div>
-                    <div className="text-[10px] text-muted-foreground">Accuracy</div>
-                  </div>
-                </div>
-                {/* Courses */}
-                <div className="flex-1 flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center">
-                    <BookOpen size={16} className="text-green-500" />
-                  </div>
-                  <div>
-                    <div className="font-bold text-sm">{coursesInProgress.length}</div>
-                    <div className="text-[10px] text-muted-foreground">Active</div>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Continue Learning - Courses In Progress */}
-            {coursesInProgress.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mb-6"
-              >
-                <div className="mb-3">
-                  <h2 className="flex items-center gap-2 text-xs font-bold uppercase text-muted-foreground tracking-wider">
-                    <Play size={12} />
-                    Continue Learning
-                  </h2>
-                  <div className="mt-2 w-12 h-[3px] bg-green-500 rounded-full" />
-                </div>
-                <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 scroll-smooth snap-x">
-                  {coursesInProgress.map((course) => {
-                    const progress = courseProgress.get(course.id);
-                    const instructor = getInstructorById(course.instructorId);
-                    return (
-                      <button
-                        key={course.id}
-                        onClick={() => setActiveTab('learn')}
-                        className="flex-shrink-0 w-40 text-left group snap-start"
-                      >
-                        <div className="relative aspect-[4/3] rounded-xl overflow-hidden mb-2 bg-slate-800">
-                          <img
-                            src={course.thumbnailUrl}
-                            alt={course.title}
-                            className="w-full h-full object-cover"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                          <div className="absolute bottom-2 left-2 right-2">
-                            <div className="h-1 bg-white/30 rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-green-500 rounded-full"
-                                style={{ width: `${progress?.percentComplete || 0}%` }}
-                              />
-                            </div>
-                            <div className="text-[10px] text-white/80 mt-1">
-                              {progress?.percentComplete || 0}% complete
-                            </div>
-                          </div>
-                        </div>
-                        <h3 className="text-sm font-semibold line-clamp-2 group-hover:text-primary transition-colors">
-                          {course.title}
-                        </h3>
-                        {instructor && (
-                          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                            <span>{instructor.avatar}</span>
-                            <span className="truncate">{instructor.name}</span>
-                          </p>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </motion.div>
-            )}
-
-            {/* Browse Courses - Grid */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-6"
-            >
-              <div className="mb-3">
-                <h2 className="flex items-center gap-2 text-xs font-bold uppercase text-muted-foreground tracking-wider">
-                  <BookOpen size={12} />
-                  Browse Courses
-                </h2>
-                <div className="mt-2 w-12 h-[3px] bg-amber-500 rounded-full" />
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {browseCourses.slice(0, 6).map((course) => {
-                  const progress = courseProgress.get(course.id);
-                  const instructor = getInstructorById(course.instructorId);
-                  const isComplete = progress?.percentComplete === 100;
-                  const hasProgress = progress && progress.percentComplete > 0;
-
-                  return (
-                    <button
-                      key={course.id}
-                      onClick={() => setActiveTab('learn')}
-                      className="text-left group"
-                    >
-                      <div className="relative aspect-[4/3] rounded-xl overflow-hidden mb-2 bg-slate-800">
-                        <img
-                          src={course.thumbnailUrl}
-                          alt={course.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-
-                        {/* Badges */}
-                        <div className="absolute top-2 left-2 flex gap-1">
-                          {course.isNew && (
-                            <span className="px-2 py-0.5 rounded-full bg-green-500 text-white text-[10px] font-bold">
-                              NEW
-                            </span>
-                          )}
-                          {isComplete && (
-                            <span className="px-2 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-bold">
-                              DONE
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Difficulty badge */}
-                        <div className="absolute bottom-2 left-2">
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                            course.difficulty === 'beginner' ? 'bg-green-500/80 text-white' :
-                            course.difficulty === 'intermediate' ? 'bg-amber-500/80 text-white' :
-                            'bg-red-500/80 text-white'
-                          }`}>
-                            {course.difficulty}
-                          </span>
-                        </div>
-
-                        {/* XP badge */}
-                        <div className="absolute top-2 right-2">
-                          <span className="px-2 py-0.5 rounded-full bg-amber-500/90 text-white text-[10px] font-bold">
-                            +{course.lessonsCount * 25} XP
-                          </span>
-                        </div>
-
-                        {/* Progress bar */}
-                        {hasProgress && !isComplete && (
-                          <div className="absolute bottom-2 right-2 left-16">
-                            <div className="h-1 bg-white/30 rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-green-500 rounded-full"
-                                style={{ width: `${progress.percentComplete}%` }}
-                              />
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      <h3 className="text-sm font-semibold line-clamp-2 group-hover:text-primary transition-colors">
-                        {course.title}
-                      </h3>
-                      <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                        {instructor && <span>{instructor.avatar}</span>}
-                        <span>{formatDuration(course.totalDurationMinutes)}</span>
-                        <span>•</span>
-                        <span>{course.lessonsCount} lessons</span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* View All Courses Button */}
-              <button
-                onClick={() => setActiveTab('learn')}
-                className="w-full mt-4 p-3 rounded-xl bg-gradient-to-r from-amber-500/10 to-amber-600/5 border border-amber-500/20 hover:border-amber-500/40 transition-all group flex items-center justify-center gap-2"
-              >
-                <span className="text-sm font-medium text-amber-500">View All {courses.length} Courses</span>
-                <ArrowRight size={16} className="text-amber-500 group-hover:translate-x-1 transition-transform" />
-              </button>
-            </motion.div>
+            {/* Progress Overview Section */}
+            <ProgressOverview
+              user={user}
+              completedNodesCount={completedJourneyNodes.length}
+              rankBadgeImages={journeyUIAssets?.rankBadgeImages}
+              totalQuizAttempts={totalQuizAttempts}
+              totalCorrectAnswers={totalCorrectAnswers}
+              totalQuestions={totalQuestions}
+              bossNodesDefeated={bossNodesDefeated}
+            />
 
             {/* Pantheon - Souvenir Collection */}
             <motion.button
@@ -1239,94 +1017,38 @@ export function JourneyTab() {
               </motion.div>
             )}
 
-            {/* Journey Eras - Collapsible */}
-            <div className="mb-6">
-              <button
-                onClick={() => setShowAllEras(!showAllEras)}
-                className="w-full flex items-center justify-between mb-3 group"
-              >
-                <div>
-                  <h2 className="flex items-center gap-2 text-xs font-bold uppercase text-muted-foreground tracking-wider">
-                    <Globe size={12} />
-                    Journey Eras
-                    <span className="text-muted-foreground/60">({arcs.length})</span>
-                  </h2>
-                  <div className="mt-2 w-12 h-[3px] bg-hc-red rounded-full" />
-                </div>
-                <motion.div
-                  animate={{ rotate: showAllEras ? 180 : 0 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <ChevronDown size={20} className="text-muted-foreground" />
-                </motion.div>
-              </button>
+            {/* All Eras */}
+            <div>
+              <div className="mb-4">
+                <h2 className="text-xs font-bold uppercase text-muted-foreground tracking-wider">
+                  All Eras
+                </h2>
+                <div className="mt-2 w-12 h-[3px] bg-hc-red rounded-full" />
+              </div>
+              <div className="space-y-3">
+                {arcs
+                  .filter(arc => !recentArcIds.includes(arc.id))
+                  .map((arc, index) => {
+                    // All eras are now available - highlight WW2 as featured
+                    const isWW2Featured = arc.id === WW2_ARC_ID;
 
-              <AnimatePresence>
-                {showAllEras && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="overflow-hidden"
-                  >
-                    <div className="space-y-3">
-                      {arcs
-                        .filter(arc => !recentArcIds.includes(arc.id))
-                        .map((arc, index) => {
-                          const isWW2Featured = arc.id === WW2_ARC_ID;
-
-                          return (
-                            <motion.div
-                              key={arc.id}
-                              initial={{ opacity: 0, y: 20 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ delay: index * 0.05 }}
-                            >
-                              <ArcCard
-                                arc={arc}
-                                thumbnailUrl={getArcImageUrl(arc.id, journeyThumbnails)}
-                                onSelect={() => handleSelectArc(arc.id)}
-                                isHighlighted={isWW2Featured}
-                              />
-                            </motion.div>
-                          );
-                        })}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Preview when collapsed */}
-              {!showAllEras && (
-                <div className="flex gap-2 overflow-hidden">
-                  {arcs.slice(0, 4).map((arc) => (
-                    <button
-                      key={arc.id}
-                      onClick={() => handleSelectArc(arc.id)}
-                      className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden bg-slate-800 hover:ring-2 ring-amber-500/50 transition-all"
-                    >
-                      {getArcImageUrl(arc.id, journeyThumbnails) ? (
-                        <img
-                          src={getArcImageUrl(arc.id, journeyThumbnails)!}
-                          alt={arc.title}
-                          className="w-full h-full object-cover"
+                    return (
+                      <motion.div
+                        key={arc.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                      >
+                        <ArcCard
+                          arc={arc}
+                          thumbnailUrl={getArcImageUrl(arc.id, journeyThumbnails)}
+                          onSelect={() => handleSelectArc(arc.id)}
+                          isHighlighted={isWW2Featured}
                         />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Map size={24} className="text-muted-foreground" />
-                        </div>
-                      )}
-                    </button>
-                  ))}
-                  <button
-                    onClick={() => setShowAllEras(true)}
-                    className="flex-shrink-0 w-16 h-16 rounded-lg bg-slate-800 hover:bg-slate-700 transition-colors flex items-center justify-center"
-                  >
-                    <span className="text-sm text-muted-foreground">+{arcs.length - 4}</span>
-                  </button>
-                </div>
-              )}
+                      </motion.div>
+                    );
+                  })}
+              </div>
             </div>
           </motion.div>
         )}
