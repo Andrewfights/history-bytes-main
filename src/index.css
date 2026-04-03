@@ -1,96 +1,113 @@
-/* History+ Premium Design System */
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@400;500;600;700&display=swap');
+/* A+E Global Media Design System */
+/* Fonts: Avenir Next LT Pro (with Nunito Sans fallback) + Georgia */
+@import url('https://fonts.googleapis.com/css2?family=Nunito+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /* ========================================
-   HISTORY+ PREMIUM DESIGN TOKENS
-   Cinematic depth + metallic gold accent
+   A+E GLOBAL MEDIA DESIGN TOKENS
+   Primary: Black, Greys, White
+   Accent: Tan, Taupe, Bright Red, Yellow
 ======================================== */
 
 @layer base {
   :root {
-    /* === OBSIDIAN NEUTRALS === */
-    --obsidian-900: 220 10% 4%;      /* #0A0A0B - Background */
-    --obsidian-850: 220 12% 5%;      /* #0D0E10 */
-    --obsidian-800: 220 10% 7%;      /* #111214 - Cards */
-    --obsidian-750: 220 10% 9%;      /* #15171A */
-    --obsidian-700: 220 8% 11%;      /* #1A1C1F - Elevated */
-    --charcoal-650: 220 8% 15%;      /* #23262B - Dividers */
-    --charcoal-600: 220 7% 18%;      /* #2A2D31 */
-    --charcoal-550: 220 7% 23%;      /* #333740 */
+    /* === A+E PRIMARY COLORS === */
+    --ae-black: 0 0% 0%;             /* #000000 */
+    --ae-dark-grey: 0 0% 15%;        /* #262626 */
+    --ae-medium-grey: 0 0% 45%;      /* #747474 */
+    --ae-light-grey: 0 0% 68%;       /* #AEAEAE */
+    --ae-white: 0 0% 100%;           /* #FFFFFF */
 
-    /* === METALLIC GOLD === */
-    --gold-primary: 43 53% 54%;      /* #C6A24F */
-    --gold-highlight: 43 71% 69%;    /* #E8C979 */
-    --gold-deep: 40 61% 45%;         /* #B88A2E */
+    /* === A+E SECONDARY ACCENT COLORS === */
+    --ae-tan: 30 76% 75%;            /* #F0C190 */
+    --ae-taupe: 27 30% 55%;          /* #AF8B68 */
+    --ae-red: 340 99% 56%;           /* #FE2762 */
+    --ae-yellow: 52 100% 49%;        /* #FADD00 */
 
-    /* === HISTORY CHANNEL BRAND RED === */
-    --hc-red: 352 84% 42%;           /* #C41230 */
-    --hc-red-light: 352 76% 48%;     /* #D4213F */
-    --hc-red-dark: 352 84% 35%;      /* #A30F28 */
-    --hc-red-glow: 0 0 8px rgba(196,18,48,0.4);
+    /* === LEGACY MAPPING (for compatibility) === */
+    --obsidian-900: var(--ae-black);
+    --obsidian-850: 0 0% 3%;
+    --obsidian-800: 0 0% 10%;
+    --obsidian-750: var(--ae-dark-grey);
+    --obsidian-700: 0 0% 20%;
+    --charcoal-650: 0 0% 25%;
+    --charcoal-600: 0 0% 30%;
+    --charcoal-550: 0 0% 35%;
 
-    /* === TEXT (Ivory Base) === */
-    --text-primary: 40 26% 94%;      /* #F5F2EA */
-    --text-secondary: 40 26% 94%;    /* with opacity */
-    --text-tertiary: 40 26% 94%;
-    --text-muted: 40 26% 94%;
+    /* === ACCENT COLORS (mapped from A+E palette) === */
+    --gold-primary: var(--ae-tan);    /* Tan as primary accent */
+    --gold-highlight: var(--ae-yellow); /* Yellow for highlights */
+    --gold-deep: var(--ae-taupe);     /* Taupe for depth */
+
+    /* === A+E BRAND RED === */
+    --hc-red: var(--ae-red);          /* #FE2762 */
+    --hc-red-light: 340 99% 65%;      /* Lighter red */
+    --hc-red-dark: 340 99% 45%;       /* Darker red */
+    --hc-red-glow: 0 0 8px rgba(254,39,98,0.4);
+
+    /* === TEXT (White on dark) === */
+    --text-primary: var(--ae-white);
+    --text-secondary: var(--ae-light-grey);
+    --text-tertiary: var(--ae-medium-grey);
+    --text-muted: var(--ae-medium-grey);
 
     /* === SEMANTIC === */
     --success: 153 47% 47%;          /* #3FAF7D */
     --success-soft: 153 47% 47%;
-    --warning: 40 53% 55%;           /* #D0A14B */
-    --danger: 0 47% 52%;             /* #C14A4A */
+    --warning: var(--ae-yellow);
+    --danger: var(--ae-red);
     --info: 213 100% 68%;            /* #5AA7FF */
 
     /* === MAP TO EXISTING TOKENS === */
-    --background: var(--obsidian-900);
+    --background: var(--ae-black);
     --foreground: var(--text-primary);
 
-    --card: var(--obsidian-800);
+    --card: var(--ae-dark-grey);
     --card-foreground: var(--text-primary);
 
-    --popover: var(--obsidian-750);
+    --popover: var(--ae-dark-grey);
     --popover-foreground: var(--text-primary);
 
-    --primary: var(--gold-primary);
-    --primary-foreground: var(--obsidian-900);
+    --primary: var(--ae-tan);
+    --primary-foreground: var(--ae-black);
 
-    --secondary: var(--charcoal-650);
+    --secondary: 0 0% 20%;
     --secondary-foreground: var(--text-primary);
 
-    --muted: var(--charcoal-600);
-    --muted-foreground: 40 26% 94% / 0.54;
+    --muted: 0 0% 25%;
+    --muted-foreground: var(--ae-medium-grey);
 
-    --accent: var(--gold-highlight);
-    --accent-foreground: var(--obsidian-900);
+    --accent: var(--ae-yellow);
+    --accent-foreground: var(--ae-black);
 
-    --destructive: var(--danger);
-    --destructive-foreground: var(--text-primary);
+    --destructive: var(--ae-red);
+    --destructive-foreground: var(--ae-white);
 
-    --border: 0 0% 100% / 0.06;
-    --border-subtle: 0 0% 100% / 0.09;
-    --border-strong: 0 0% 100% / 0.14;
-    --border-gold: 43 53% 54% / 0.38;
+    --border: 0 0% 100% / 0.08;
+    --border-subtle: 0 0% 100% / 0.12;
+    --border-strong: 0 0% 100% / 0.18;
+    --border-gold: 30 76% 75% / 0.38;
 
-    --input: var(--obsidian-750);
-    --ring: var(--gold-highlight);
+    --input: var(--ae-dark-grey);
+    --ring: var(--ae-tan);
 
     --radius: 1rem;
 
-    --success-foreground: var(--text-primary);
-    --glow-yellow: var(--gold-primary);
+    --success-foreground: var(--ae-white);
+    --glow-yellow: var(--ae-yellow);
 
     /* === SHADOWS === */
-    --shadow-elev1: 0 8px 24px rgba(0,0,0,0.35);
-    --shadow-elev2: 0 12px 32px rgba(0,0,0,0.45);
-    --shadow-elev3: 0 24px 60px rgba(0,0,0,0.60);
+    --shadow-elev1: 0 8px 24px rgba(0,0,0,0.45);
+    --shadow-elev2: 0 12px 32px rgba(0,0,0,0.55);
+    --shadow-elev3: 0 24px 60px rgba(0,0,0,0.70);
     --shadow-inset-hairline: 0 0 0 1px rgba(255,255,255,0.08) inset;
-    --shadow-gold-glow: 0 10px 24px rgba(198,162,79,0.25);
-    --shadow-gold-glow-strong: 0 14px 34px rgba(198,162,79,0.35);
+    --shadow-tan-glow: 0 10px 24px rgba(240,193,144,0.25);
+    --shadow-tan-glow-strong: 0 14px 34px rgba(240,193,144,0.35);
+    --shadow-gold-glow: var(--shadow-tan-glow);
+    --shadow-gold-glow-strong: var(--shadow-tan-glow-strong);
 
     /* === MOTION === */
     --ease-standard: cubic-bezier(.4,0,.2,1);
@@ -101,59 +118,59 @@
     --duration-slow: 320ms;
 
     /* === SIDEBAR === */
-    --sidebar-background: var(--obsidian-900);
+    --sidebar-background: var(--ae-black);
     --sidebar-foreground: var(--text-primary);
-    --sidebar-primary: var(--gold-primary);
-    --sidebar-primary-foreground: var(--obsidian-900);
-    --sidebar-accent: var(--obsidian-750);
+    --sidebar-primary: var(--ae-tan);
+    --sidebar-primary-foreground: var(--ae-black);
+    --sidebar-accent: var(--ae-dark-grey);
     --sidebar-accent-foreground: var(--text-primary);
     --sidebar-border: var(--border);
-    --sidebar-ring: var(--gold-highlight);
+    --sidebar-ring: var(--ae-tan);
   }
 
   .light {
-    /* Light mode - Warm Parchment */
-    --background: 36 40% 92%;
-    --foreground: 25 20% 12%;
+    /* Light mode - A+E Light Theme */
+    --background: var(--ae-white);
+    --foreground: var(--ae-black);
 
-    --card: 33 28% 87%;
-    --card-foreground: 25 20% 12%;
+    --card: var(--ae-light-grey);
+    --card-foreground: var(--ae-black);
 
-    --popover: 33 28% 87%;
-    --popover-foreground: 25 20% 12%;
+    --popover: var(--ae-white);
+    --popover-foreground: var(--ae-black);
 
-    --primary: 45 93% 38%;
-    --primary-foreground: 0 0% 100%;
+    --primary: var(--ae-taupe);
+    --primary-foreground: var(--ae-white);
 
-    --secondary: 38 78% 42%;
-    --secondary-foreground: 0 0% 100%;
+    --secondary: var(--ae-light-grey);
+    --secondary-foreground: var(--ae-black);
 
-    --muted: 33 12% 72%;
-    --muted-foreground: 25 10% 40%;
+    --muted: var(--ae-light-grey);
+    --muted-foreground: var(--ae-medium-grey);
 
-    --accent: 45 93% 38%;
-    --accent-foreground: 0 0% 100%;
+    --accent: var(--ae-tan);
+    --accent-foreground: var(--ae-black);
 
-    --destructive: 358 88% 43%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive: var(--ae-red);
+    --destructive-foreground: var(--ae-white);
 
-    --border: 33 18% 65%;
-    --input: 33 18% 78%;
-    --ring: 45 93% 38%;
+    --border: 0 0% 0% / 0.12;
+    --input: var(--ae-light-grey);
+    --ring: var(--ae-taupe);
 
     --success: 142 71% 38%;
-    --success-foreground: 0 0% 100%;
+    --success-foreground: var(--ae-white);
 
-    --glow-yellow: 45 93% 38%;
+    --glow-yellow: var(--ae-yellow);
 
-    --sidebar-background: 36 40% 92%;
-    --sidebar-foreground: 25 20% 15%;
-    --sidebar-primary: 45 93% 38%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 33 28% 83%;
-    --sidebar-accent-foreground: 25 20% 12%;
-    --sidebar-border: 33 18% 65%;
-    --sidebar-ring: 45 93% 38%;
+    --sidebar-background: var(--ae-white);
+    --sidebar-foreground: var(--ae-black);
+    --sidebar-primary: var(--ae-taupe);
+    --sidebar-primary-foreground: var(--ae-white);
+    --sidebar-accent: var(--ae-light-grey);
+    --sidebar-accent-foreground: var(--ae-black);
+    --sidebar-border: 0 0% 0% / 0.12;
+    --sidebar-ring: var(--ae-taupe);
   }
 }
 
@@ -162,13 +179,13 @@
     @apply border-border;
   }
 
-  /* === BODY WITH GRADIENT BACKGROUND === */
+  /* === BODY WITH A+E DARK BACKGROUND === */
   body {
     @apply text-foreground antialiased;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: 'Avenir Next LT Pro', 'Avenir Next', 'Avenir', 'Nunito Sans', system-ui, -apple-system, sans-serif;
     font-size: 14px;
     line-height: 1.6;
-    background: linear-gradient(180deg, #0A0A0B 0%, #0E0F11 40%, #0A0A0B 100%);
+    background: #000000;
     background-attachment: fixed;
     min-height: 100vh;
     min-height: 100dvh; /* Dynamic viewport height for mobile Safari */
@@ -201,25 +218,33 @@
     text-size-adjust: 100%;
   }
 
-  /* === TYPOGRAPHY === */
-  h1, h2, h3, .font-editorial {
-    font-family: 'Cormorant Garamond', Georgia, serif;
-    font-weight: 500;
-    letter-spacing: -0.01em;
-    line-height: 1.15;
+  /* === A+E TYPOGRAPHY === */
+  /* Headlines use Georgia (serif) */
+  h1, h2, h3, .font-editorial, .font-georgia {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-weight: 400;
+    letter-spacing: 0;
+    line-height: 1.2;
   }
 
   h1 {
     font-size: 32px;
-    font-weight: 600;
+    font-weight: 700;
   }
 
   h2 {
-    font-size: 22px;
+    font-size: 24px;
+    font-weight: 700;
   }
 
   h3 {
     font-size: 18px;
+    font-weight: 700;
+  }
+
+  /* Body text uses Avenir Next */
+  p, span, div, li {
+    font-family: 'Avenir Next LT Pro', 'Avenir Next', 'Avenir', 'Nunito Sans', system-ui, sans-serif;
   }
 }
 
@@ -250,11 +275,11 @@ body::after {
 }
 
 @layer utilities {
-  /* === SECTION LABEL (Editorial Caps) === */
+  /* === SECTION LABEL (A+E Editorial Caps) === */
   .section-label {
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: 'Avenir Next LT Pro', 'Avenir Next', 'Nunito Sans', system-ui, sans-serif;
     font-size: 14px;
-    font-weight: 500;
+    font-weight: 600;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: hsl(var(--text-primary) / 0.4);
@@ -281,18 +306,47 @@ body::after {
     box-shadow: var(--shadow-elev2);
   }
 
-  /* === GOLD METALLIC BUTTON === */
-  .btn-gold {
-    background: linear-gradient(135deg, #C6A24F 0%, #E8C979 50%, #B88A2E 100%);
-    color: #0A0A0B;
+  /* === A+E TAN ACCENT BUTTON === */
+  .btn-gold, .btn-tan {
+    background: linear-gradient(135deg, #F0C190 0%, #FADD00 50%, #AF8B68 100%);
+    color: #000000;
     font-weight: 600;
     border-radius: 16px;
-    box-shadow: var(--shadow-inset-hairline), var(--shadow-gold-glow);
+    box-shadow: var(--shadow-inset-hairline), var(--shadow-tan-glow);
     transition: all var(--duration-base) var(--ease-standard);
   }
 
-  .btn-gold:hover {
-    box-shadow: var(--shadow-inset-hairline), var(--shadow-gold-glow-strong);
+  .btn-gold:hover, .btn-tan:hover {
+    box-shadow: var(--shadow-inset-hairline), var(--shadow-tan-glow-strong);
+  }
+
+  /* === A+E BRIGHT RED BUTTON === */
+  .btn-ae-red {
+    background: #FE2762;
+    color: #FFFFFF;
+    font-weight: 600;
+    border-radius: 16px;
+    box-shadow: 0 10px 24px rgba(254,39,98,0.25);
+    transition: all var(--duration-base) var(--ease-standard);
+  }
+
+  .btn-ae-red:hover {
+    background: #FF4D7F;
+    box-shadow: 0 14px 34px rgba(254,39,98,0.35);
+  }
+
+  /* === A+E YELLOW BUTTON === */
+  .btn-ae-yellow {
+    background: #FADD00;
+    color: #000000;
+    font-weight: 600;
+    border-radius: 16px;
+    box-shadow: 0 10px 24px rgba(250,221,0,0.25);
+    transition: all var(--duration-base) var(--ease-standard);
+  }
+
+  .btn-ae-yellow:hover {
+    box-shadow: 0 14px 34px rgba(250,221,0,0.35);
   }
 
   /* === HISTORY CHANNEL BRAND UTILITIES === */
@@ -337,16 +391,31 @@ body::after {
     box-shadow: 0 0 0 2px rgba(10,10,11,0.65), 0 0 0 4px rgba(232,201,121,0.55);
   }
 
-  /* === GOLD PROGRESS BAR === */
-  .progress-gold {
-    background: rgba(255,255,255,0.06);
+  /* === A+E TAN/YELLOW PROGRESS BAR === */
+  .progress-gold, .progress-tan {
+    background: rgba(255,255,255,0.08);
     border-radius: 999px;
     overflow: hidden;
   }
 
-  .progress-gold-fill {
-    background: linear-gradient(90deg, #C6A24F, #E8C979);
-    box-shadow: 0 0 10px rgba(198,162,79,0.4);
+  .progress-gold-fill, .progress-tan-fill {
+    background: linear-gradient(90deg, #F0C190, #FADD00);
+    box-shadow: 0 0 10px rgba(240,193,144,0.4);
+    border-radius: 999px;
+    height: 100%;
+    transition: width var(--duration-slow) var(--ease-emphasized);
+  }
+
+  /* === A+E RED PROGRESS BAR === */
+  .progress-ae-red {
+    background: rgba(255,255,255,0.08);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+
+  .progress-ae-red-fill {
+    background: #FE2762;
+    box-shadow: 0 0 10px rgba(254,39,98,0.4);
     border-radius: 999px;
     height: 100%;
     transition: width var(--duration-slow) var(--ease-emphasized);
@@ -370,7 +439,7 @@ body::after {
   /* === ACTIVE TAB UNDERLINE === */
   .nav-tab-underline {
     height: 2px;
-    background: linear-gradient(90deg, #C6A24F, #E8C979);
+    background: linear-gradient(90deg, #F0C190, #FADD00);
     border-radius: 1px;
   }
 
@@ -435,13 +504,32 @@ body::after {
     color: hsl(var(--text-primary) / 0.40);
   }
 
-  .text-gold {
-    color: #E8C979;
+  .text-gold, .text-tan {
+    color: #F0C190;
+  }
+
+  .text-ae-red {
+    color: #FE2762;
+  }
+
+  .text-ae-yellow {
+    color: #FADD00;
+  }
+
+  .text-ae-taupe {
+    color: #AF8B68;
   }
 
   /* === GRADIENT TEXT === */
-  .text-gradient-gold {
-    background: linear-gradient(135deg, #C6A24F, #E8C979);
+  .text-gradient-gold, .text-gradient-tan {
+    background: linear-gradient(135deg, #F0C190, #FADD00);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .text-gradient-ae-red {
+    background: linear-gradient(135deg, #FE2762, #FF4D7F);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -540,15 +628,15 @@ body::after {
     background: linear-gradient(
       90deg,
       transparent,
-      rgba(198,162,79,0.5),
-      rgba(232,201,121,0.5),
+      rgba(240,193,144,0.5),
+      rgba(250,221,0,0.5),
       transparent
     );
   }
 
   /* === YEAR DISPLAY === */
   .year-display {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: Georgia, 'Times New Roman', serif;
     font-weight: 700;
     font-style: italic;
     line-height: 1;
@@ -564,14 +652,14 @@ body::after {
   /* === BADGES === */
   .streak-badge {
     @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full font-semibold text-sm;
-    background: rgba(198,162,79,0.15);
-    color: #E8C979;
+    background: rgba(240,193,144,0.15);
+    color: #F0C190;
   }
 
   .xp-badge {
     @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full font-semibold text-sm;
-    background: rgba(198,162,79,0.15);
-    color: #E8C979;
+    background: rgba(250,221,0,0.15);
+    color: #FADD00;
   }
 
   /* === TOPIC CHIPS === */
@@ -583,15 +671,15 @@ body::after {
   }
 
   .topic-chip:hover {
-    border-color: rgba(198,162,79,0.38);
-    color: #E8C979;
+    border-color: rgba(240,193,144,0.38);
+    color: #F0C190;
   }
 
   .topic-chip-active {
-    background: linear-gradient(135deg, #C6A24F 0%, #E8C979 50%, #B88A2E 100%);
-    color: #0A0A0B;
+    background: linear-gradient(135deg, #F0C190 0%, #FADD00 50%, #AF8B68 100%);
+    color: #000000;
     border-color: transparent;
-    box-shadow: var(--shadow-gold-glow);
+    box-shadow: var(--shadow-tan-glow);
   }
 
   /* === LESSON CARD === */
@@ -617,12 +705,12 @@ body::after {
   }
 
   .quiz-option:hover {
-    border-color: rgba(198,162,79,0.38);
+    border-color: rgba(240,193,144,0.38);
   }
 
   .quiz-option-selected {
-    border-color: #C6A24F;
-    background: rgba(198,162,79,0.1);
+    border-color: #F0C190;
+    background: rgba(240,193,144,0.1);
   }
 
   .quiz-option-correct {
@@ -632,9 +720,9 @@ body::after {
   }
 
   .quiz-option-incorrect {
-    border-color: #C14A4A;
-    background: rgba(193,74,74,0.1);
-    color: #C14A4A;
+    border-color: #FE2762;
+    background: rgba(254,39,98,0.1);
+    color: #FE2762;
   }
 
   /* === GLASS CARD === */
@@ -661,7 +749,7 @@ body::after {
 
   .course-card:hover {
     @apply scale-[1.03];
-    box-shadow: 0 0 20px rgba(198, 162, 79, 0.3);
+    box-shadow: 0 0 20px rgba(240, 193, 144, 0.3);
   }
 
   @media (hover: none) {

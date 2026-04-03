@@ -16,36 +16,61 @@ export default {
     },
     extend: {
       fontFamily: {
-        editorial: ['"Cormorant Garamond"', 'Georgia', 'serif'],
-        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        // A+E Brand Fonts
+        editorial: ['Georgia', 'Times New Roman', 'serif'],
+        sans: ['"Avenir Next LT Pro"', 'Avenir Next', 'Avenir', 'Nunito Sans', 'system-ui', '-apple-system', 'sans-serif'],
+        avenir: ['"Avenir Next LT Pro"', 'Avenir Next', 'Avenir', 'Nunito Sans', 'sans-serif'],
+        georgia: ['Georgia', 'Times New Roman', 'serif'],
       },
       colors: {
-        // Premium Obsidian Neutrals
+        // A+E Primary Colors
+        'ae-black': '#000000',
+        'ae-dark-grey': '#262626',
+        'ae-medium-grey': '#747474',
+        'ae-light-grey': '#AEAEAE',
+        'ae-white': '#FFFFFF',
+
+        // A+E Secondary Accent Colors
+        'ae-tan': '#F0C190',
+        'ae-taupe': '#AF8B68',
+        'ae-red': '#FE2762',
+        'ae-yellow': '#FADD00',
+
+        // Mapped grey scale for convenience
+        grey: {
+          900: '#000000',
+          800: '#262626',
+          600: '#747474',
+          400: '#AEAEAE',
+          100: '#FFFFFF',
+        },
+
+        // Legacy support - map to new palette
         obsidian: {
-          900: '#0A0A0B',
-          850: '#0D0E10',
-          800: '#111214',
-          750: '#15171A',
-          700: '#1A1C1F',
+          900: '#000000',
+          850: '#0D0D0D',
+          800: '#1A1A1A',
+          750: '#262626',
+          700: '#333333',
         },
         charcoal: {
-          650: '#23262B',
-          600: '#2A2D31',
-          550: '#333740',
+          650: '#404040',
+          600: '#4D4D4D',
+          550: '#5A5A5A',
         },
-        // Metallic Gold
+        // Accent colors mapped from A+E palette
         gold: {
-          primary: '#C6A24F',
-          highlight: '#E8C979',
-          deep: '#B88A2E',
+          primary: '#F0C190',  // Tan
+          highlight: '#FADD00', // Yellow
+          deep: '#AF8B68',     // Taupe
         },
-        // History Channel Brand Red
+        // A+E Brand Red (Bright Red)
         'hc-red': {
-          DEFAULT: '#C41230',
-          light: '#D4213F',
-          dark: '#A30F28',
+          DEFAULT: '#FE2762',
+          light: '#FF4D7F',
+          dark: '#D91F52',
         },
-        ivory: '#F5F2EA',
+        ivory: '#FFFFFF',
         // Existing token mappings
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
