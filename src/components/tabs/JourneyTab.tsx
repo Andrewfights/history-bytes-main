@@ -338,21 +338,11 @@ export function JourneyTab() {
     setShowWW2WelcomeVideo(false);
     setPendingHostId(null);
 
-    // Check for cinematic video
-    const theaterMedia = ww2ModuleAssets?.theaterMedia?.['pearl-harbor'];
-    const cinematicUrl = theaterMedia?.cinematicVideoUrl;
-
-    console.log('[PearlHarbor] ENTER clicked - theaterMedia:', theaterMedia);
-    console.log('[PearlHarbor] cinematicVideoUrl:', cinematicUrl);
-
-    if (cinematicUrl) {
-      console.log('[PearlHarbor] Playing cinematic video...');
-      setCinematicVideoUrl(cinematicUrl);
-      setShowCinematicVideo(true);
-    } else {
-      console.log('[PearlHarbor] No cinematic configured, entering journey directly');
-      enterPearlHarborJourney();
-    }
+    // After welcome video, go to theater selection (not directly to Pearl Harbor)
+    console.log('[WW2] Welcome video ended, going to theater selection');
+    trackArcVisit(WW2_ARC_ID);
+    setSelectedArcId(WW2_ARC_ID);
+    setView('ww2-theaters');
   };
 
   const handleCinematicComplete = () => {
@@ -425,7 +415,21 @@ export function JourneyTab() {
 
   // Handler to go to Pearl Harbor from theater selection
   const handleTheaterSelectPearlHarbor = () => {
-    setView('pearl-harbor-journey');
+    // Check for cinematic video before entering Pearl Harbor
+    const theaterMedia = ww2ModuleAssets?.theaterMedia?.['pearl-harbor'];
+    const cinematicUrl = theaterMedia?.cinematicVideoUrl;
+
+    console.log('[PearlHarbor] Theater select - theaterMedia:', theaterMedia);
+    console.log('[PearlHarbor] cinematicVideoUrl:', cinematicUrl);
+
+    if (cinematicUrl) {
+      console.log('[PearlHarbor] Playing cinematic video...');
+      setCinematicVideoUrl(cinematicUrl);
+      setShowCinematicVideo(true);
+    } else {
+      console.log('[PearlHarbor] No cinematic configured, entering journey directly');
+      enterPearlHarborJourney();
+    }
   };
 
   // Handle selecting a Pearl Harbor lesson
@@ -653,7 +657,7 @@ export function JourneyTab() {
             )}
           </div>
 
-          {/* ENTER PEARL HARBOR button - always visible below video */}
+          {/* Continue button - always visible below video */}
           <div className="absolute bottom-0 left-0 right-0 p-6 pb-8 bg-gradient-to-t from-black via-black/80 to-transparent">
             <motion.button
               initial={{ opacity: 0, y: 20 }}
@@ -663,12 +667,12 @@ export function JourneyTab() {
                 setWelcomeVideoEnded(false); // Reset for next time
                 handleWW2WelcomeVideoEnd();
               }}
-              className="w-full max-w-md mx-auto block px-8 py-4 rounded-xl bg-gradient-to-r from-red-600 to-red-700 text-white font-bold text-lg shadow-lg shadow-red-500/30 hover:shadow-red-500/50 hover:from-red-500 hover:to-red-600 transition-all"
+              className="w-full max-w-md mx-auto block px-8 py-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-black font-bold text-lg shadow-lg shadow-amber-500/30 hover:shadow-amber-500/50 hover:from-amber-400 hover:to-amber-500 transition-all"
             >
-              ENTER PEARL HARBOR
+              Continue to World War II
             </motion.button>
             <p className="text-center text-white/50 text-sm mt-3">
-              December 7, 1941
+              Select your first campaign
             </p>
           </div>
         </motion.div>
