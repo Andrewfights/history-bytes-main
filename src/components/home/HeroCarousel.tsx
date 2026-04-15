@@ -50,10 +50,10 @@ export function HeroCarousel({ onContinueJourney, onPlayDaily }: HeroCarouselPro
 
   const slides: HeroSlide[] = [
     {
-      tag: 'Continue Your Journey',
+      tag: 'Continue Your Campaign',
       title: 'The Medieval Era Awaits',
       subtitle: 'Pick up where you left off — castles, crusades, and the age of chivalry.',
-      action: { label: 'Continue Journey', onClick: onContinueJourney },
+      action: { label: 'Continue Campaign', onClick: onContinueJourney },
       accent: 'primary',
       image: '/images/carousel/medieval-era.jpg',
       imagePosition: 'center',

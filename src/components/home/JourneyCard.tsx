@@ -98,10 +98,10 @@ export function JourneyCard({ onEnterJourney }: JourneyCardProps) {
                 : 'text-primary'
           }`}>
             {isComplete
-              ? 'Review Journey'
+              ? 'Review Campaign'
               : hasStarted
-                ? 'Continue Journey'
-                : 'Start Journey'}
+                ? 'Continue Campaign'
+                : 'Start Campaign'}
           </span>
           <ArrowRight size={14} className={
             isComplete

@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 
 const navItems: { id: TabType; label: string; icon: React.ElementType }[] = [
   { id: 'home', label: 'Home', icon: Home },
-  { id: 'journey', label: 'Journey', icon: Compass },
+  { id: 'journey', label: 'Campaign', icon: Compass },
   { id: 'learn', label: 'Learn', icon: BookOpen },
   { id: 'arcade', label: 'Arcade', icon: Gamepad2 },
   { id: 'watch', label: 'Watch', icon: Play },

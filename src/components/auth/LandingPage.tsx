@@ -271,7 +271,7 @@ export function LandingPage({ onAuthSuccess }: LandingPageProps) {
               History Bytes
             </h1>
             <p className="text-muted-foreground mb-8">
-              Journey through time. Learn history like never before.
+              Campaign through time. Learn history like never before.
             </p>
 
             {/* Auth buttons */}
@@ -358,7 +358,7 @@ export function LandingPage({ onAuthSuccess }: LandingPageProps) {
               Welcome back
             </h2>
             <p className="text-muted-foreground text-sm mb-6">
-              Sign in to continue your journey
+              Sign in to continue your campaign
             </p>
 
             <form onSubmit={handleSignIn} className="space-y-4">
@@ -477,7 +477,7 @@ export function LandingPage({ onAuthSuccess }: LandingPageProps) {
               Create your account
             </h2>
             <p className="text-muted-foreground text-sm mb-6">
-              Start your journey through history
+              Start your campaign through history
             </p>
 
             <form onSubmit={handleSignUp} className="space-y-4">

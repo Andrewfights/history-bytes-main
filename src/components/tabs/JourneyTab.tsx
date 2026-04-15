@@ -832,7 +832,7 @@ export function JourneyTab() {
                     ) : (
                       <span className="text-2xl sm:text-3xl">🪖</span>
                     )}
-                    <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-amber-400">Featured Journey</span>
+                    <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-amber-400">Featured Campaign</span>
                   </div>
 
                   <h2 className="font-editorial text-xl sm:text-2xl font-bold text-white mb-1">
@@ -867,7 +867,7 @@ export function JourneyTab() {
                       <span className="text-amber-400">+280 XP</span>
                     </div>
                     <div className="flex items-center gap-1 text-amber-400 font-bold text-xs sm:text-sm group-hover:translate-x-1 transition-transform">
-                      {getPearlHarborProgress() > 0 ? 'Continue' : 'Start Journey'}
+                      {getPearlHarborProgress() > 0 ? 'Continue' : 'Start Campaign'}
                       <ArrowRight size={14} className="sm:w-4 sm:h-4" />
                     </div>
                   </div>
@@ -1371,7 +1371,7 @@ function ProgressOverview({
       {/* Header */}
       <div className="flex items-center justify-between mb-3 sm:mb-4">
         <div>
-          <h1 className="font-editorial text-xl sm:text-2xl font-bold">Your Journey</h1>
+          <h1 className="font-editorial text-xl sm:text-2xl font-bold">Your Campaign</h1>
           <div className="mt-1 w-12 sm:w-16 h-[3px] bg-hc-red rounded-full" />
         </div>
         <div className="flex items-center gap-1.5 sm:gap-2 text-orange-500">

@@ -27,7 +27,7 @@ export function WelcomeScreen({ guide, onBegin }: WelcomeScreenProps) {
   const colors = colorMap[guide.primaryColor] || colorMap.amber;
 
   const features = [
-    { icon: Compass, label: 'Journey through eras' },
+    { icon: Compass, label: 'Campaign through eras' },
     { icon: BookOpen, label: 'Learn from primary sources' },
     { icon: Trophy, label: 'Earn XP and rank up' },
   ];
@@ -177,7 +177,7 @@ export function WelcomeScreen({ guide, onBegin }: WelcomeScreenProps) {
         onClick={onBegin}
         className="w-full max-w-xs py-4 rounded-xl bg-primary text-primary-foreground font-semibold text-base tracking-wide flex items-center justify-center gap-2 transition-all hover:bg-primary/90 shadow-lg"
       >
-        Begin Your Journey
+        Begin Your Campaign
         <ArrowRight size={18} />
       </motion.button>
 

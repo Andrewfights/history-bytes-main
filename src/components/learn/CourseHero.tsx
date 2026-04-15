@@ -87,7 +87,7 @@ export function CourseHero({ course, onStart }: CourseHeroProps) {
           whileTap={{ scale: 0.98 }}
         >
           <Play size={20} className="ml-0.5" />
-          Start Your Journey
+          Start Your Campaign
         </motion.button>
       </div>
     </motion.section>

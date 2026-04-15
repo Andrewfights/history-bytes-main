@@ -73,7 +73,7 @@ export function FeaturedEraHero({ era, progress, onStart, overrideImageUrl }: Fe
       {/* Featured badge */}
       <div className="absolute top-3 left-4 sm:top-4 sm:left-5">
         <span className="px-2.5 py-1 rounded-full bg-white/20 backdrop-blur-sm text-white text-[10px] sm:text-xs font-bold uppercase tracking-wider">
-          Featured Journey
+          Featured Campaign
         </span>
       </div>
 

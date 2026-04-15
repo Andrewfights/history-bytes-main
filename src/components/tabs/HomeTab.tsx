@@ -139,7 +139,7 @@ export function HomeTab({ onStartSession, onPlayDaily, onSelectTopic }: HomeTabP
 
       {/* Coming Soon Eras Carousel */}
       <EraCarousel
-        title="More Journeys"
+        title="More Campaigns"
         subtitle="Coming soon to History Bytes"
         eras={comingSoonEras}
         onSelectEra={handleSelectEra}

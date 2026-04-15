@@ -136,7 +136,7 @@ export function CountryModal({
                   <div className="flex items-center gap-2 p-3 bg-success/10 rounded-lg border border-success/30 mb-4">
                     <CheckCircle2 size={20} className="text-success" />
                     <span className="text-sm font-medium text-success">
-                      Journey Completed
+                      Campaign Completed
                     </span>
                   </div>
                 )}
@@ -147,7 +147,7 @@ export function CountryModal({
                     onClick={handleStart}
                     className="w-full py-4 rounded-xl bg-primary text-primary-foreground font-bold text-lg flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors"
                   >
-                    {isComplete ? 'Replay Journey' : isInProgress ? 'Continue Journey' : 'Start Journey'}
+                    {isComplete ? 'Replay Campaign' : isInProgress ? 'Continue Campaign' : 'Start Campaign'}
                     <ChevronRight size={20} />
                   </button>
 
