@@ -106,11 +106,13 @@ export interface FirestoreWW2Host {
   imageUrl?: string;
   introVideoUrl?: string;
   welcomeVideoUrl?: string;
+  moreInfoVideoUrl?: string;  // Video where the guide gives more info about themselves
   primaryColor: string;
   voiceStyle: string;
   description: string;
   displayOrder: number;
   hidden?: boolean;  // If true, host won't appear in user-facing selection
+  isAvailable?: boolean;  // If false, guide is grayed out and not selectable
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 }

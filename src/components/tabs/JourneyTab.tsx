@@ -1231,13 +1231,16 @@ function ArcCard({ arc, onSelect, isContinue, isRecent, isHighlighted, thumbnail
   const host = getHostById(arc.hostId);
   const totalChapters = arc.chapters.length;
   const hasContent = totalChapters > 0;
+  const isLocked = !hasContent;
 
-  // All eras are now unlocked and fully visible
   return (
     <motion.button
-      onClick={onSelect}
+      onClick={isLocked ? undefined : onSelect}
+      disabled={isLocked}
       className={`w-full text-left p-4 rounded-xl border transition-all ${
-        isHighlighted
+        isLocked
+          ? 'bg-slate-900/50 border-slate-700/50 cursor-not-allowed opacity-60'
+          : isHighlighted
           ? 'bg-gold-primary/10 border-gold-primary/40 hover:bg-gold-primary/20 hover:border-gold-primary/60 shadow-lg shadow-gold-primary/20'
           : isRecent
           ? 'bg-gold-primary/5 border-gold-primary/20 hover:bg-gold-primary/10 hover:border-gold-primary/40'
@@ -1245,45 +1248,56 @@ function ArcCard({ arc, onSelect, isContinue, isRecent, isHighlighted, thumbnail
           ? 'bg-primary/10 border-primary/30 hover:bg-primary/20'
           : 'bg-card border-border hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10'
       }`}
-      whileHover={{ scale: 1.01 }}
-      whileTap={{ scale: 0.99 }}
+      whileHover={isLocked ? {} : { scale: 1.01 }}
+      whileTap={isLocked ? {} : { scale: 0.99 }}
     >
       <div className="flex items-center gap-4">
         {/* Era Image */}
         <div className={`w-14 h-14 rounded-xl flex items-center justify-center overflow-hidden ${
-          isHighlighted ? 'bg-gold-primary/30' : 'bg-primary/20'
+          isLocked ? 'bg-slate-800/50' : isHighlighted ? 'bg-gold-primary/30' : 'bg-primary/20'
         }`}>
           {hasValidThumbnail ? (
             <img
               src={thumbnailUrl}
               alt={arc.title}
-              className="w-full h-full object-cover"
+              className={`w-full h-full object-cover ${isLocked ? 'grayscale opacity-50' : ''}`}
               onError={() => setImageError(true)}
             />
           ) : (
-            <Map size={28} className="text-primary/50" />
+            <Map size={28} className={isLocked ? 'text-slate-600' : 'text-primary/50'} />
           )}
         </div>
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          <h3 className="font-editorial font-bold text-lg truncate">{arc.title}</h3>
-          <p className="text-sm text-muted-foreground line-clamp-1">{arc.description}</p>
-          <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+          <h3 className={`font-editorial font-bold text-lg truncate ${isLocked ? 'text-slate-500' : ''}`}>{arc.title}</h3>
+          <p className={`text-sm line-clamp-1 ${isLocked ? 'text-slate-600' : 'text-muted-foreground'}`}>{arc.description}</p>
+          <div className={`flex items-center gap-3 mt-1 text-xs ${isLocked ? 'text-slate-600' : 'text-muted-foreground'}`}>
             {host && (
               <span className="flex items-center gap-1">
-                <span>{host.avatar}</span>
+                <span className={isLocked ? 'grayscale' : ''}>{host.avatar}</span>
                 <span>{host.name}</span>
               </span>
             )}
-            <span>
-              {hasContent ? `${totalChapters} chapter${totalChapters !== 1 ? 's' : ''}` : 'Coming Soon'}
-            </span>
+            {isLocked ? (
+              <span className="flex items-center gap-1 text-slate-500">
+                <span>🔒</span>
+                <span>Coming Soon</span>
+              </span>
+            ) : (
+              <span>
+                {`${totalChapters} chapter${totalChapters !== 1 ? 's' : ''}`}
+              </span>
+            )}
           </div>
         </div>
 
-        {/* Arrow */}
-        <ChevronRight size={20} className={`shrink-0 ${isHighlighted ? 'text-gold-primary' : 'text-muted-foreground'}`} />
+        {/* Arrow or Lock */}
+        {isLocked ? (
+          <span className="text-slate-600 text-lg">🔒</span>
+        ) : (
+          <ChevronRight size={20} className={`shrink-0 ${isHighlighted ? 'text-gold-primary' : 'text-muted-foreground'}`} />
+        )}
       </div>
 
       {/* Progress bar for recent/continue */}

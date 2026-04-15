@@ -23,6 +23,8 @@ export const WW2_HOSTS: WW2Host[] = [
     description: 'A seasoned soldier who fought across the Pacific and European theaters. Experience the war through the eyes of someone who was there in the trenches.',
     introVideoUrl: '/assets/ww2-guides/soldier-intro.mp4',
     welcomeVideoUrl: undefined,
+    moreInfoVideoUrl: undefined,
+    isAvailable: true,  // Sergeant is the only available guide
   },
   {
     id: 'journalist',
@@ -36,6 +38,8 @@ export const WW2_HOSTS: WW2Host[] = [
     description: 'See the war through the lens of those who documented it. Hear the human stories from the frontlines - the courage, the fear, the sacrifice, and the hope.',
     introVideoUrl: '/assets/ww2-guides/journalist-intro.mp4',
     welcomeVideoUrl: undefined,
+    moreInfoVideoUrl: undefined,
+    isAvailable: false,  // Coming soon
   },
   {
     id: 'codebreaker',
@@ -49,6 +53,8 @@ export const WW2_HOSTS: WW2Host[] = [
     description: 'Discover the hidden war fought in the shadows. From Enigma to espionage, uncover the intelligence operations that changed the course of history.',
     introVideoUrl: '/assets/ww2-guides/codebreaker-intro.mp4',
     welcomeVideoUrl: undefined,
+    moreInfoVideoUrl: undefined,
+    isAvailable: false,  // Coming soon
   },
 ];
 
@@ -223,12 +229,14 @@ function mapFirestoreHostToWW2Host(h: {
   imageUrl?: string;
   introVideoUrl?: string;
   welcomeVideoUrl?: string;
+  moreInfoVideoUrl?: string;
   primaryColor: string;
   avatar: string;
   voiceStyle: string;
   description: string;
   displayOrder?: number;
   hidden?: boolean;
+  isAvailable?: boolean;
 }): (WW2Host & { displayOrder?: number }) | null {
   // Filter out hidden hosts for user-facing display
   if (h.hidden) return null;
@@ -242,11 +250,13 @@ function mapFirestoreHostToWW2Host(h: {
     imageUrl: h.imageUrl,
     introVideoUrl: h.introVideoUrl,
     welcomeVideoUrl: h.welcomeVideoUrl,
+    moreInfoVideoUrl: h.moreInfoVideoUrl,
     primaryColor: h.primaryColor,
     avatar: h.avatar,
     voiceStyle: h.voiceStyle,
     description: h.description,
     displayOrder: h.displayOrder,
+    isAvailable: h.isAvailable ?? true,  // Default to true if not specified
   };
 }
 

@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Volume2, VolumeX, Play, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Volume2, VolumeX, Play, X, Info, Lock } from 'lucide-react';
 import { getStoredWW2Hosts, loadWW2HostsFromFirestore, WW2_HOSTS } from '@/data/ww2Hosts';
 import { subscribeToWW2Hosts } from '@/lib/firestore';
 import { isFirebaseConfigured } from '@/lib/firebase';
@@ -38,12 +38,14 @@ function mapFirestoreHost(h: {
   imageUrl?: string;
   introVideoUrl?: string;
   welcomeVideoUrl?: string;
+  moreInfoVideoUrl?: string;
   primaryColor: string;
   avatar: string;
   voiceStyle: string;
   description: string;
   displayOrder?: number;
   hidden?: boolean;
+  isAvailable?: boolean;
 }): (WW2Host & { displayOrder?: number; hidden?: boolean }) | null {
   // Filter out hidden hosts
   if (h.hidden) return null;
@@ -61,11 +63,13 @@ function mapFirestoreHost(h: {
     welcomeVideoUrl: (h.welcomeVideoUrl && !h.welcomeVideoUrl.startsWith('data:') && !h.welcomeVideoUrl.startsWith('blob:'))
       ? h.welcomeVideoUrl
       : getDefaultVideoUrl(h.id, 'welcome'),
+    moreInfoVideoUrl: h.moreInfoVideoUrl,
     primaryColor: h.primaryColor,
     avatar: h.avatar,
     voiceStyle: h.voiceStyle,
     description: h.description,
     displayOrder: h.displayOrder,
+    isAvailable: h.isAvailable ?? true,  // Default to true if not specified
   };
 }
 
@@ -80,6 +84,10 @@ export function WW2HostSelection({ onSelectHost, onClose }: WW2HostSelectionProp
   const [hosts, setHosts] = useState<WW2Host[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
   const loadedRef = useRef(false); // Prevent double-loading race condition
+
+  // More Info video modal state
+  const [showMoreInfoVideo, setShowMoreInfoVideo] = useState(false);
+  const [moreInfoVideoUrl, setMoreInfoVideoUrl] = useState<string | null>(null);
 
   // Load hosts from storage (includes admin edits) on mount and subscribe to updates
   useEffect(() => {
@@ -149,12 +157,27 @@ export function WW2HostSelection({ onSelectHost, onClose }: WW2HostSelectionProp
     };
   }, [api]);
 
-  // Single click to choose the current guide
+  // Single click to choose the current guide (only if available)
   const handleChooseGuide = () => {
     const host = hosts[currentIndex];
-    if (host) {
+    if (host && host.isAvailable !== false) {
       onSelectHost(host.id);
     }
+  };
+
+  // Handle More Info button click
+  const handleMoreInfo = () => {
+    const host = hosts[currentIndex];
+    if (host?.moreInfoVideoUrl) {
+      setMoreInfoVideoUrl(host.moreInfoVideoUrl);
+      setShowMoreInfoVideo(true);
+    }
+  };
+
+  // Close More Info video modal
+  const handleCloseMoreInfo = () => {
+    setShowMoreInfoVideo(false);
+    setMoreInfoVideoUrl(null);
   };
 
   // Click on a card to navigate to it
@@ -286,22 +309,83 @@ export function WW2HostSelection({ onSelectHost, onClose }: WW2HostSelectionProp
             Swipe to explore guides
           </p>
 
-          {/* Choose Guide Button - always visible, with proper safe area handling */}
+          {/* Buttons Section - Choose Guide and More Info */}
           <div
             className="w-full px-4 mt-4 sm:mt-6"
             style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))' }}
           >
-            <motion.button
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              onClick={handleChooseGuide}
-              className="w-full max-w-md mx-auto block py-4 sm:py-4 px-6 sm:px-8 rounded-xl bg-amber-500 text-black font-bold text-base sm:text-lg hover:bg-amber-400 active:bg-amber-600 transition-all active:scale-[0.98] min-h-[52px]"
-            >
-              Choose {hosts[currentIndex]?.name || 'Guide'}
-            </motion.button>
+            <div className="max-w-md mx-auto space-y-3">
+              {/* More Info Button - only show if current guide has a more info video */}
+              {hosts[currentIndex]?.moreInfoVideoUrl && (
+                <motion.button
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  onClick={handleMoreInfo}
+                  className="w-full flex items-center justify-center gap-2 py-3 px-6 rounded-xl bg-white/10 backdrop-blur-sm text-white font-medium text-sm sm:text-base hover:bg-white/20 active:bg-white/30 transition-all active:scale-[0.98] border border-white/20"
+                >
+                  <Info size={18} />
+                  More About {hosts[currentIndex]?.name}
+                </motion.button>
+              )}
+
+              {/* Choose Guide / Coming Soon Button */}
+              {hosts[currentIndex]?.isAvailable !== false ? (
+                <motion.button
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  onClick={handleChooseGuide}
+                  className="w-full py-4 sm:py-4 px-6 sm:px-8 rounded-xl bg-amber-500 text-black font-bold text-base sm:text-lg hover:bg-amber-400 active:bg-amber-600 transition-all active:scale-[0.98] min-h-[52px]"
+                >
+                  Choose {hosts[currentIndex]?.name || 'Guide'}
+                </motion.button>
+              ) : (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="w-full py-4 sm:py-4 px-6 sm:px-8 rounded-xl bg-white/10 text-white/50 font-bold text-base sm:text-lg text-center min-h-[52px] flex items-center justify-center gap-2 border border-white/10"
+                >
+                  <Lock size={18} />
+                  Coming Soon
+                </motion.div>
+              )}
+            </div>
           </div>
         </div>
       </div>
+
+      {/* More Info Video Modal */}
+      <AnimatePresence>
+        {showMoreInfoVideo && moreInfoVideoUrl && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] bg-black flex flex-col"
+          >
+            <div className="flex-1 flex items-center justify-center">
+              <video
+                src={moreInfoVideoUrl}
+                autoPlay
+                playsInline
+                controls
+                onEnded={handleCloseMoreInfo}
+                className="w-full h-full object-contain"
+              />
+            </div>
+            <div className="absolute bottom-0 left-0 right-0 p-6 pb-8 bg-gradient-to-t from-black via-black/80 to-transparent">
+              <motion.button
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                onClick={handleCloseMoreInfo}
+                className="w-full max-w-md mx-auto block px-8 py-4 rounded-xl bg-white/20 backdrop-blur-sm text-white font-bold text-lg hover:bg-white/30 transition-all"
+              >
+                Back to Selection
+              </motion.button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
@@ -319,6 +403,9 @@ function HostCarouselCard({ host, isActive, isSelected, onClick }: HostCarouselC
   const [videoLoaded, setVideoLoaded] = useState(false);
   const [videoEnded, setVideoEnded] = useState(false);
   const [videoError, setVideoError] = useState(false);
+
+  // Check if this guide is available
+  const isAvailable = host.isAvailable !== false;
 
   // Auto-play video when active, pause and reset when not
   useEffect(() => {
@@ -369,7 +456,9 @@ function HostCarouselCard({ host, isActive, isSelected, onClick }: HostCarouselC
       }}
       transition={{ duration: 0.3 }}
       className={`relative rounded-2xl overflow-hidden border-2 transition-colors cursor-pointer ${
-        isSelected
+        !isAvailable
+          ? 'border-white/20'
+          : isSelected
           ? 'border-amber-400 shadow-lg shadow-amber-400/20'
           : isActive
           ? 'border-white/40'
@@ -377,7 +466,7 @@ function HostCarouselCard({ host, isActive, isSelected, onClick }: HostCarouselC
       }`}
     >
       {/* Image/Video Container - limit height on desktop so buttons are visible */}
-      <div className="relative w-full aspect-[4/5] md:aspect-[3/4] lg:aspect-[4/5] md:max-h-[55vh] bg-gradient-to-b from-neutral-800 to-neutral-900">
+      <div className={`relative w-full aspect-[4/5] md:aspect-[3/4] lg:aspect-[4/5] md:max-h-[55vh] bg-gradient-to-b from-neutral-800 to-neutral-900 ${!isAvailable ? 'grayscale' : ''}`}>
         {/* Video - always render but hide when not active */}
         {host.introVideoUrl && (
           <video
@@ -504,8 +593,8 @@ function HostCarouselCard({ host, isActive, isSelected, onClick }: HostCarouselC
           </AnimatePresence>
         </div>
 
-        {/* Selected Indicator */}
-        {isSelected && (
+        {/* Selected Indicator - only show for available guides */}
+        {isSelected && isAvailable && (
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
@@ -524,6 +613,18 @@ function HostCarouselCard({ host, isActive, isSelected, onClick }: HostCarouselC
                 d="M5 13l4 4L19 7"
               />
             </svg>
+          </motion.div>
+        )}
+
+        {/* Coming Soon Badge - for unavailable guides */}
+        {!isAvailable && (
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            className="absolute top-4 left-4 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-sm flex items-center gap-1.5 border border-white/20"
+          >
+            <Lock size={14} className="text-white/70" />
+            <span className="text-xs font-medium text-white/70">Coming Soon</span>
           </motion.div>
         )}
       </div>

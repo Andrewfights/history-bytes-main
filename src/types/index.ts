@@ -798,7 +798,7 @@ export interface SpiritGuide {
 // ---- WW2 Module Hosts ----
 
 export interface WW2Host {
-  id: 'eisenhower' | 'journalist' | 'codebreaker';
+  id: 'soldier' | 'journalist' | 'codebreaker';
   name: string;
   title: string;
   era: string;
@@ -806,10 +806,12 @@ export interface WW2Host {
   imageUrl?: string;         // Portrait image for carousel
   introVideoUrl?: string;    // 30s intro video for selection
   welcomeVideoUrl?: string;  // Return visit greeting video
+  moreInfoVideoUrl?: string; // Video where the guide gives more info about themselves
   primaryColor: string;
   avatar: string;
   voiceStyle: string;
   description: string;
+  isAvailable?: boolean;     // Whether this guide is selectable (grayed out if false)
 }
 
 export interface UserWW2Preferences {
