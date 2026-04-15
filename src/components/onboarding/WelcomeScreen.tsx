@@ -83,7 +83,7 @@ export function WelcomeScreen({ guide, onBegin }: WelcomeScreenProps) {
             <video
               ref={videoRef}
               src={guide.welcomeVideoUrl}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain"
               muted={isMuted}
               playsInline
               onEnded={handleVideoEnded}

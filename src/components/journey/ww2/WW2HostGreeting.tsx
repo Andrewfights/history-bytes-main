@@ -82,7 +82,7 @@ export function WW2HostGreeting({ host, onContinue, onChangeGuide }: WW2HostGree
               src={host.welcomeVideoUrl}
               autoPlay
               controls
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain"
               onEnded={() => setIsPlayingVideo(false)}
             />
           </motion.div>

@@ -478,7 +478,7 @@ function HostCarouselCard({ host, isActive, isSelected, onClick }: HostCarouselC
             onLoadedData={() => setVideoLoaded(true)}
             onEnded={() => setVideoEnded(true)}
             onError={() => setVideoError(true)}
-            className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-300 ${
+            className={`absolute inset-0 w-full h-full object-cover object-center transition-opacity duration-300 ${
               showVideo ? 'opacity-100' : 'opacity-0 pointer-events-none'
             }`}
           />
