@@ -89,6 +89,12 @@ export function WW2HostSelection({ onSelectHost, onClose }: WW2HostSelectionProp
   const [showMoreInfoVideo, setShowMoreInfoVideo] = useState(false);
   const [moreInfoVideoUrl, setMoreInfoVideoUrl] = useState<string | null>(null);
 
+  // Track if the current guide's intro video has ended
+  const [introVideoEnded, setIntroVideoEnded] = useState(false);
+
+  // Ref to control pausing the intro video from parent
+  const pauseIntroVideoRef = useRef<(() => void) | null>(null);
+
   // Load hosts from storage (includes admin edits) on mount and subscribe to updates
   useEffect(() => {
     let unsubscribe: (() => void) | undefined;
@@ -148,6 +154,8 @@ export function WW2HostSelection({ onSelectHost, onClose }: WW2HostSelectionProp
 
     const onSelect = () => {
       setCurrentIndex(api.selectedScrollSnap());
+      // Reset intro video ended state when switching guides
+      setIntroVideoEnded(false);
     };
 
     api.on('select', onSelect);
@@ -168,7 +176,11 @@ export function WW2HostSelection({ onSelectHost, onClose }: WW2HostSelectionProp
   // Handle More Info button click
   const handleMoreInfo = () => {
     const host = hosts[currentIndex];
-    if (host?.moreInfoVideoUrl) {
+    if (host?.moreInfoVideoUrl && introVideoEnded) {
+      // Pause the intro video before showing more info
+      if (pauseIntroVideoRef.current) {
+        pauseIntroVideoRef.current();
+      }
       setMoreInfoVideoUrl(host.moreInfoVideoUrl);
       setShowMoreInfoVideo(true);
     }
@@ -280,6 +292,8 @@ export function WW2HostSelection({ onSelectHost, onClose }: WW2HostSelectionProp
                         isActive={currentIndex === index}
                         isSelected={currentIndex === index}
                         onClick={() => handleCardClick(index)}
+                        onVideoEnded={() => setIntroVideoEnded(true)}
+                        registerPauseVideo={currentIndex === index ? (pauseFn) => { pauseIntroVideoRef.current = pauseFn; } : undefined}
                       />
                     </div>
                   </CarouselItem>
@@ -288,35 +302,14 @@ export function WW2HostSelection({ onSelectHost, onClose }: WW2HostSelectionProp
             </Carousel>
           </div>
 
-          {/* Dot Indicators - visible on all screen sizes with better mobile touch targets */}
-          <div className="flex gap-2 sm:gap-2 mt-4 justify-center">
-            {hosts.map((host, index) => (
-              <button
-                key={host.id}
-                onClick={() => api?.scrollTo(index)}
-                className={`h-2 sm:h-2.5 rounded-full transition-all min-w-[32px] sm:min-w-0 ${
-                  currentIndex === index
-                    ? 'bg-white w-6 sm:w-6'
-                    : 'bg-white/30 hover:bg-white/50 active:bg-white/60 w-2 sm:w-2.5'
-                }`}
-                aria-label={`Go to ${host.name}`}
-              />
-            ))}
-          </div>
-
-          {/* Swipe hint - visible on mobile only */}
-          <p className="text-center text-xs text-white/40 mt-2 sm:hidden">
-            Swipe to explore guides
-          </p>
-
           {/* Buttons Section - Choose Guide and More Info */}
           <div
             className="w-full px-4 mt-4 sm:mt-6"
             style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))' }}
           >
             <div className="max-w-md mx-auto space-y-3">
-              {/* More Info Button - only show if current guide has a more info video */}
-              {hosts[currentIndex]?.moreInfoVideoUrl && (
+              {/* More Info Button - only show after intro video ends and if guide has a more info video */}
+              {hosts[currentIndex]?.moreInfoVideoUrl && introVideoEnded && (
                 <motion.button
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -395,14 +388,27 @@ interface HostCarouselCardProps {
   isActive: boolean;
   isSelected: boolean;
   onClick: () => void;
+  onVideoEnded?: () => void;
+  registerPauseVideo?: (pauseFn: () => void) => void;
 }
 
-function HostCarouselCard({ host, isActive, isSelected, onClick }: HostCarouselCardProps) {
+function HostCarouselCard({ host, isActive, isSelected, onClick, onVideoEnded, registerPauseVideo }: HostCarouselCardProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isMuted, setIsMuted] = useState(false); // Default volume ON
   const [videoLoaded, setVideoLoaded] = useState(false);
   const [videoEnded, setVideoEnded] = useState(false);
   const [videoError, setVideoError] = useState(false);
+
+  // Register the pause function with the parent
+  useEffect(() => {
+    if (registerPauseVideo && videoRef.current) {
+      registerPauseVideo(() => {
+        if (videoRef.current) {
+          videoRef.current.pause();
+        }
+      });
+    }
+  }, [registerPauseVideo]);
 
   // Check if this guide is available
   const isAvailable = host.isAvailable !== false;
@@ -476,7 +482,10 @@ function HostCarouselCard({ host, isActive, isSelected, onClick }: HostCarouselC
             playsInline
             preload="auto"
             onLoadedData={() => setVideoLoaded(true)}
-            onEnded={() => setVideoEnded(true)}
+            onEnded={() => {
+              setVideoEnded(true);
+              onVideoEnded?.();
+            }}
             onError={() => setVideoError(true)}
             className={`absolute inset-0 w-full h-full object-cover object-center transition-opacity duration-300 ${
               showVideo ? 'opacity-100' : 'opacity-0 pointer-events-none'
