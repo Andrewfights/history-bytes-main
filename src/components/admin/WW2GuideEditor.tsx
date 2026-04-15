@@ -8,7 +8,7 @@ import { uploadFile, type MediaFile, isFirebaseConfigured } from '@/lib/supabase
 import { saveAllWW2Hosts, getWW2Hosts, type FirestoreWW2Host } from '@/lib/firestore';
 import type { WW2Host } from '@/types';
 
-type EditableWW2Host = WW2Host & { localImageUrl?: string; displayOrder?: number; hidden?: boolean };
+type EditableWW2Host = WW2Host & { localImageUrl?: string; displayOrder?: number; hidden?: boolean; isAvailable?: boolean };
 
 // Load hosts from Firestore ONLY (Firebase required for admin)
 async function loadStoredHostsAsync(): Promise<EditableWW2Host[]> {
@@ -30,12 +30,14 @@ async function loadStoredHostsAsync(): Promise<EditableWW2Host[]> {
         imageUrl: h.imageUrl,
         introVideoUrl: h.introVideoUrl,
         welcomeVideoUrl: h.welcomeVideoUrl,
+        moreInfoVideoUrl: h.moreInfoVideoUrl,
         primaryColor: h.primaryColor,
         avatar: h.avatar,
         voiceStyle: h.voiceStyle,
         description: h.description,
         displayOrder: h.displayOrder ?? i,
         hidden: h.hidden ?? false,
+        isAvailable: h.isAvailable ?? true,
       }));
     }
   } catch (e) {
@@ -68,6 +70,7 @@ async function saveStoredHostsAsync(hosts: EditableWW2Host[]): Promise<{ success
     if (isLocalDataUrl(host.imageUrl)) localUrlIssues.push(`${host.name}: portrait image is local`);
     if (isLocalDataUrl(host.introVideoUrl)) localUrlIssues.push(`${host.name}: intro video is local`);
     if (isLocalDataUrl(host.welcomeVideoUrl)) localUrlIssues.push(`${host.name}: welcome video is local`);
+    if (isLocalDataUrl(host.moreInfoVideoUrl)) localUrlIssues.push(`${host.name}: more info video is local`);
   }
 
   if (localUrlIssues.length > 0) {
@@ -95,7 +98,9 @@ async function saveStoredHostsAsync(hosts: EditableWW2Host[]): Promise<{ success
       if (h.imageUrl) host.imageUrl = h.imageUrl;
       if (h.introVideoUrl) host.introVideoUrl = h.introVideoUrl;
       if (h.welcomeVideoUrl) host.welcomeVideoUrl = h.welcomeVideoUrl;
+      if (h.moreInfoVideoUrl) host.moreInfoVideoUrl = h.moreInfoVideoUrl;
       if (h.hidden) host.hidden = h.hidden;
+      if (h.isAvailable !== undefined) host.isAvailable = h.isAvailable;
       return host;
     });
 
@@ -120,7 +125,7 @@ export default function WW2GuideEditor() {
   const [isLoading, setIsLoading] = useState(true);
   const [imageError, setImageError] = useState<Record<string, boolean>>({});
   const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
-  const [mediaPickerType, setMediaPickerType] = useState<'introVideo' | 'welcomeVideo' | 'image'>('introVideo');
+  const [mediaPickerType, setMediaPickerType] = useState<'introVideo' | 'welcomeVideo' | 'moreInfoVideo' | 'image'>('introVideo');
   const [previewingVideo, setPreviewingVideo] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -145,7 +150,7 @@ export default function WW2GuideEditor() {
     loadHosts();
   }, []);
 
-  const openMediaPicker = (type: 'introVideo' | 'welcomeVideo' | 'image') => {
+  const openMediaPicker = (type: 'introVideo' | 'welcomeVideo' | 'moreInfoVideo' | 'image') => {
     setMediaPickerType(type);
     setMediaPickerOpen(true);
   };
@@ -175,6 +180,7 @@ export default function WW2GuideEditor() {
     if (!selectedId) return;
     const field = mediaPickerType === 'introVideo' ? 'introVideoUrl'
       : mediaPickerType === 'welcomeVideo' ? 'welcomeVideoUrl'
+      : mediaPickerType === 'moreInfoVideo' ? 'moreInfoVideoUrl'
       : 'imageUrl';
 
     // Update hosts and auto-save
@@ -189,10 +195,11 @@ export default function WW2GuideEditor() {
     toast.dismiss('autosave');
   };
 
-  const clearMedia = async (type: 'introVideo' | 'welcomeVideo' | 'image') => {
+  const clearMedia = async (type: 'introVideo' | 'welcomeVideo' | 'moreInfoVideo' | 'image') => {
     if (!selectedId) return;
     const field = type === 'introVideo' ? 'introVideoUrl'
       : type === 'welcomeVideo' ? 'welcomeVideoUrl'
+      : type === 'moreInfoVideo' ? 'moreInfoVideoUrl'
       : 'imageUrl';
 
     // Update hosts and auto-save
@@ -516,7 +523,7 @@ export default function WW2GuideEditor() {
                     </div>
 
                     {/* Welcome Video */}
-                    <div>
+                    <div className="mb-3">
                       <label className="text-xs text-muted-foreground mb-1.5 block">Welcome Video (after selection)</label>
                       {selectedHost.welcomeVideoUrl ? (
                         <div className="relative rounded-lg overflow-hidden bg-muted aspect-video">
@@ -550,6 +557,46 @@ export default function WW2GuideEditor() {
                           + Add welcome video
                         </button>
                       )}
+                    </div>
+
+                    {/* More Info Video */}
+                    <div>
+                      <label className="text-xs text-muted-foreground mb-1.5 block">More Info Video (optional bio/background)</label>
+                      {selectedHost.moreInfoVideoUrl ? (
+                        <div className="relative rounded-lg overflow-hidden bg-muted aspect-video">
+                          <video
+                            src={selectedHost.moreInfoVideoUrl}
+                            className="w-full h-full object-cover"
+                            muted
+                            onMouseEnter={(e) => e.currentTarget.play()}
+                            onMouseLeave={(e) => { e.currentTarget.pause(); e.currentTarget.currentTime = 0; }}
+                          />
+                          <div className="absolute top-1 right-1 flex gap-1">
+                            <button
+                              onClick={() => setPreviewingVideo(selectedHost.moreInfoVideoUrl!)}
+                              className="p-1.5 rounded bg-black/60 hover:bg-black/80 text-white"
+                            >
+                              <Play size={12} />
+                            </button>
+                            <button
+                              onClick={() => clearMedia('moreInfoVideo')}
+                              className="p-1.5 rounded bg-black/60 hover:bg-red-600 text-white"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => openMediaPicker('moreInfoVideo')}
+                          className="w-full py-3 rounded-lg border-2 border-dashed border-border hover:border-primary text-muted-foreground hover:text-foreground text-xs transition-colors"
+                        >
+                          + Add more info video
+                        </button>
+                      )}
+                      <p className="text-[10px] text-muted-foreground mt-1">
+                        Shows a "More Info" button on the guide selection screen
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -643,7 +690,45 @@ export default function WW2GuideEditor() {
                     </p>
                   </div>
 
-                  {/* Visibility Toggle */}
+                  {/* Availability Toggle (grayed out vs selectable) */}
+                  <div className={`p-4 rounded-lg border ${selectedHost.isAvailable === false ? 'bg-amber-500/10 border-amber-500/30' : 'bg-green-500/10 border-green-500/30'}`}>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-medium text-sm mb-1">
+                          {selectedHost.isAvailable === false ? 'Coming Soon (Grayed Out)' : 'Available (Selectable)'}
+                        </h4>
+                        <p className="text-xs text-muted-foreground">
+                          {selectedHost.isAvailable === false
+                            ? 'This guide appears grayed out with a "Coming Soon" badge.'
+                            : 'This guide can be selected by users.'}
+                        </p>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          const newAvailable = selectedHost.isAvailable === false;
+                          const updatedHosts = hosts.map(h =>
+                            h.id === selectedId ? { ...h, isAvailable: newAvailable } : h
+                          );
+                          setHosts(updatedHosts);
+                          toast.loading('Saving...', { id: 'availability' });
+                          await autoSaveHosts(updatedHosts);
+                          toast.dismiss('availability');
+                          toast.success(newAvailable ? 'Guide now available' : 'Guide set to Coming Soon');
+                        }}
+                        className={`relative w-14 h-7 rounded-full transition-colors ${
+                          selectedHost.isAvailable === false ? 'bg-amber-500' : 'bg-green-500'
+                        }`}
+                      >
+                        <div
+                          className={`absolute top-1 w-5 h-5 rounded-full bg-white transition-transform ${
+                            selectedHost.isAvailable === false ? 'translate-x-1' : 'translate-x-8'
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Visibility Toggle (hidden vs visible) */}
                   <div className={`p-4 rounded-lg border ${selectedHost.hidden ? 'bg-red-500/10 border-red-500/30' : 'bg-green-500/10 border-green-500/30'}`}>
                     <div className="flex items-center justify-between">
                       <div>
@@ -703,6 +788,7 @@ export default function WW2GuideEditor() {
         title={
           mediaPickerType === 'introVideo' ? 'Select Intro Video'
           : mediaPickerType === 'welcomeVideo' ? 'Select Welcome Video'
+          : mediaPickerType === 'moreInfoVideo' ? 'Select More Info Video'
           : 'Select Image'
         }
       />
@@ -839,6 +925,22 @@ function HostCard({
               host.welcomeVideoUrl.startsWith('data:') || host.welcomeVideoUrl.startsWith('blob:')
                 ? 'Welcome video (LOCAL - re-upload needed)'
                 : 'Welcome video (cloud)'
+            }
+          >
+            <Video size={10} className="text-white" />
+          </div>
+        )}
+        {host.moreInfoVideoUrl && (
+          <div
+            className={`w-5 h-5 rounded-full flex items-center justify-center ${
+              host.moreInfoVideoUrl.startsWith('data:') || host.moreInfoVideoUrl.startsWith('blob:')
+                ? 'bg-orange-500/80'
+                : 'bg-blue-500/80'
+            }`}
+            title={
+              host.moreInfoVideoUrl.startsWith('data:') || host.moreInfoVideoUrl.startsWith('blob:')
+                ? 'More info video (LOCAL - re-upload needed)'
+                : 'More info video (cloud)'
             }
           >
             <Video size={10} className="text-white" />
