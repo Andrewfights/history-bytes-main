@@ -355,14 +355,14 @@ export function WW2HostSelection({ onSelectHost, onClose }: WW2HostSelectionProp
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[60] bg-black flex flex-col"
           >
-            <div className="flex-1 flex items-center justify-center">
+            <div className="flex-1 flex items-center justify-center p-4">
               <video
                 src={moreInfoVideoUrl}
                 autoPlay
                 playsInline
                 controls
                 onEnded={handleCloseMoreInfo}
-                className="w-full h-full object-contain"
+                className="max-w-full max-h-full w-auto h-auto"
               />
             </div>
             <div className="absolute bottom-0 left-0 right-0 p-6 pb-8 bg-gradient-to-t from-black via-black/80 to-transparent">

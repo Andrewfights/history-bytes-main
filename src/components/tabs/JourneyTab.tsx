@@ -657,7 +657,7 @@ export function JourneyTab() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 bg-black flex items-center justify-center"
+          className="fixed inset-0 z-50 bg-black flex items-center justify-center p-4"
         >
           <video
             src={host.welcomeVideoUrl}
@@ -668,7 +668,7 @@ export function JourneyTab() {
               setWelcomeVideoEnded(false);
               handleWW2WelcomeVideoEnd();
             }}
-            className="w-full h-full object-contain"
+            className="max-w-full max-h-full w-auto h-auto"
           />
         </motion.div>
       );
