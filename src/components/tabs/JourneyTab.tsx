@@ -648,6 +648,7 @@ export function JourneyTab() {
   }
 
   // Render WW2 Welcome Video after host selection
+  // Video plays and automatically proceeds to theater selection when finished
   if (showWW2WelcomeVideo && pendingHostId) {
     const host = getWW2HostById(pendingHostId);
     if (host?.welcomeVideoUrl) {
@@ -656,55 +657,19 @@ export function JourneyTab() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 bg-black flex flex-col"
+          className="fixed inset-0 z-50 bg-black flex items-center justify-center"
         >
-          {/* Video or Host Profile */}
-          <div className="flex-1 flex items-center justify-center">
-            {!welcomeVideoEnded ? (
-              <video
-                src={host.welcomeVideoUrl}
-                autoPlay
-                playsInline
-                onEnded={() => setWelcomeVideoEnded(true)}
-                className="w-full h-full object-contain"
-              />
-            ) : (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="flex flex-col items-center"
-              >
-                {/* Host Profile Picture */}
-                <div
-                  className="w-32 h-32 rounded-full flex items-center justify-center text-6xl shadow-2xl mb-4"
-                  style={{ backgroundColor: host.primaryColor }}
-                >
-                  {host.avatar}
-                </div>
-                <h2 className="text-white text-2xl font-bold">{host.name}</h2>
-                <p className="text-white/60 text-sm mt-1">Your Guide</p>
-              </motion.div>
-            )}
-          </div>
-
-          {/* Continue button - always visible below video */}
-          <div className="absolute bottom-0 left-0 right-0 p-6 pb-8 bg-gradient-to-t from-black via-black/80 to-transparent">
-            <motion.button
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-              onClick={() => {
-                setWelcomeVideoEnded(false); // Reset for next time
-                handleWW2WelcomeVideoEnd();
-              }}
-              className="w-full max-w-md mx-auto block px-8 py-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-black font-bold text-lg shadow-lg shadow-amber-500/30 hover:shadow-amber-500/50 hover:from-amber-400 hover:to-amber-500 transition-all"
-            >
-              Continue to World War II
-            </motion.button>
-            <p className="text-center text-white/50 text-sm mt-3">
-              Select your first campaign
-            </p>
-          </div>
+          <video
+            src={host.welcomeVideoUrl}
+            autoPlay
+            playsInline
+            onEnded={() => {
+              // Auto-proceed to theater selection when video ends
+              setWelcomeVideoEnded(false);
+              handleWW2WelcomeVideoEnd();
+            }}
+            className="w-full h-full object-contain"
+          />
         </motion.div>
       );
     }
