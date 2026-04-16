@@ -81,15 +81,15 @@ export function PreModuleVideoScreen({ config, beatTitle, onComplete }: PreModul
 
   return (
     <div className="fixed inset-0 bg-black flex flex-col">
-      {/* Video Container */}
+      {/* Video Container - supports both 9:16 and 16:9 videos */}
       <div
-        className="flex-1 relative flex items-center justify-center"
+        className="flex-1 relative flex items-center justify-center min-h-0 p-2"
         onClick={handleScreenTap}
       >
         <video
           ref={videoRef}
           src={config.videoUrl}
-          className="w-full h-full object-contain"
+          className="max-w-full max-h-full w-auto h-auto object-contain"
           playsInline
           muted={isMuted}
           onTimeUpdate={handleTimeUpdate}
@@ -189,8 +189,8 @@ export function PreModuleVideoScreen({ config, beatTitle, onComplete }: PreModul
 
       {/* Bottom controls bar - improved mobile touch targets and safe area */}
       <div
-        className="bg-black/80 backdrop-blur-sm border-t border-white/10 px-4 py-3"
-        style={{ paddingBottom: 'max(0.75rem, calc(env(safe-area-inset-bottom) + 0.75rem))' }}
+        className="shrink-0 bg-black/80 backdrop-blur-sm border-t border-white/10 px-4 py-3"
+        style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))' }}
       >
         {/* Progress bar - taller for easier touch interaction */}
         <div className="h-2 bg-white/20 rounded-full mb-3 overflow-hidden touch-none">
