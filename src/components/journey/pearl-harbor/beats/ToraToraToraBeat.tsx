@@ -13,6 +13,8 @@ import { ArrowLeft, Sparkles, Clock, MapPin, Volume2, VolumeX } from 'lucide-rea
 import { WW2Host } from '@/types';
 import { usePearlHarborProgress } from '../hooks/usePearlHarborProgress';
 import { useWW2ModuleAssets } from '../hooks/useWW2ModuleAssets';
+import { PreModuleVideoScreen } from '../shared';
+import { subscribeToWW2ModuleAssets, type PreModuleVideoConfig } from '@/lib/firestore';
 
 // Media keys from WW2ModuleEditor
 const MEDIA_KEYS = {
@@ -20,8 +22,8 @@ const MEDIA_KEYS = {
   attackSounds: 'period-accurate-attack-sounds-optional',
 };
 
-type Screen = 'intro' | 'map-overview' | 'timeline' | 'hotspots' | 'reflection' | 'completion';
-const SCREENS: Screen[] = ['intro', 'map-overview', 'timeline', 'hotspots', 'reflection', 'completion'];
+type Screen = 'pre-video' | 'intro' | 'map-overview' | 'timeline' | 'hotspots' | 'reflection' | 'completion';
+const SCREENS: Screen[] = ['pre-video', 'intro', 'map-overview', 'timeline', 'hotspots', 'reflection', 'completion'];
 
 const LESSON_DATA = {
   id: 'ph-beat-3',
@@ -134,10 +136,36 @@ export function ToraToraToraBeat({ host, onComplete, onSkip, onBack }: ToraToraT
   const [selectedHotspot, setSelectedHotspot] = useState<MapHotspot | null>(null);
   const [audioEnabled, setAudioEnabled] = useState(false);
   const [skipped, setSkipped] = useState(false);
+  const [preModuleVideoConfig, setPreModuleVideoConfig] = useState<PreModuleVideoConfig | null>(null);
+  const [hasLoadedConfig, setHasLoadedConfig] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const { saveCheckpoint, clearCheckpoint, getCheckpoint } = usePearlHarborProgress();
   const { getMediaUrl } = useWW2ModuleAssets();
+
+  // Subscribe to Firestore for pre-module video config
+  useEffect(() => {
+    const unsubscribe = subscribeToWW2ModuleAssets((assets) => {
+      const preModuleVideo = assets?.preModuleVideos?.[LESSON_DATA.id];
+      if (preModuleVideo?.enabled && preModuleVideo?.videoUrl) {
+        setPreModuleVideoConfig(preModuleVideo);
+      } else {
+        setPreModuleVideoConfig(null);
+      }
+      setHasLoadedConfig(true);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Set initial screen based on pre-module video availability
+  useEffect(() => {
+    if (hasLoadedConfig && screen === 'intro') {
+      const checkpoint = getCheckpoint();
+      if (!checkpoint?.lessonId && preModuleVideoConfig?.enabled && preModuleVideoConfig?.videoUrl) {
+        setScreen('pre-video');
+      }
+    }
+  }, [hasLoadedConfig, preModuleVideoConfig]);
 
   // Get uploaded media URLs
   const aerialMapUrl = getMediaUrl('ph-beat-3', MEDIA_KEYS.aerialMap);
@@ -236,6 +264,15 @@ export function ToraToraToraBeat({ host, onComplete, onSkip, onBack }: ToraToraT
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
         <AnimatePresence mode="wait">
+          {/* PRE-MODULE VIDEO */}
+          {screen === 'pre-video' && preModuleVideoConfig && (
+            <PreModuleVideoScreen
+              config={preModuleVideoConfig}
+              beatTitle="Tora! Tora! Tora!"
+              onComplete={() => setScreen('intro')}
+            />
+          )}
+
           {/* INTRO */}
           {screen === 'intro' && (
             <motion.div key="intro" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full p-6">

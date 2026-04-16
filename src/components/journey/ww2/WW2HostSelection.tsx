@@ -303,22 +303,26 @@ export function WW2HostSelection({ onSelectHost, onClose }: WW2HostSelectionProp
           </div>
 
           {/* Buttons Section - Choose Guide and More Info */}
+          {/* Add extra padding at bottom to account for bottom nav (approx 80px) + safe area */}
           <div
-            className="w-full px-4 mt-4 sm:mt-6"
-            style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))' }}
+            className="w-full px-4 mt-4 sm:mt-6 pb-24 md:pb-28"
+            style={{ paddingBottom: 'max(6rem, calc(env(safe-area-inset-bottom) + 5rem))' }}
           >
             <div className="max-w-md mx-auto space-y-3">
-              {/* More Info Button - only show after intro video ends and if guide has a more info video */}
-              {hosts[currentIndex]?.moreInfoVideoUrl && introVideoEnded && (
-                <motion.button
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
+              {/* More Info Button - always visible if guide has video, but disabled until intro video ends */}
+              {hosts[currentIndex]?.moreInfoVideoUrl && (
+                <button
                   onClick={handleMoreInfo}
-                  className="w-full flex items-center justify-center gap-2 py-3 px-6 rounded-xl bg-white/10 backdrop-blur-sm text-white font-medium text-sm sm:text-base hover:bg-white/20 active:bg-white/30 transition-all active:scale-[0.98] border border-white/20"
+                  disabled={!introVideoEnded}
+                  className={`w-full flex items-center justify-center gap-2 py-3 px-6 rounded-xl backdrop-blur-sm font-medium text-sm sm:text-base transition-all border ${
+                    introVideoEnded
+                      ? 'bg-white/10 text-white hover:bg-white/20 active:bg-white/30 active:scale-[0.98] border-white/20 cursor-pointer'
+                      : 'bg-white/5 text-white/40 border-white/10 cursor-not-allowed'
+                  }`}
                 >
-                  <Info size={18} />
+                  <Info size={18} className={introVideoEnded ? '' : 'opacity-50'} />
                   More About {hosts[currentIndex]?.name}
-                </motion.button>
+                </button>
               )}
 
               {/* Choose Guide / Coming Soon Button */}
@@ -355,17 +359,22 @@ export function WW2HostSelection({ onSelectHost, onClose }: WW2HostSelectionProp
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[60] bg-black flex flex-col"
           >
-            <div className="flex-1 flex items-center justify-center p-4">
+            {/* Video container - takes remaining space above button */}
+            <div className="flex-1 flex items-center justify-center p-4 min-h-0">
               <video
                 src={moreInfoVideoUrl}
                 autoPlay
                 playsInline
                 controls
                 onEnded={handleCloseMoreInfo}
-                className="max-w-full max-h-full w-auto h-auto"
+                className="max-w-full max-h-full w-auto h-auto object-contain"
               />
             </div>
-            <div className="absolute bottom-0 left-0 right-0 p-6 pb-8 bg-gradient-to-t from-black via-black/80 to-transparent">
+            {/* Back button - fixed height area at bottom, above the nav bar */}
+            <div
+              className="shrink-0 p-4 pb-24 bg-gradient-to-t from-black to-transparent"
+              style={{ paddingBottom: 'max(6rem, calc(env(safe-area-inset-bottom) + 5rem))' }}
+            >
               <motion.button
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}

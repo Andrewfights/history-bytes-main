@@ -1184,7 +1184,7 @@ interface PreModuleVideoSectionProps {
   beatId: string;
   config?: PreModuleVideoConfig;
   onSave: (beatId: string, config: PreModuleVideoConfig | null) => Promise<void>;
-  onUploadVideo: (beatId: string, mediaKey: string, file: File) => Promise<void>;
+  onUploadVideo: (beatId: string, mediaKey: string, file: File, onProgress?: (progress: number) => void) => Promise<void>;
 }
 
 function PreModuleVideoSection({ beatId, config, onSave, onUploadVideo }: PreModuleVideoSectionProps) {
@@ -1193,6 +1193,7 @@ function PreModuleVideoSection({ beatId, config, onSave, onUploadVideo }: PreMod
   const [title, setTitle] = useState(config?.title ?? '');
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Sync state when config changes
@@ -1242,13 +1243,16 @@ function PreModuleVideoSection({ beatId, config, onSave, onUploadVideo }: PreMod
     if (!file) return;
 
     setIsUploading(true);
+    setUploadProgress(0);
     try {
       // Upload with a specific key for pre-module videos
-      await onUploadVideo(beatId, `pre-module-video`, file);
-      // The URL will be available in beatMedia after upload
-      // For now, we need to wait for the subscription to update
+      await onUploadVideo(beatId, `pre-module-video`, file, (progress) => {
+        setUploadProgress(progress);
+      });
+      // The URL will be available via subscription after upload
     } finally {
       setIsUploading(false);
+      setUploadProgress(0);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -1308,14 +1312,15 @@ function PreModuleVideoSection({ beatId, config, onSave, onUploadVideo }: PreMod
                 onChange={(e) => setVideoUrl(e.target.value)}
                 placeholder="https://example.com/video.mp4"
                 className="flex-1 bg-slate-700 text-white text-sm rounded-lg px-3 py-2 border border-slate-600 focus:border-purple-500 focus:outline-none"
+                disabled={isUploading}
               />
               <button
                 onClick={handleUploadClick}
                 disabled={isUploading}
-                className="px-3 py-2 bg-slate-600 hover:bg-slate-500 text-white text-xs rounded-lg flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs rounded-lg flex items-center gap-1.5 transition-colors disabled:opacity-50"
               >
                 {isUploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
-                Upload
+                {isUploading ? 'Uploading...' : 'Upload Video'}
               </button>
               <input
                 type="file"
@@ -1327,14 +1332,40 @@ function PreModuleVideoSection({ beatId, config, onSave, onUploadVideo }: PreMod
             </div>
           </div>
 
+          {/* Upload Progress Bar */}
+          {isUploading && (
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs text-slate-400">
+                <span>Uploading video...</span>
+                <span>{Math.round(uploadProgress)}%</span>
+              </div>
+              <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-purple-500 transition-all duration-300 ease-out"
+                  style={{ width: `${uploadProgress}%` }}
+                />
+              </div>
+            </div>
+          )}
+
           {/* Video Preview */}
-          {videoUrl && (
-            <div className="rounded-lg overflow-hidden bg-black">
-              <video
-                src={videoUrl}
-                controls
-                className="w-full max-h-48"
-              />
+          {videoUrl && !isUploading && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs text-slate-400">Video Preview</label>
+                <span className="text-xs text-green-400 flex items-center gap-1">
+                  <Check size={12} />
+                  Video uploaded
+                </span>
+              </div>
+              <div className="rounded-lg overflow-hidden bg-black border border-slate-600">
+                <video
+                  src={videoUrl}
+                  controls
+                  className="w-full max-h-64"
+                  preload="metadata"
+                />
+              </div>
             </div>
           )}
 
@@ -2084,19 +2115,35 @@ export function WW2ModuleEditor() {
     return () => unsubscribe();
   }, []);
 
-  // Handle media upload
-  const handleUpload = useCallback(async (beatId: string, mediaKey: string, file: File) => {
+  // Handle media upload with progress callback
+  const handleUpload = useCallback(async (
+    beatId: string,
+    mediaKey: string,
+    file: File,
+    onProgress?: (progress: number) => void
+  ) => {
     try {
-      // Upload to Firebase Storage
-      const result = await uploadFile(file);
+      // Upload to Firebase Storage with progress callback
+      const result = await uploadFile(file, onProgress);
       if (!result || !result.url) {
         console.error('Failed to upload file');
         return;
       }
 
-      // Update Firestore with the URL
-      await updateWW2BeatMedia(beatId, mediaKey, result.url);
-      console.log('Media uploaded successfully:', result.url);
+      // Special handling for pre-module videos - save to correct location
+      if (mediaKey === 'pre-module-video') {
+        // Save directly to preModuleVideos config
+        await updateWW2BeatPreModuleVideo(beatId, {
+          videoUrl: result.url,
+          enabled: true,
+          skipAllowed: true,
+        });
+        console.log('Pre-module video uploaded and saved:', result.url);
+      } else {
+        // Regular media - save to beatMedia
+        await updateWW2BeatMedia(beatId, mediaKey, result.url);
+        console.log('Media uploaded successfully:', result.url);
+      }
     } catch (error) {
       console.error('Error uploading media:', error);
     }

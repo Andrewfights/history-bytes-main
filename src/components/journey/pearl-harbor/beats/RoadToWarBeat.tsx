@@ -316,6 +316,15 @@ export function RoadToWarBeat({ host, onComplete, onSkip, onBack }: RoadToWarBea
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
         <AnimatePresence mode="wait">
+          {/* PRE-MODULE VIDEO */}
+          {screen === 'pre-video' && preModuleVideoConfig && (
+            <PreModuleVideoScreen
+              config={preModuleVideoConfig}
+              beatTitle="Why Pearl Harbor?"
+              onComplete={() => setScreen('intro')}
+            />
+          )}
+
           {/* INTRO SCREEN */}
           {screen === 'intro' && (
             <motion.div

@@ -11,11 +11,12 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Sparkles, Factory, Globe, AlertTriangle, TrendingUp } from 'lucide-react';
 import { WW2Host } from '@/types';
-import { TimedChallenge, TimedQuestion } from '../shared';
+import { TimedChallenge, TimedQuestion, PreModuleVideoScreen } from '../shared';
+import { subscribeToWW2ModuleAssets, type PreModuleVideoConfig } from '@/lib/firestore';
 import { usePearlHarborProgress } from '../hooks/usePearlHarborProgress';
 
-type Screen = 'intro' | 'production' | 'timed-challenge' | 'strategy' | 'dark-side' | 'completion';
-const SCREENS: Screen[] = ['intro', 'production', 'timed-challenge', 'strategy', 'dark-side', 'completion'];
+type Screen = 'pre-video' | 'intro' | 'production' | 'timed-challenge' | 'strategy' | 'dark-side' | 'completion';
+const SCREENS: Screen[] = ['pre-video', 'intro', 'production', 'timed-challenge', 'strategy', 'dark-side', 'completion'];
 
 const LESSON_DATA = {
   id: 'ph-beat-9',
@@ -93,6 +94,8 @@ export function ArsenalDemocracyBeat({ host, onComplete, onSkip, onBack }: Arsen
   const [challengeComplete, setChallengeComplete] = useState(false);
   const [challengeScore, setChallengeScore] = useState(0);
   const [skipped, setSkipped] = useState(false);
+  const [preModuleVideoConfig, setPreModuleVideoConfig] = useState<PreModuleVideoConfig | null>(null);
+  const [hasLoadedConfig, setHasLoadedConfig] = useState(false);
 
   const { saveCheckpoint, clearCheckpoint, getCheckpoint } = usePearlHarborProgress();
 
@@ -117,6 +120,30 @@ export function ArsenalDemocracyBeat({ host, onComplete, onSkip, onBack }: Arsen
       });
     }
   }, [screen, saveCheckpoint]);
+
+  // Subscribe to Firestore for pre-module video config
+  useEffect(() => {
+    const unsubscribe = subscribeToWW2ModuleAssets((assets) => {
+      const preModuleVideo = assets?.preModuleVideos?.[LESSON_DATA.id];
+      if (preModuleVideo?.enabled && preModuleVideo?.videoUrl) {
+        setPreModuleVideoConfig(preModuleVideo);
+      } else {
+        setPreModuleVideoConfig(null);
+      }
+      setHasLoadedConfig(true);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Set initial screen based on pre-module video availability
+  useEffect(() => {
+    if (hasLoadedConfig && screen === 'intro') {
+      const checkpoint = getCheckpoint();
+      if (!checkpoint?.lessonId && preModuleVideoConfig?.enabled && preModuleVideoConfig?.videoUrl) {
+        setScreen('pre-video');
+      }
+    }
+  }, [hasLoadedConfig, preModuleVideoConfig]);
 
   const nextScreen = useCallback(() => {
     const currentIndex = SCREENS.indexOf(screen);
@@ -158,6 +185,15 @@ export function ArsenalDemocracyBeat({ host, onComplete, onSkip, onBack }: Arsen
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
         <AnimatePresence mode="wait">
+          {/* PRE-MODULE VIDEO */}
+          {screen === 'pre-video' && preModuleVideoConfig && (
+            <PreModuleVideoScreen
+              config={preModuleVideoConfig}
+              beatTitle="Arsenal of Democracy"
+              onComplete={() => setScreen('intro')}
+            />
+          )}
+
           {/* INTRO */}
           {screen === 'intro' && (
             <motion.div key="intro" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full p-6">

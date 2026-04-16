@@ -7,14 +7,16 @@
  * when he detected the incoming Japanese attack on radar.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Radio, Sparkles, Award, AlertTriangle } from 'lucide-react';
 import { WW2Host } from '@/types';
 import { usePearlHarborProgress } from '../hooks/usePearlHarborProgress';
+import { PreModuleVideoScreen } from '../shared';
+import { subscribeToWW2ModuleAssets, type PreModuleVideoConfig } from '@/lib/firestore';
 
-type Screen = 'intro' | 'radar-setup' | 'blip-appears' | 'decision' | 'outcome' | 'legacy' | 'completion';
-const SCREENS: Screen[] = ['intro', 'radar-setup', 'blip-appears', 'decision', 'outcome', 'legacy', 'completion'];
+type Screen = 'pre-video' | 'intro' | 'radar-setup' | 'blip-appears' | 'decision' | 'outcome' | 'legacy' | 'completion';
+const SCREENS: Screen[] = ['pre-video', 'intro', 'radar-setup', 'blip-appears', 'decision', 'outcome', 'legacy', 'completion'];
 
 const LESSON_DATA = {
   id: 'ph-beat-2',
@@ -88,8 +90,59 @@ export function RadarBlipBeat({ host, onComplete, onSkip, onBack }: RadarBlipBea
   const [selectedDecision, setSelectedDecision] = useState<DecisionOption | null>(null);
   const [radarPulse, setRadarPulse] = useState(0);
   const [skipped, setSkipped] = useState(false);
+  const [preModuleVideoConfig, setPreModuleVideoConfig] = useState<PreModuleVideoConfig | null>(null);
+  const [hasLoadedConfig, setHasLoadedConfig] = useState(false);
 
   const { saveCheckpoint, clearCheckpoint, getCheckpoint } = usePearlHarborProgress();
+
+  // Pre-generate blip positions for the massive attack (20 blips)
+  // Using fixed seed-like approach for consistent positions
+  const attackBlips = useMemo(() => {
+    const blips = [];
+    // Create 20 blips in a cluster pattern in the northern sector
+    for (let i = 0; i < 20; i++) {
+      // Use deterministic positions based on index for consistency
+      const angle = (i / 20) * Math.PI * 0.8 - Math.PI * 0.4; // Spread across ~144 degrees
+      const distance = 25 + (i % 5) * 5; // Vary distance from center
+      const top = 20 + Math.sin(angle + i * 0.3) * 12 + (i % 3) * 4;
+      const left = 50 + Math.cos(angle + i * 0.3) * 15 + (i % 4) * 3;
+      blips.push({
+        id: i,
+        top: Math.max(8, Math.min(40, top)), // Keep in upper portion
+        left: Math.max(25, Math.min(75, left)), // Keep centered
+        size: 6 + (i % 4) * 2, // 6-12px size - much more visible
+        delay: (i * 0.1) % 0.8,
+        duration: 1.0 + (i % 3) * 0.3,
+      });
+    }
+    return blips;
+  }, []);
+
+  // Subscribe to Firestore for pre-module video config
+  useEffect(() => {
+    const unsubscribe = subscribeToWW2ModuleAssets((assets) => {
+      const preModuleVideo = assets?.preModuleVideos?.[LESSON_DATA.id];
+      if (preModuleVideo?.enabled && preModuleVideo?.videoUrl) {
+        console.log('[RadarBlipBeat] Found pre-module video:', preModuleVideo);
+        setPreModuleVideoConfig(preModuleVideo);
+      } else {
+        setPreModuleVideoConfig(null);
+      }
+      setHasLoadedConfig(true);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Set initial screen based on pre-module video availability
+  useEffect(() => {
+    if (hasLoadedConfig && screen === 'intro') {
+      const checkpoint = getCheckpoint();
+      // Only show pre-video if there's no checkpoint and video is configured
+      if (!checkpoint?.lessonId && preModuleVideoConfig?.enabled && preModuleVideoConfig?.videoUrl) {
+        setScreen('pre-video');
+      }
+    }
+  }, [hasLoadedConfig, preModuleVideoConfig]);
 
   // Radar animation
   useEffect(() => {
@@ -167,6 +220,15 @@ export function RadarBlipBeat({ host, onComplete, onSkip, onBack }: RadarBlipBea
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
         <AnimatePresence mode="wait">
+          {/* PRE-MODULE VIDEO */}
+          {screen === 'pre-video' && preModuleVideoConfig && (
+            <PreModuleVideoScreen
+              config={preModuleVideoConfig}
+              beatTitle="The Radar Blip"
+              onComplete={() => setScreen('intro')}
+            />
+          )}
+
           {/* INTRO */}
           {screen === 'intro' && (
             <motion.div key="intro" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full p-6">
@@ -251,20 +313,39 @@ export function RadarBlipBeat({ host, onComplete, onSkip, onBack }: RadarBlipBea
           {screen === 'blip-appears' && (
             <motion.div key="blip-appears" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full p-6">
               <div className="flex-1 flex flex-col items-center justify-center">
-                {/* Radar with blip */}
+                {/* Radar with massive blip swarm */}
                 <div className="relative w-64 h-64 rounded-full bg-black border-4 border-green-900 mb-6 overflow-hidden">
                   <div className="absolute inset-0 bg-[radial-gradient(circle,transparent_0%,rgba(0,50,0,0.3)_100%)]" />
                   <div className="absolute inset-0 flex items-center justify-center"><div className="w-full h-px bg-green-900/50" /></div>
                   <div className="absolute inset-0 flex items-center justify-center"><div className="h-full w-px bg-green-900/50" /></div>
                   <motion.div className="absolute top-1/2 left-1/2 w-1/2 h-0.5 bg-gradient-to-r from-green-400 to-transparent origin-left" style={{ rotate: radarPulse }} />
                   <div className="absolute top-1/2 left-1/2 w-2 h-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-green-400" />
-                  {/* THE BLIP - Large contact */}
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0 }}
-                    animate={{ opacity: [0.5, 1, 0.5], scale: [1, 1.3, 1] }}
-                    transition={{ duration: 1.5, repeat: Infinity }}
-                    className="absolute top-[20%] left-[45%] w-6 h-6 rounded-full bg-green-400 shadow-[0_0_20px_rgba(74,222,128,0.8)]"
-                  />
+                  {/* MASSIVE ATTACK - 20 blips representing incoming Japanese aircraft */}
+                  {attackBlips.map((blip) => (
+                    <motion.div
+                      key={`blip-${blip.id}`}
+                      initial={{ opacity: 0 }}
+                      animate={{
+                        opacity: [0.6, 1, 0.6],
+                        scale: [0.9, 1.2, 0.9]
+                      }}
+                      transition={{
+                        duration: blip.duration,
+                        repeat: Infinity,
+                        delay: blip.delay,
+                        ease: "easeInOut"
+                      }}
+                      className="absolute rounded-full bg-green-400"
+                      style={{
+                        top: `${blip.top}%`,
+                        left: `${blip.left}%`,
+                        width: `${blip.size}px`,
+                        height: `${blip.size}px`,
+                        boxShadow: `0 0 ${blip.size * 2}px rgba(74,222,128,0.8), 0 0 ${blip.size}px rgba(74,222,128,1)`,
+                        transform: 'translate(-50%, -50%)',
+                      }}
+                    />
+                  ))}
                 </div>
 
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center">

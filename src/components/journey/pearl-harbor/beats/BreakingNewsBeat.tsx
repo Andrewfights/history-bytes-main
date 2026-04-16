@@ -11,7 +11,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Sparkles, Radio, Newspaper, ArrowRight, Play, Pause } from 'lucide-react';
 import { WW2Host } from '@/types';
-import { DragAndDropSorter, SortableItem } from '../shared';
+import { DragAndDropSorter, SortableItem, PreModuleVideoScreen } from '../shared';
+import { subscribeToWW2ModuleAssets, type PreModuleVideoConfig } from '@/lib/firestore';
 import { usePearlHarborProgress } from '../hooks/usePearlHarborProgress';
 import { useWW2ModuleAssets } from '../hooks/useWW2ModuleAssets';
 
@@ -22,8 +23,8 @@ const MEDIA_KEYS = {
   nytFrontPage: 'new-york-times-front-page-facsimile',
 };
 
-type Screen = 'intro' | 'radio-dial' | 'newspaper' | 'opinion-shift' | 'tsukiyama' | 'completion';
-const SCREENS: Screen[] = ['intro', 'radio-dial', 'newspaper', 'opinion-shift', 'tsukiyama', 'completion'];
+type Screen = 'pre-video' | 'intro' | 'radio-dial' | 'newspaper' | 'opinion-shift' | 'tsukiyama' | 'completion';
+const SCREENS: Screen[] = ['pre-video', 'intro', 'radio-dial', 'newspaper', 'opinion-shift', 'tsukiyama', 'completion'];
 
 const LESSON_DATA = {
   id: 'ph-beat-5',
@@ -101,6 +102,8 @@ export function BreakingNewsBeat({ host, onComplete, onSkip, onBack }: BreakingN
   const [skipped, setSkipped] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [preModuleVideoConfig, setPreModuleVideoConfig] = useState<PreModuleVideoConfig | null>(null);
+  const [hasLoadedConfig, setHasLoadedConfig] = useState(false);
 
   const { saveCheckpoint, clearCheckpoint, getCheckpoint } = usePearlHarborProgress();
   const { getMediaUrl } = useWW2ModuleAssets();
@@ -174,6 +177,30 @@ export function BreakingNewsBeat({ host, onComplete, onSkip, onBack }: BreakingN
     }
   }, [screen, stationsListened, saveCheckpoint]);
 
+  // Subscribe to Firestore for pre-module video config
+  useEffect(() => {
+    const unsubscribe = subscribeToWW2ModuleAssets((assets) => {
+      const preModuleVideo = assets?.preModuleVideos?.[LESSON_DATA.id];
+      if (preModuleVideo?.enabled && preModuleVideo?.videoUrl) {
+        setPreModuleVideoConfig(preModuleVideo);
+      } else {
+        setPreModuleVideoConfig(null);
+      }
+      setHasLoadedConfig(true);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Set initial screen based on pre-module video availability
+  useEffect(() => {
+    if (hasLoadedConfig && screen === 'intro') {
+      const checkpoint = getCheckpoint();
+      if (!checkpoint?.lessonId && preModuleVideoConfig?.enabled && preModuleVideoConfig?.videoUrl) {
+        setScreen('pre-video');
+      }
+    }
+  }, [hasLoadedConfig, preModuleVideoConfig]);
+
   const nextScreen = useCallback(() => {
     const currentIndex = SCREENS.indexOf(screen);
     if (currentIndex < SCREENS.length - 1) {
@@ -219,6 +246,15 @@ export function BreakingNewsBeat({ host, onComplete, onSkip, onBack }: BreakingN
       {/* Content */}
       <div className="flex-1 overflow-y-auto" style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
         <AnimatePresence mode="wait">
+          {/* PRE-MODULE VIDEO */}
+          {screen === 'pre-video' && preModuleVideoConfig && (
+            <PreModuleVideoScreen
+              config={preModuleVideoConfig}
+              beatTitle="Breaking News"
+              onComplete={() => setScreen('intro')}
+            />
+          )}
+
           {/* INTRO */}
           {screen === 'intro' && (
             <motion.div key="intro" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full p-6">

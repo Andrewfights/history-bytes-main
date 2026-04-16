@@ -11,11 +11,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Sparkles, ChevronRight, User, Quote, CheckCircle2, XCircle } from 'lucide-react';
 import { WW2Host } from '@/types';
+import { PreModuleVideoScreen } from '../shared';
+import { subscribeToWW2ModuleAssets, type PreModuleVideoConfig } from '@/lib/firestore';
 import { usePearlHarborProgress } from '../hooks/usePearlHarborProgress';
 import { useWW2ModuleAssets } from '../hooks/useWW2ModuleAssets';
 
-type Screen = 'intro' | 'story-1' | 'quiz-1' | 'story-2' | 'quiz-2' | 'story-3' | 'quiz-3' | 'story-4' | 'quiz-4' | 'completion';
-const SCREENS: Screen[] = ['intro', 'story-1', 'quiz-1', 'story-2', 'quiz-2', 'story-3', 'quiz-3', 'story-4', 'quiz-4', 'completion'];
+type Screen = 'pre-video' | 'intro' | 'story-1' | 'quiz-1' | 'story-2' | 'quiz-2' | 'story-3' | 'quiz-3' | 'story-4' | 'quiz-4' | 'completion';
+const SCREENS: Screen[] = ['pre-video', 'intro', 'story-1', 'quiz-1', 'story-2', 'quiz-2', 'story-3', 'quiz-3', 'story-4', 'quiz-4', 'completion'];
 
 const LESSON_DATA = {
   id: 'ph-beat-4',
@@ -161,6 +163,8 @@ export function VoicesFromHarborBeat({ host, onComplete, onSkip, onBack }: Voice
   const [quizAnswers, setQuizAnswers] = useState<Record<string, number | null>>({});
   const [showQuizResult, setShowQuizResult] = useState(false);
   const [skipped, setSkipped] = useState(false);
+  const [preModuleVideoConfig, setPreModuleVideoConfig] = useState<PreModuleVideoConfig | null>(null);
+  const [hasLoadedConfig, setHasLoadedConfig] = useState(false);
 
   const { saveCheckpoint, clearCheckpoint, getCheckpoint } = usePearlHarborProgress();
   const { getMediaUrl } = useWW2ModuleAssets();
@@ -196,6 +200,30 @@ export function VoicesFromHarborBeat({ host, onComplete, onSkip, onBack }: Voice
       });
     }
   }, [screen, quizAnswers, saveCheckpoint]);
+
+  // Subscribe to Firestore for pre-module video config
+  useEffect(() => {
+    const unsubscribe = subscribeToWW2ModuleAssets((assets) => {
+      const preModuleVideo = assets?.preModuleVideos?.[LESSON_DATA.id];
+      if (preModuleVideo?.enabled && preModuleVideo?.videoUrl) {
+        setPreModuleVideoConfig(preModuleVideo);
+      } else {
+        setPreModuleVideoConfig(null);
+      }
+      setHasLoadedConfig(true);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Set initial screen based on pre-module video availability
+  useEffect(() => {
+    if (hasLoadedConfig && screen === 'intro') {
+      const checkpoint = getCheckpoint();
+      if (!checkpoint?.lessonId && preModuleVideoConfig?.enabled && preModuleVideoConfig?.videoUrl) {
+        setScreen('pre-video');
+      }
+    }
+  }, [hasLoadedConfig, preModuleVideoConfig]);
 
   const nextScreen = useCallback(() => {
     const currentIndex = SCREENS.indexOf(screen);
@@ -249,6 +277,15 @@ export function VoicesFromHarborBeat({ host, onComplete, onSkip, onBack }: Voice
       {/* Content */}
       <div className="flex-1 overflow-y-auto" style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
         <AnimatePresence mode="wait">
+          {/* PRE-MODULE VIDEO */}
+          {screen === 'pre-video' && preModuleVideoConfig && (
+            <PreModuleVideoScreen
+              config={preModuleVideoConfig}
+              beatTitle="Voices from the Harbor"
+              onComplete={() => setScreen('intro')}
+            />
+          )}
+
           {/* INTRO */}
           {screen === 'intro' && (
             <motion.div key="intro" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full p-6">

@@ -131,7 +131,7 @@ export function CinematicVideoPlayer({
         )}
       </AnimatePresence>
 
-      {/* Skip button */}
+      {/* Skip button - positioned to avoid bottom nav */}
       <AnimatePresence>
         {showSkip && !hasEnded && (
           <motion.button
@@ -139,7 +139,8 @@ export function CinematicVideoPlayer({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
             onClick={handleSkip}
-            className="absolute bottom-8 right-8 flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 rounded-full text-white font-medium transition-colors"
+            className="absolute right-8 flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 rounded-full text-white font-medium transition-colors"
+            style={{ bottom: 'max(2rem, calc(env(safe-area-inset-bottom) + 5rem))' }}
           >
             <span>Skip</span>
             <SkipForward size={18} />

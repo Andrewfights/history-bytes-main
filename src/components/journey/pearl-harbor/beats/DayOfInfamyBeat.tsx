@@ -11,7 +11,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Sparkles, FileText, Edit3, Users, AlertCircle, Play, Pause, Volume2 } from 'lucide-react';
 import { WW2Host } from '@/types';
-import { DragAndDropSorter, SortableItem } from '../shared';
+import { DragAndDropSorter, SortableItem, PreModuleVideoScreen } from '../shared';
+import { subscribeToWW2ModuleAssets, type PreModuleVideoConfig } from '@/lib/firestore';
 import { usePearlHarborProgress } from '../hooks/usePearlHarborProgress';
 import { useWW2ModuleAssets } from '../hooks/useWW2ModuleAssets';
 
@@ -20,8 +21,8 @@ const MEDIA_KEYS = {
   fdrSpeech: 'fdr-day-of-infamy-speech-audio-optional',
 };
 
-type Screen = 'intro' | 'speech-evolution' | 'reconstruct' | 'vote' | 'marshall' | 'completion';
-const SCREENS: Screen[] = ['intro', 'speech-evolution', 'reconstruct', 'vote', 'marshall', 'completion'];
+type Screen = 'pre-video' | 'intro' | 'speech-evolution' | 'reconstruct' | 'vote' | 'marshall' | 'completion';
+const SCREENS: Screen[] = ['pre-video', 'intro', 'speech-evolution', 'reconstruct', 'vote', 'marshall', 'completion'];
 
 const LESSON_DATA = {
   id: 'ph-beat-8',
@@ -53,6 +54,8 @@ export function DayOfInfamyBeat({ host, onComplete, onSkip, onBack }: DayOfInfam
   const [skipped, setSkipped] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [preModuleVideoConfig, setPreModuleVideoConfig] = useState<PreModuleVideoConfig | null>(null);
+  const [hasLoadedConfig, setHasLoadedConfig] = useState(false);
 
   const { saveCheckpoint, clearCheckpoint, getCheckpoint } = usePearlHarborProgress();
   const { getMediaUrl } = useWW2ModuleAssets();
@@ -110,6 +113,30 @@ export function DayOfInfamyBeat({ host, onComplete, onSkip, onBack }: DayOfInfam
     }
   }, [screen, saveCheckpoint]);
 
+  // Subscribe to Firestore for pre-module video config
+  useEffect(() => {
+    const unsubscribe = subscribeToWW2ModuleAssets((assets) => {
+      const preModuleVideo = assets?.preModuleVideos?.[LESSON_DATA.id];
+      if (preModuleVideo?.enabled && preModuleVideo?.videoUrl) {
+        setPreModuleVideoConfig(preModuleVideo);
+      } else {
+        setPreModuleVideoConfig(null);
+      }
+      setHasLoadedConfig(true);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Set initial screen based on pre-module video availability
+  useEffect(() => {
+    if (hasLoadedConfig && screen === 'intro') {
+      const checkpoint = getCheckpoint();
+      if (!checkpoint?.lessonId && preModuleVideoConfig?.enabled && preModuleVideoConfig?.videoUrl) {
+        setScreen('pre-video');
+      }
+    }
+  }, [hasLoadedConfig, preModuleVideoConfig]);
+
   const nextScreen = useCallback(() => {
     const currentIndex = SCREENS.indexOf(screen);
     if (currentIndex < SCREENS.length - 1) {
@@ -148,6 +175,15 @@ export function DayOfInfamyBeat({ host, onComplete, onSkip, onBack }: DayOfInfam
       {/* Content */}
       <div className="flex-1 overflow-y-auto" style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
         <AnimatePresence mode="wait">
+          {/* PRE-MODULE VIDEO */}
+          {screen === 'pre-video' && preModuleVideoConfig && (
+            <PreModuleVideoScreen
+              config={preModuleVideoConfig}
+              beatTitle="Day of Infamy"
+              onComplete={() => setScreen('intro')}
+            />
+          )}
+
           {/* INTRO */}
           {screen === 'intro' && (
             <motion.div key="intro" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full p-6">
