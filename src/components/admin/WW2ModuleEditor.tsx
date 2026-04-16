@@ -1194,6 +1194,7 @@ function PreModuleVideoSection({ beatId, config, onSave, onUploadVideo }: PreMod
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Sync state when config changes
@@ -1242,17 +1243,27 @@ function PreModuleVideoSection({ beatId, config, onSave, onUploadVideo }: PreMod
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Check file size (warn if > 100MB)
+    const fileSizeMB = file.size / (1024 * 1024);
+    console.log(`[PreModuleVideo] Uploading file: ${file.name}, size: ${fileSizeMB.toFixed(2)} MB`);
+
     setIsUploading(true);
     setUploadProgress(0);
+    setUploadError(null);
+
     try {
       // Upload with a specific key for pre-module videos
       await onUploadVideo(beatId, `pre-module-video`, file, (progress) => {
+        console.log(`[PreModuleVideo] Upload progress: ${progress.toFixed(1)}%`);
         setUploadProgress(progress);
       });
+      console.log('[PreModuleVideo] Upload complete!');
       // The URL will be available via subscription after upload
+    } catch (error) {
+      console.error('[PreModuleVideo] Upload failed:', error);
+      setUploadError(error instanceof Error ? error.message : 'Upload failed. Please try again.');
     } finally {
       setIsUploading(false);
-      setUploadProgress(0);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -1336,15 +1347,26 @@ function PreModuleVideoSection({ beatId, config, onSave, onUploadVideo }: PreMod
           {isUploading && (
             <div className="space-y-2">
               <div className="flex justify-between text-xs text-slate-400">
-                <span>Uploading video...</span>
+                <span>Uploading video... (large files may take a while)</span>
                 <span>{Math.round(uploadProgress)}%</span>
               </div>
-              <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
+              <div className="h-3 bg-slate-700 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-purple-500 transition-all duration-300 ease-out"
                   style={{ width: `${uploadProgress}%` }}
                 />
               </div>
+              <p className="text-xs text-slate-500">Please keep this window open until upload completes.</p>
+            </div>
+          )}
+
+          {/* Upload Error */}
+          {uploadError && (
+            <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-3">
+              <p className="text-red-400 text-sm flex items-center gap-2">
+                <AlertCircle size={16} />
+                {uploadError}
+              </p>
             </div>
           )}
 
@@ -1515,7 +1537,7 @@ function BeatCard({
   uploadedMedia: Record<string, string>;
   customHotspotConfig?: WW2BeatHotspotConfig;
   preModuleVideoConfig?: PreModuleVideoConfig;
-  onUpload: (beatId: string, mediaKey: string, file: File) => Promise<void>;
+  onUpload: (beatId: string, mediaKey: string, file: File, onProgress?: (progress: number) => void) => Promise<void>;
   onRemove: (beatId: string, mediaKey: string) => Promise<void>;
   onSaveQuestions: (beatId: string, questions: WW2BeatQuestion[]) => Promise<void>;
   onSaveStatements: (beatId: string, statements: WW2BeatStatement[]) => Promise<void>;
@@ -2122,30 +2144,29 @@ export function WW2ModuleEditor() {
     file: File,
     onProgress?: (progress: number) => void
   ) => {
-    try {
-      // Upload to Firebase Storage with progress callback
-      const result = await uploadFile(file, onProgress);
-      if (!result || !result.url) {
-        console.error('Failed to upload file');
-        return;
-      }
+    console.log(`[WW2ModuleEditor] Starting upload for ${beatId}/${mediaKey}, file size: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
 
-      // Special handling for pre-module videos - save to correct location
-      if (mediaKey === 'pre-module-video') {
-        // Save directly to preModuleVideos config
-        await updateWW2BeatPreModuleVideo(beatId, {
-          videoUrl: result.url,
-          enabled: true,
-          skipAllowed: true,
-        });
-        console.log('Pre-module video uploaded and saved:', result.url);
-      } else {
-        // Regular media - save to beatMedia
-        await updateWW2BeatMedia(beatId, mediaKey, result.url);
-        console.log('Media uploaded successfully:', result.url);
-      }
-    } catch (error) {
-      console.error('Error uploading media:', error);
+    // Upload to Firebase Storage with progress callback
+    const result = await uploadFile(file, onProgress);
+    if (!result || !result.url) {
+      throw new Error('Failed to upload file - no URL returned');
+    }
+
+    console.log(`[WW2ModuleEditor] Upload complete, URL: ${result.url}`);
+
+    // Special handling for pre-module videos - save to correct location
+    if (mediaKey === 'pre-module-video') {
+      // Save directly to preModuleVideos config
+      await updateWW2BeatPreModuleVideo(beatId, {
+        videoUrl: result.url,
+        enabled: true,
+        skipAllowed: true,
+      });
+      console.log('[WW2ModuleEditor] Pre-module video config saved to Firestore');
+    } else {
+      // Regular media - save to beatMedia
+      await updateWW2BeatMedia(beatId, mediaKey, result.url);
+      console.log('[WW2ModuleEditor] Media URL saved to Firestore');
     }
   }, []);
 
