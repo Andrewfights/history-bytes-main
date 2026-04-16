@@ -137,9 +137,10 @@ interface RoadToWarBeatProps {
   onComplete: (xp: number) => void;
   onSkip: () => void;
   onBack: () => void;
+  isPreview?: boolean;
 }
 
-export function RoadToWarBeat({ host, onComplete, onSkip, onBack }: RoadToWarBeatProps) {
+export function RoadToWarBeat({ host, onComplete, onSkip, onBack, isPreview = false }: RoadToWarBeatProps) {
   const [screen, setScreen] = useState<Screen>('intro');
   const [viewedHotspots, setViewedHotspots] = useState<Set<string>>(new Set());
   const [challengeScore, setChallengeScore] = useState(0);
@@ -192,12 +193,15 @@ export function RoadToWarBeat({ host, onComplete, onSkip, onBack }: RoadToWarBea
   useEffect(() => {
     if (hasLoadedConfig && screen === 'intro') {
       const checkpoint = getCheckpoint();
-      // Only show pre-video if there's no checkpoint and video is configured
-      if (!checkpoint?.lessonId && preModuleVideoConfig?.enabled) {
+      // Only show pre-video if there's no checkpoint (or isPreview) and video is configured
+      const shouldShowPreVideo = (isPreview || !checkpoint?.lessonId) &&
+        preModuleVideoConfig?.enabled &&
+        preModuleVideoConfig?.videoUrl;
+      if (shouldShowPreVideo) {
         setScreen('pre-video');
       }
     }
-  }, [hasLoadedConfig, preModuleVideoConfig]);
+  }, [hasLoadedConfig, preModuleVideoConfig, isPreview]);
 
   // Restore checkpoint on mount
   useEffect(() => {

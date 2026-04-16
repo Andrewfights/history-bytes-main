@@ -83,9 +83,10 @@ interface RadarBlipBeatProps {
   onComplete: (xp: number) => void;
   onSkip: () => void;
   onBack: () => void;
+  isPreview?: boolean;
 }
 
-export function RadarBlipBeat({ host, onComplete, onSkip, onBack }: RadarBlipBeatProps) {
+export function RadarBlipBeat({ host, onComplete, onSkip, onBack, isPreview = false }: RadarBlipBeatProps) {
   const [screen, setScreen] = useState<Screen>('intro');
   const [selectedDecision, setSelectedDecision] = useState<DecisionOption | null>(null);
   const [radarPulse, setRadarPulse] = useState(0);
@@ -137,12 +138,15 @@ export function RadarBlipBeat({ host, onComplete, onSkip, onBack }: RadarBlipBea
   useEffect(() => {
     if (hasLoadedConfig && screen === 'intro') {
       const checkpoint = getCheckpoint();
-      // Only show pre-video if there's no checkpoint and video is configured
-      if (!checkpoint?.lessonId && preModuleVideoConfig?.enabled && preModuleVideoConfig?.videoUrl) {
+      // Show pre-video if: (in preview mode OR no checkpoint) AND video is configured
+      const shouldShowPreVideo = (isPreview || !checkpoint?.lessonId) &&
+        preModuleVideoConfig?.enabled &&
+        preModuleVideoConfig?.videoUrl;
+      if (shouldShowPreVideo) {
         setScreen('pre-video');
       }
     }
-  }, [hasLoadedConfig, preModuleVideoConfig]);
+  }, [hasLoadedConfig, preModuleVideoConfig, isPreview]);
 
   // Radar animation
   useEffect(() => {

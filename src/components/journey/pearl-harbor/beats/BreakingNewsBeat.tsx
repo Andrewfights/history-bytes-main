@@ -92,9 +92,10 @@ interface BreakingNewsBeatProps {
   onComplete: (xp: number) => void;
   onSkip: () => void;
   onBack: () => void;
+  isPreview?: boolean;
 }
 
-export function BreakingNewsBeat({ host, onComplete, onSkip, onBack }: BreakingNewsBeatProps) {
+export function BreakingNewsBeat({ host, onComplete, onSkip, onBack, isPreview = false }: BreakingNewsBeatProps) {
   const [screen, setScreen] = useState<Screen>('intro');
   const [selectedStation, setSelectedStation] = useState<RadioStation | null>(null);
   const [stationsListened, setStationsListened] = useState<Set<string>>(new Set());
@@ -195,11 +196,14 @@ export function BreakingNewsBeat({ host, onComplete, onSkip, onBack }: BreakingN
   useEffect(() => {
     if (hasLoadedConfig && screen === 'intro') {
       const checkpoint = getCheckpoint();
-      if (!checkpoint?.lessonId && preModuleVideoConfig?.enabled && preModuleVideoConfig?.videoUrl) {
+      const shouldShowPreVideo = (isPreview || !checkpoint?.lessonId) &&
+        preModuleVideoConfig?.enabled &&
+        preModuleVideoConfig?.videoUrl;
+      if (shouldShowPreVideo) {
         setScreen('pre-video');
       }
     }
-  }, [hasLoadedConfig, preModuleVideoConfig]);
+  }, [hasLoadedConfig, preModuleVideoConfig, isPreview]);
 
   const nextScreen = useCallback(() => {
     const currentIndex = SCREENS.indexOf(screen);

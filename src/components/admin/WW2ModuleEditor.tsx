@@ -410,27 +410,27 @@ function PreviewModal({ beatType, host, onClose }: PreviewModalProps) {
   const renderBeat = () => {
     switch (beatType) {
       case 'road-to-war':
-        return <RoadToWarBeat host={host} onComplete={handleComplete} onSkip={handleSkip} onBack={handleBack} />;
+        return <RoadToWarBeat host={host} onComplete={handleComplete} onSkip={handleSkip} onBack={handleBack} isPreview />;
       case 'radar-blip':
-        return <RadarBlipBeat host={host} onComplete={handleComplete} onSkip={handleSkip} onBack={handleBack} />;
+        return <RadarBlipBeat host={host} onComplete={handleComplete} onSkip={handleSkip} onBack={handleBack} isPreview />;
       case 'tora-tora-tora':
-        return <ToraToraToraBeat host={host} onComplete={handleComplete} onSkip={handleSkip} onBack={handleBack} />;
+        return <ToraToraToraBeat host={host} onComplete={handleComplete} onSkip={handleSkip} onBack={handleBack} isPreview />;
       case 'voices-harbor':
-        return <VoicesFromHarborBeat host={host} onComplete={handleComplete} onSkip={handleSkip} onBack={handleBack} />;
+        return <VoicesFromHarborBeat host={host} onComplete={handleComplete} onSkip={handleSkip} onBack={handleBack} isPreview />;
       case 'breaking-news':
-        return <BreakingNewsBeat host={host} onComplete={handleComplete} onSkip={handleSkip} onBack={handleBack} />;
+        return <BreakingNewsBeat host={host} onComplete={handleComplete} onSkip={handleSkip} onBack={handleBack} isPreview />;
       case 'nagumo-dilemma':
-        return <NagumoDilemmaBeat host={host} onComplete={handleComplete} onSkip={handleSkip} onBack={handleBack} />;
+        return <NagumoDilemmaBeat host={host} onComplete={handleComplete} onSkip={handleSkip} onBack={handleBack} isPreview />;
       case 'fact-or-myth':
-        return <FactOrMythBeat host={host} onComplete={handleComplete} onSkip={handleSkip} onBack={handleBack} />;
+        return <FactOrMythBeat host={host} onComplete={handleComplete} onSkip={handleSkip} onBack={handleBack} isPreview />;
       case 'day-of-infamy':
-        return <DayOfInfamyBeat host={host} onComplete={handleComplete} onSkip={handleSkip} onBack={handleBack} />;
+        return <DayOfInfamyBeat host={host} onComplete={handleComplete} onSkip={handleSkip} onBack={handleBack} isPreview />;
       case 'arsenal-democracy':
-        return <ArsenalDemocracyBeat host={host} onComplete={handleComplete} onSkip={handleSkip} onBack={handleBack} />;
+        return <ArsenalDemocracyBeat host={host} onComplete={handleComplete} onSkip={handleSkip} onBack={handleBack} isPreview />;
       case 'mastery-run':
-        return <MasteryRunBeat host={host} onComplete={handleComplete} onSkip={handleSkip} onBack={handleBack} />;
+        return <MasteryRunBeat host={host} onComplete={handleComplete} onSkip={handleSkip} onBack={handleBack} isPreview />;
       case 'final-exam':
-        return <FinalExamBeat host={host} onComplete={handleComplete} onSkip={handleSkip} onBack={handleBack} />;
+        return <FinalExamBeat host={host} onComplete={handleComplete} onSkip={handleSkip} onBack={handleBack} isPreview />;
       case 'arena':
         return <PearlHarborArena host={host} onComplete={handleArenaComplete} onDecline={handleBack} onBack={handleBack} />;
       default:

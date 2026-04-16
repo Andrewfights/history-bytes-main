@@ -87,9 +87,10 @@ interface ArsenalDemocracyBeatProps {
   onComplete: (xp: number) => void;
   onSkip: () => void;
   onBack: () => void;
+  isPreview?: boolean;
 }
 
-export function ArsenalDemocracyBeat({ host, onComplete, onSkip, onBack }: ArsenalDemocracyBeatProps) {
+export function ArsenalDemocracyBeat({ host, onComplete, onSkip, onBack, isPreview = false }: ArsenalDemocracyBeatProps) {
   const [screen, setScreen] = useState<Screen>('intro');
   const [challengeComplete, setChallengeComplete] = useState(false);
   const [challengeScore, setChallengeScore] = useState(0);
@@ -139,11 +140,14 @@ export function ArsenalDemocracyBeat({ host, onComplete, onSkip, onBack }: Arsen
   useEffect(() => {
     if (hasLoadedConfig && screen === 'intro') {
       const checkpoint = getCheckpoint();
-      if (!checkpoint?.lessonId && preModuleVideoConfig?.enabled && preModuleVideoConfig?.videoUrl) {
+      const shouldShowPreVideo = (isPreview || !checkpoint?.lessonId) &&
+        preModuleVideoConfig?.enabled &&
+        preModuleVideoConfig?.videoUrl;
+      if (shouldShowPreVideo) {
         setScreen('pre-video');
       }
     }
-  }, [hasLoadedConfig, preModuleVideoConfig]);
+  }, [hasLoadedConfig, preModuleVideoConfig, isPreview]);
 
   const nextScreen = useCallback(() => {
     const currentIndex = SCREENS.indexOf(screen);

@@ -147,6 +147,7 @@ interface VoicesFromHarborBeatProps {
   onComplete: (xp: number) => void;
   onSkip: () => void;
   onBack: () => void;
+  isPreview?: boolean;
 }
 
 // Map perspective IDs to media keys
@@ -157,7 +158,7 @@ const MEDIA_KEY_MAP: Record<string, string> = {
   abe: 'zenji-abe-portrait',
 };
 
-export function VoicesFromHarborBeat({ host, onComplete, onSkip, onBack }: VoicesFromHarborBeatProps) {
+export function VoicesFromHarborBeat({ host, onComplete, onSkip, onBack, isPreview = false }: VoicesFromHarborBeatProps) {
   const [screen, setScreen] = useState<Screen>('intro');
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
   const [quizAnswers, setQuizAnswers] = useState<Record<string, number | null>>({});
@@ -219,11 +220,14 @@ export function VoicesFromHarborBeat({ host, onComplete, onSkip, onBack }: Voice
   useEffect(() => {
     if (hasLoadedConfig && screen === 'intro') {
       const checkpoint = getCheckpoint();
-      if (!checkpoint?.lessonId && preModuleVideoConfig?.enabled && preModuleVideoConfig?.videoUrl) {
+      const shouldShowPreVideo = (isPreview || !checkpoint?.lessonId) &&
+        preModuleVideoConfig?.enabled &&
+        preModuleVideoConfig?.videoUrl;
+      if (shouldShowPreVideo) {
         setScreen('pre-video');
       }
     }
-  }, [hasLoadedConfig, preModuleVideoConfig]);
+  }, [hasLoadedConfig, preModuleVideoConfig, isPreview]);
 
   const nextScreen = useCallback(() => {
     const currentIndex = SCREENS.indexOf(screen);

@@ -127,9 +127,10 @@ interface ToraToraToraBeatProps {
   onComplete: (xp: number) => void;
   onSkip: () => void;
   onBack: () => void;
+  isPreview?: boolean;
 }
 
-export function ToraToraToraBeat({ host, onComplete, onSkip, onBack }: ToraToraToraBeatProps) {
+export function ToraToraToraBeat({ host, onComplete, onSkip, onBack, isPreview = false }: ToraToraToraBeatProps) {
   const [screen, setScreen] = useState<Screen>('intro');
   const [currentEventIndex, setCurrentEventIndex] = useState(0);
   const [viewedHotspots, setViewedHotspots] = useState<Set<string>>(new Set());
@@ -161,11 +162,14 @@ export function ToraToraToraBeat({ host, onComplete, onSkip, onBack }: ToraToraT
   useEffect(() => {
     if (hasLoadedConfig && screen === 'intro') {
       const checkpoint = getCheckpoint();
-      if (!checkpoint?.lessonId && preModuleVideoConfig?.enabled && preModuleVideoConfig?.videoUrl) {
+      const shouldShowPreVideo = (isPreview || !checkpoint?.lessonId) &&
+        preModuleVideoConfig?.enabled &&
+        preModuleVideoConfig?.videoUrl;
+      if (shouldShowPreVideo) {
         setScreen('pre-video');
       }
     }
-  }, [hasLoadedConfig, preModuleVideoConfig]);
+  }, [hasLoadedConfig, preModuleVideoConfig, isPreview]);
 
   // Get uploaded media URLs
   const aerialMapUrl = getMediaUrl('ph-beat-3', MEDIA_KEYS.aerialMap);

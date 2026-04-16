@@ -96,9 +96,10 @@ interface FactOrMythBeatProps {
   onComplete: (xp: number) => void;
   onSkip: () => void;
   onBack: () => void;
+  isPreview?: boolean;
 }
 
-export function FactOrMythBeat({ host, onComplete, onSkip, onBack }: FactOrMythBeatProps) {
+export function FactOrMythBeat({ host, onComplete, onSkip, onBack, isPreview = false }: FactOrMythBeatProps) {
   const [screen, setScreen] = useState<Screen>('intro');
   const [finalScore, setFinalScore] = useState(0);
   const [skipped, setSkipped] = useState(false);
@@ -154,11 +155,14 @@ export function FactOrMythBeat({ host, onComplete, onSkip, onBack }: FactOrMythB
   useEffect(() => {
     if (hasLoadedConfig && screen === 'intro') {
       const checkpoint = getCheckpoint();
-      if (!checkpoint?.lessonId && preModuleVideoConfig?.enabled && preModuleVideoConfig?.videoUrl) {
+      const shouldShowPreVideo = (isPreview || !checkpoint?.lessonId) &&
+        preModuleVideoConfig?.enabled &&
+        preModuleVideoConfig?.videoUrl;
+      if (shouldShowPreVideo) {
         setScreen('pre-video');
       }
     }
-  }, [hasLoadedConfig, preModuleVideoConfig]);
+  }, [hasLoadedConfig, preModuleVideoConfig, isPreview]);
 
   const nextScreen = useCallback(() => {
     const currentIndex = SCREENS.indexOf(screen);

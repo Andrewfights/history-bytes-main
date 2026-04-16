@@ -139,9 +139,10 @@ interface MasteryRunBeatProps {
   onComplete: (xp: number) => void;
   onSkip: () => void;
   onBack: () => void;
+  isPreview?: boolean;
 }
 
-export function MasteryRunBeat({ host, onComplete, onSkip, onBack }: MasteryRunBeatProps) {
+export function MasteryRunBeat({ host, onComplete, onSkip, onBack, isPreview = false }: MasteryRunBeatProps) {
   const [screen, setScreen] = useState<Screen>('intro');
   const [score, setScore] = useState(0);
   const [maxStreak, setMaxStreak] = useState(0);
@@ -191,11 +192,14 @@ export function MasteryRunBeat({ host, onComplete, onSkip, onBack }: MasteryRunB
   useEffect(() => {
     if (hasLoadedConfig && screen === 'intro') {
       const checkpoint = getCheckpoint();
-      if (!checkpoint?.lessonId && preModuleVideoConfig?.enabled && preModuleVideoConfig?.videoUrl) {
+      const shouldShowPreVideo = (isPreview || !checkpoint?.lessonId) &&
+        preModuleVideoConfig?.enabled &&
+        preModuleVideoConfig?.videoUrl;
+      if (shouldShowPreVideo) {
         setScreen('pre-video');
       }
     }
-  }, [hasLoadedConfig, preModuleVideoConfig]);
+  }, [hasLoadedConfig, preModuleVideoConfig, isPreview]);
 
   const nextScreen = useCallback(() => {
     const currentIndex = SCREENS.indexOf(screen);

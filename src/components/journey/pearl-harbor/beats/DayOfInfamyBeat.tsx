@@ -45,9 +45,10 @@ interface DayOfInfamyBeatProps {
   onComplete: (xp: number) => void;
   onSkip: () => void;
   onBack: () => void;
+  isPreview?: boolean;
 }
 
-export function DayOfInfamyBeat({ host, onComplete, onSkip, onBack }: DayOfInfamyBeatProps) {
+export function DayOfInfamyBeat({ host, onComplete, onSkip, onBack, isPreview = false }: DayOfInfamyBeatProps) {
   const [screen, setScreen] = useState<Screen>('intro');
   const [showDraftComparison, setShowDraftComparison] = useState(false);
   const [reconstructComplete, setReconstructComplete] = useState(false);
@@ -131,11 +132,14 @@ export function DayOfInfamyBeat({ host, onComplete, onSkip, onBack }: DayOfInfam
   useEffect(() => {
     if (hasLoadedConfig && screen === 'intro') {
       const checkpoint = getCheckpoint();
-      if (!checkpoint?.lessonId && preModuleVideoConfig?.enabled && preModuleVideoConfig?.videoUrl) {
+      const shouldShowPreVideo = (isPreview || !checkpoint?.lessonId) &&
+        preModuleVideoConfig?.enabled &&
+        preModuleVideoConfig?.videoUrl;
+      if (shouldShowPreVideo) {
         setScreen('pre-video');
       }
     }
-  }, [hasLoadedConfig, preModuleVideoConfig]);
+  }, [hasLoadedConfig, preModuleVideoConfig, isPreview]);
 
   const nextScreen = useCallback(() => {
     const currentIndex = SCREENS.indexOf(screen);

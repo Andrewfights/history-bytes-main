@@ -105,9 +105,10 @@ interface NagumoDilemmaBeatProps {
   onComplete: (xp: number) => void;
   onSkip: () => void;
   onBack: () => void;
+  isPreview?: boolean;
 }
 
-export function NagumoDilemmaBeat({ host, onComplete, onSkip, onBack }: NagumoDilemmaBeatProps) {
+export function NagumoDilemmaBeat({ host, onComplete, onSkip, onBack, isPreview = false }: NagumoDilemmaBeatProps) {
   const [screen, setScreen] = useState<Screen>('intro');
   const [selectedDecision, setSelectedDecision] = useState<Decision | null>(null);
   const [showAttackArgs, setShowAttackArgs] = useState(true);
@@ -160,11 +161,14 @@ export function NagumoDilemmaBeat({ host, onComplete, onSkip, onBack }: NagumoDi
   useEffect(() => {
     if (hasLoadedConfig && screen === 'intro') {
       const checkpoint = getCheckpoint();
-      if (!checkpoint?.lessonId && preModuleVideoConfig?.enabled && preModuleVideoConfig?.videoUrl) {
+      const shouldShowPreVideo = (isPreview || !checkpoint?.lessonId) &&
+        preModuleVideoConfig?.enabled &&
+        preModuleVideoConfig?.videoUrl;
+      if (shouldShowPreVideo) {
         setScreen('pre-video');
       }
     }
-  }, [hasLoadedConfig, preModuleVideoConfig]);
+  }, [hasLoadedConfig, preModuleVideoConfig, isPreview]);
 
   const nextScreen = useCallback(() => {
     const currentIndex = SCREENS.indexOf(screen);
