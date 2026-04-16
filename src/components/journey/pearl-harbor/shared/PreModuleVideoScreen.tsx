@@ -80,16 +80,17 @@ export function PreModuleVideoScreen({ config, beatTitle, onComplete }: PreModul
   };
 
   return (
-    <div className="fixed inset-0 bg-black flex flex-col">
-      {/* Video Container - supports both 9:16 and 16:9 videos */}
+    <div className="fixed inset-0 bg-black flex flex-col z-[60]">
+      {/* Video Container - supports both 9:16 and 16:9 videos without cutoff */}
       <div
-        className="flex-1 relative flex items-center justify-center min-h-0 p-2"
+        className="flex-1 relative flex items-center justify-center min-h-0 p-4"
         onClick={handleScreenTap}
       >
         <video
           ref={videoRef}
           src={config.videoUrl}
-          className="max-w-full max-h-full w-auto h-auto object-contain"
+          className="max-w-full max-h-full w-auto h-auto"
+          style={{ objectFit: 'contain' }}
           playsInline
           muted={isMuted}
           onTimeUpdate={handleTimeUpdate}

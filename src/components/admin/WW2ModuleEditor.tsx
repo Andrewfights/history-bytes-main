@@ -445,9 +445,9 @@ function PreviewModal({ beatType, host, onClose }: PreviewModalProps) {
   // Fullscreen mode - same as before but with better z-index control
   if (isFullscreen) {
     return (
-      <div className="fixed inset-0 z-[100] bg-black">
+      <div className="fixed inset-0 z-[100] bg-black flex flex-col">
         {/* Control bar - always on top */}
-        <div className="absolute top-0 left-0 right-0 z-[110] flex items-center justify-between p-3 bg-gradient-to-b from-black/80 to-transparent">
+        <div className="shrink-0 z-[110] flex items-center justify-between p-3 bg-gradient-to-b from-black/80 to-transparent">
           <div className="px-3 py-1.5 bg-amber-500 text-black text-sm font-bold rounded-full flex items-center gap-2">
             <Eye size={16} />
             PREVIEW MODE
@@ -470,8 +470,8 @@ function PreviewModal({ beatType, host, onClose }: PreviewModalProps) {
           </div>
         </div>
 
-        {/* Beat content - transform creates new containing block for fixed children */}
-        <div className="absolute inset-0 pt-12 z-[105] overflow-hidden" style={{ transform: 'translateZ(0)' }}>
+        {/* Beat content - flex-1 takes remaining space */}
+        <div className="flex-1 min-h-0 relative overflow-hidden">
           {renderBeat()}
         </div>
       </div>
