@@ -6,7 +6,7 @@
  */
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import {
   ChevronDown,
   ChevronRight,
@@ -29,6 +29,7 @@ import {
   Users,
   AlertCircle,
   Eye,
+  EyeOff,
   X,
   Trash2,
   Edit3,
@@ -39,6 +40,9 @@ import {
   Maximize2,
   Minimize2,
   MapPin,
+  Archive,
+  RotateCcw,
+  GripVertical,
 } from 'lucide-react';
 import { PEARL_HARBOR_LESSONS, TOTAL_XP, FINAL_EXAM_SCORING } from '@/data/pearlHarborLessons';
 import { BEAT_1_DEFAULT_IMAGE, BEAT_1_DEFAULT_HOTSPOTS } from '@/data/pearlHarborDefaults';
@@ -53,6 +57,9 @@ import {
   updateWW2BeatStatements,
   updateWW2BeatHotspots,
   updateWW2BeatPreModuleVideo,
+  archiveWW2Beat,
+  restoreWW2Beat,
+  saveWW2BeatOrder,
   type FirestoreWW2ModuleAssets,
   type WW2BeatQuestion,
   type WW2BeatStatement,
@@ -93,6 +100,7 @@ interface BeatQuestion {
   correctAnswer: string;
   explanation: string;
   category?: string;
+  hidden?: boolean;
 }
 
 interface BeatStatement {
@@ -568,6 +576,9 @@ function EditableQuestionList({ beatId, questions, title, onSave }: EditableQues
 
   if (!questions || questions.length === 0) return null;
 
+  const hiddenCount = editedQuestions.filter(q => q.hidden).length;
+  const visibleCount = editedQuestions.length - hiddenCount;
+
   const handleEdit = (index: number) => {
     setEditingIndex(index);
   };
@@ -584,6 +595,23 @@ function EditableQuestionList({ beatId, questions, title, onSave }: EditableQues
       setEditingIndex(null);
     } catch (error) {
       console.error('Failed to save questions:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleToggleVisibility = async (index: number) => {
+    const updated = [...editedQuestions];
+    updated[index] = { ...updated[index], hidden: !updated[index].hidden };
+    setEditedQuestions(updated);
+    // Auto-save visibility changes
+    setIsSaving(true);
+    try {
+      await onSave(beatId, updated as WW2BeatQuestion[]);
+    } catch (error) {
+      console.error('Failed to toggle visibility:', error);
+      // Revert on error
+      setEditedQuestions(questions);
     } finally {
       setIsSaving(false);
     }
@@ -611,7 +639,7 @@ function EditableQuestionList({ beatId, questions, title, onSave }: EditableQues
     <div className="space-y-2">
       <h4 className="text-white/60 text-xs uppercase tracking-wide flex items-center gap-2">
         <FileQuestion size={14} />
-        {title || `Questions (${questions.length})`}
+        {title || `Questions (${visibleCount} visible${hiddenCount > 0 ? `, ${hiddenCount} hidden` : ''})`}
         <span className="text-amber-400 text-[10px]">Editable</span>
       </h4>
       <div className="space-y-2">
@@ -690,17 +718,36 @@ function EditableQuestionList({ beatId, questions, title, onSave }: EditableQues
                   </div>
                 ) : (
                   // View mode
-                  <>
+                  <div className={q.hidden ? 'opacity-50' : ''}>
                     <div className="flex items-start justify-between gap-2">
                       <p className="text-white text-sm mb-2">{q.question}</p>
-                      <button
-                        onClick={() => handleEdit(idx)}
-                        className="p-1 text-slate-400 hover:text-amber-400 transition-colors shrink-0"
-                        title="Edit question"
-                      >
-                        <Edit3 size={14} />
-                      </button>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          onClick={() => handleToggleVisibility(idx)}
+                          disabled={isSaving}
+                          className={`p-1 rounded transition-colors ${
+                            q.hidden
+                              ? 'text-red-400 hover:text-red-300 hover:bg-red-500/20'
+                              : 'text-green-400 hover:text-green-300 hover:bg-green-500/20'
+                          } disabled:opacity-50`}
+                          title={q.hidden ? 'Show question to students' : 'Hide question from students'}
+                        >
+                          {q.hidden ? <EyeOff size={14} /> : <Eye size={14} />}
+                        </button>
+                        <button
+                          onClick={() => handleEdit(idx)}
+                          className="p-1 text-slate-400 hover:text-amber-400 transition-colors"
+                          title="Edit question"
+                        >
+                          <Edit3 size={14} />
+                        </button>
+                      </div>
                     </div>
+                    {q.hidden && (
+                      <span className="inline-block mb-2 px-2 py-0.5 bg-red-500/20 text-red-400 text-[10px] rounded">
+                        Hidden from students
+                      </span>
+                    )}
                     {q.options && (
                       <div className="grid grid-cols-2 gap-1 mb-2">
                         {q.options.map((opt, i) => (
@@ -723,7 +770,7 @@ function EditableQuestionList({ beatId, questions, title, onSave }: EditableQues
                         {q.category}
                       </span>
                     )}
-                  </>
+                  </div>
                 )}
               </div>
             </div>
@@ -1528,6 +1575,8 @@ function BeatCard({
   onSaveStatements,
   onEditHotspots,
   onSavePreModuleVideo,
+  onArchive,
+  showDragHandle,
 }: {
   lesson: typeof PEARL_HARBOR_LESSONS[0];
   index: number;
@@ -1543,6 +1592,8 @@ function BeatCard({
   onSaveStatements: (beatId: string, statements: WW2BeatStatement[]) => Promise<void>;
   onEditHotspots: (beatId: string) => void;
   onSavePreModuleVideo: (beatId: string, config: PreModuleVideoConfig | null) => Promise<void>;
+  onArchive?: (beatId: string) => void;
+  showDragHandle?: boolean;
 }) {
   const content = BEAT_CONTENT_MAP[lesson.id];
   const isExam = lesson.type === 'final-exam';
@@ -1559,15 +1610,22 @@ function BeatCard({
       }`}
     >
       {/* Header */}
-      <button
-        onClick={onToggle}
-        className="w-full p-4 flex items-center gap-4 text-left hover:bg-white/5 transition-colors"
-      >
-        <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl shrink-0 ${
-          isExam ? 'bg-blue-500/20 border border-blue-500/30' : 'bg-slate-700'
-        }`}>
-          {lesson.icon}
-        </div>
+      <div className="flex items-center">
+        {/* Drag Handle */}
+        {showDragHandle && (
+          <div className="pl-2 pr-1 py-4 cursor-grab active:cursor-grabbing text-slate-500 hover:text-slate-300">
+            <GripVertical size={20} />
+          </div>
+        )}
+        <button
+          onClick={onToggle}
+          className="flex-1 p-4 flex items-center gap-4 text-left hover:bg-white/5 transition-colors"
+        >
+          <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl shrink-0 ${
+            isExam ? 'bg-blue-500/20 border border-blue-500/30' : 'bg-slate-700'
+          }`}>
+            {lesson.icon}
+          </div>
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
@@ -1597,22 +1655,39 @@ function BeatCard({
           </div>
         </div>
 
-        {/* Preview button */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onPreview(lesson.type);
-          }}
-          className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold rounded-lg flex items-center gap-1.5 transition-colors"
-        >
-          <Eye size={14} />
-          Preview
-        </button>
+          {/* Preview button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onPreview(lesson.type);
+            }}
+            className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold rounded-lg flex items-center gap-1.5 transition-colors"
+          >
+            <Eye size={14} />
+            Preview
+          </button>
 
-        <div className="text-slate-400">
-          {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
-        </div>
-      </button>
+          {/* Archive button */}
+          {onArchive && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (confirm(`Archive "${lesson.title}"? This will hide it from students.`)) {
+                  onArchive(lesson.id);
+                }
+              }}
+              className="px-3 py-1.5 bg-slate-600 hover:bg-red-500/80 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 transition-colors"
+            >
+              <Archive size={14} />
+              Archive
+            </button>
+          )}
+
+          <div className="text-slate-400">
+            {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
+          </div>
+        </button>
+      </div>
 
       {/* Expanded Content */}
       <AnimatePresence>
@@ -2109,6 +2184,88 @@ function ExamAssetsCard({
 }
 
 // ============================================================
+// ARCHIVED BEATS SECTION
+// ============================================================
+
+function ArchivedBeatsSection({
+  archivedBeatIds,
+  lessons,
+  onRestore,
+}: {
+  archivedBeatIds: string[];
+  lessons: typeof PEARL_HARBOR_LESSONS;
+  onRestore: (beatId: string) => void;
+}) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  if (archivedBeatIds.length === 0) return null;
+
+  const archivedLessons = lessons.filter(l => archivedBeatIds.includes(l.id));
+
+  return (
+    <div className="mt-8 rounded-xl border border-slate-700 bg-slate-800/30 overflow-hidden">
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full p-4 flex items-center justify-between text-left hover:bg-white/5 transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-red-500/20 border border-red-500/30 flex items-center justify-center">
+            <Archive size={20} className="text-red-400" />
+          </div>
+          <div>
+            <h3 className="text-white font-semibold">Archived Beats</h3>
+            <p className="text-slate-400 text-sm">{archivedBeatIds.length} beat{archivedBeatIds.length !== 1 ? 's' : ''} hidden from students</p>
+          </div>
+        </div>
+        <div className="text-slate-400">
+          {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
+        </div>
+      </button>
+
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="p-4 pt-0 border-t border-slate-700/50 space-y-2">
+              {archivedLessons.map((lesson) => (
+                <div
+                  key={lesson.id}
+                  className="p-3 bg-slate-800/50 rounded-lg border border-slate-700/50 flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">{lesson.icon}</span>
+                    <div>
+                      <span className="text-slate-500 text-xs">Beat {lesson.number}</span>
+                      <h4 className="text-white font-medium">{lesson.title}</h4>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      if (confirm(`Restore "${lesson.title}"? This will make it visible to students again.`)) {
+                        onRestore(lesson.id);
+                      }
+                    }}
+                    className="px-3 py-1.5 bg-green-500/20 hover:bg-green-500/30 text-green-400 text-xs font-bold rounded-lg flex items-center gap-1.5 transition-colors"
+                  >
+                    <RotateCcw size={14} />
+                    Restore
+                  </button>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ============================================================
 // MAIN COMPONENT
 // ============================================================
 
@@ -2121,6 +2278,74 @@ export function WW2ModuleEditor() {
 
   // Get the first host as the preview host
   const previewHost = WW2_HOSTS[0];
+
+  // Get archived beat IDs from assets
+  const archivedBeatIds = Object.keys(uploadedAssets?.archivedBeats || {});
+
+  // Compute ordered and active (non-archived) beats
+  const getOrderedActiveBeats = useCallback(() => {
+    const customOrder = uploadedAssets?.beatOrder;
+    const activeBeats = PEARL_HARBOR_LESSONS.filter(l => !archivedBeatIds.includes(l.id));
+
+    if (!customOrder || customOrder.length === 0) {
+      return activeBeats;
+    }
+
+    // Reorder based on customOrder
+    const ordered: typeof PEARL_HARBOR_LESSONS = [];
+    for (const beatId of customOrder) {
+      const beat = activeBeats.find(b => b.id === beatId);
+      if (beat) ordered.push(beat);
+    }
+
+    // Add any beats not in customOrder at the end
+    for (const beat of activeBeats) {
+      if (!ordered.find(b => b.id === beat.id)) {
+        ordered.push(beat);
+      }
+    }
+
+    return ordered;
+  }, [uploadedAssets?.beatOrder, archivedBeatIds]);
+
+  const [orderedBeats, setOrderedBeats] = useState<typeof PEARL_HARBOR_LESSONS>([]);
+
+  // Update ordered beats when assets change
+  useEffect(() => {
+    setOrderedBeats(getOrderedActiveBeats());
+  }, [getOrderedActiveBeats]);
+
+  // Handle archive beat
+  const handleArchiveBeat = useCallback(async (beatId: string) => {
+    try {
+      await archiveWW2Beat(beatId);
+      console.log('Beat archived:', beatId);
+    } catch (error) {
+      console.error('Error archiving beat:', error);
+    }
+  }, []);
+
+  // Handle restore beat
+  const handleRestoreBeat = useCallback(async (beatId: string) => {
+    try {
+      await restoreWW2Beat(beatId);
+      console.log('Beat restored:', beatId);
+    } catch (error) {
+      console.error('Error restoring beat:', error);
+    }
+  }, []);
+
+  // Handle beat reorder
+  const handleBeatReorder = useCallback(async (reorderedBeats: typeof PEARL_HARBOR_LESSONS) => {
+    setOrderedBeats(reorderedBeats);
+    const beatIds = reorderedBeats.map(b => b.id);
+    try {
+      await saveWW2BeatOrder(beatIds);
+      console.log('Beat order saved:', beatIds);
+    } catch (error) {
+      console.error('Error saving beat order:', error);
+    }
+  }, []);
 
   // Subscribe to Firestore for uploaded assets
   useEffect(() => {
@@ -2333,8 +2558,15 @@ export function WW2ModuleEditor() {
         {/* Stats Bar */}
         <div className="flex flex-wrap items-center gap-6 mt-4 p-4 bg-slate-800/50 rounded-xl border border-slate-700">
           <div>
-            <div className="text-xs text-slate-400 uppercase tracking-wide">Total Beats</div>
-            <div className="text-2xl font-bold text-white">{PEARL_HARBOR_LESSONS.length}</div>
+            <div className="text-xs text-slate-400 uppercase tracking-wide">Active Beats</div>
+            <div className="text-2xl font-bold text-white">
+              {orderedBeats.length}
+              {archivedBeatIds.length > 0 && (
+                <span className="text-sm text-slate-500 font-normal ml-1">
+                  ({archivedBeatIds.length} archived)
+                </span>
+              )}
+            </div>
           </div>
           <div className="h-8 w-px bg-slate-700" />
           <div>
@@ -2370,28 +2602,43 @@ export function WW2ModuleEditor() {
         </div>
       </div>
 
-      {/* Content List */}
-      <div className="space-y-3">
-        {PEARL_HARBOR_LESSONS.map((lesson, index) => (
-          <BeatCard
+      {/* Content List - Reorderable */}
+      <Reorder.Group
+        axis="y"
+        values={orderedBeats}
+        onReorder={handleBeatReorder}
+        className="space-y-3"
+      >
+        {orderedBeats.map((lesson, index) => (
+          <Reorder.Item
             key={lesson.id}
-            lesson={lesson}
-            index={index}
-            isExpanded={expandedSections.has(lesson.id)}
-            onToggle={() => toggleSection(lesson.id)}
-            onPreview={handlePreview}
-            uploadedMedia={getUploadedMedia(lesson.id)}
-            customHotspotConfig={getHotspotConfig(lesson.id)}
-            preModuleVideoConfig={getPreModuleVideoConfig(lesson.id)}
-            onUpload={handleUpload}
-            onRemove={handleRemove}
-            onSaveQuestions={handleSaveQuestions}
-            onSaveStatements={handleSaveStatements}
-            onEditHotspots={handleEditHotspots}
-            onSavePreModuleVideo={handleSavePreModuleVideo}
-          />
+            value={lesson}
+            className="list-none"
+          >
+            <BeatCard
+              lesson={lesson}
+              index={index}
+              isExpanded={expandedSections.has(lesson.id)}
+              onToggle={() => toggleSection(lesson.id)}
+              onPreview={handlePreview}
+              uploadedMedia={getUploadedMedia(lesson.id)}
+              customHotspotConfig={getHotspotConfig(lesson.id)}
+              preModuleVideoConfig={getPreModuleVideoConfig(lesson.id)}
+              onUpload={handleUpload}
+              onRemove={handleRemove}
+              onSaveQuestions={handleSaveQuestions}
+              onSaveStatements={handleSaveStatements}
+              onEditHotspots={handleEditHotspots}
+              onSavePreModuleVideo={handleSavePreModuleVideo}
+              onArchive={handleArchiveBeat}
+              showDragHandle={true}
+            />
+          </Reorder.Item>
         ))}
+      </Reorder.Group>
 
+      {/* Non-reorderable items */}
+      <div className="space-y-3 mt-3">
         {/* Arena Card */}
         <ArenaCard
           isExpanded={expandedSections.has('arena')}
@@ -2455,6 +2702,13 @@ export function WW2ModuleEditor() {
             />
           </div>
         </div>
+
+        {/* Archived Beats Section */}
+        <ArchivedBeatsSection
+          archivedBeatIds={archivedBeatIds}
+          lessons={PEARL_HARBOR_LESSONS}
+          onRestore={handleRestoreBeat}
+        />
       </div>
 
       {/* Preview Modal */}

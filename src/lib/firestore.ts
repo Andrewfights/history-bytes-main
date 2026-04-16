@@ -1451,6 +1451,7 @@ export interface WW2BeatQuestion {
   correctAnswer: string;
   explanation: string;
   category?: string;
+  hidden?: boolean;  // If true, question is excluded from student view
 }
 
 export interface WW2BeatStatement {
@@ -1538,6 +1539,10 @@ export interface FirestoreWW2ModuleAssets {
   theaterMedia?: Record<string, TheaterMediaConfig>;  // Key: theater ID (e.g., 'pearl-harbor', 'normandy')
   // Pre-module intro videos (explainer videos before a beat starts)
   preModuleVideos?: Record<string, PreModuleVideoConfig>;  // Key: beat ID -> video config
+  // Archived beats (hidden from student view)
+  archivedBeats?: Record<string, { archivedAt: Timestamp }>;  // Key: beat ID -> archive info
+  // Custom beat ordering (overrides default lesson order)
+  beatOrder?: string[];  // Array of beat IDs in display order
   updatedAt?: Timestamp;
 }
 
@@ -1613,6 +1618,26 @@ export async function updateWW2BeatPreModuleVideo(
   }
 
   return saveWW2ModuleAssets({ preModuleVideos });
+}
+
+// ============ Beat Archive Operations ============
+
+export async function archiveWW2Beat(beatId: string): Promise<boolean> {
+  const current = await getWW2ModuleAssets();
+  const archivedBeats = current?.archivedBeats || {};
+  archivedBeats[beatId] = { archivedAt: serverTimestamp() as Timestamp };
+  return saveWW2ModuleAssets({ archivedBeats });
+}
+
+export async function restoreWW2Beat(beatId: string): Promise<boolean> {
+  const current = await getWW2ModuleAssets();
+  const archivedBeats = { ...current?.archivedBeats };
+  delete archivedBeats[beatId];
+  return saveWW2ModuleAssets({ archivedBeats });
+}
+
+export async function saveWW2BeatOrder(beatIds: string[]): Promise<boolean> {
+  return saveWW2ModuleAssets({ beatOrder: beatIds });
 }
 
 export async function updateExamQuestionVideo(

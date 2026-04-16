@@ -1,15 +1,18 @@
 /**
  * PearlHarborJourneyMap - Duolingo-style lesson path for Pearl Harbor
- * Shows 7 lessons in a vertical progression with View Map button
+ * Shows lessons in a vertical progression with View Map button
+ * Respects archived beats and custom ordering from admin settings
  */
 
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Globe, Lock, CheckCircle2, Play, Crown, AlertCircle } from 'lucide-react';
 import { WW2Host } from '@/types';
 import { PEARL_HARBOR_LESSONS, TOTAL_XP, PearlHarborLesson } from '@/data/pearlHarborLessons';
 import { usePearlHarborProgress } from './hooks/usePearlHarborProgress';
 import { MusicControl } from '@/components/shared/MusicControl';
+import { subscribeToWW2ModuleAssets, type FirestoreWW2ModuleAssets } from '@/lib/firestore';
+import { isFirebaseConfigured } from '@/lib/firebase';
 
 interface PearlHarborJourneyMapProps {
   host: WW2Host;
@@ -32,8 +35,51 @@ export function PearlHarborJourneyMap({
 }: PearlHarborJourneyMapProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const { progress, totalXP, isLessonUnlocked, isActivityCompleted } = usePearlHarborProgress();
+  const [moduleAssets, setModuleAssets] = useState<FirestoreWW2ModuleAssets | null>(null);
 
-  // Determine lesson states
+  // Subscribe to module assets for archived beats and custom order
+  useEffect(() => {
+    if (!isFirebaseConfigured()) return;
+
+    const unsubscribe = subscribeToWW2ModuleAssets((assets) => {
+      setModuleAssets(assets);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Get ordered and active (non-archived) lessons
+  const activeLessons = useMemo(() => {
+    const archivedBeatIds = Object.keys(moduleAssets?.archivedBeats || {});
+    const customOrder = moduleAssets?.beatOrder;
+
+    // Filter out archived lessons
+    const nonArchivedLessons = PEARL_HARBOR_LESSONS.filter(
+      l => !archivedBeatIds.includes(l.id)
+    );
+
+    // Apply custom order if present
+    if (!customOrder || customOrder.length === 0) {
+      return nonArchivedLessons;
+    }
+
+    const ordered: PearlHarborLesson[] = [];
+    for (const beatId of customOrder) {
+      const beat = nonArchivedLessons.find(b => b.id === beatId);
+      if (beat) ordered.push(beat);
+    }
+
+    // Add any beats not in customOrder at the end
+    for (const beat of nonArchivedLessons) {
+      if (!ordered.find(b => b.id === beat.id)) {
+        ordered.push(beat);
+      }
+    }
+
+    return ordered;
+  }, [moduleAssets?.archivedBeats, moduleAssets?.beatOrder]);
+
+  // Determine lesson states based on active lessons
   const getLessonState = (lesson: PearlHarborLesson, index: number): LessonState => {
     const isCompleted = isActivityCompleted(lesson.id);
     const isUnlocked = isLessonUnlocked(lesson.id);
@@ -43,12 +89,12 @@ export function PearlHarborJourneyMap({
     if (index === 0) return 'current';
 
     // Check if previous lesson is unlocked (completed or skipped)
-    const prevLesson = PEARL_HARBOR_LESSONS[index - 1];
-    if (isLessonUnlocked(prevLesson.id)) return 'current';
+    const prevLesson = activeLessons[index - 1];
+    if (prevLesson && isLessonUnlocked(prevLesson.id)) return 'current';
     return 'locked';
   };
 
-  const lessonStates = PEARL_HARBOR_LESSONS.map((lesson, index) => ({
+  const lessonStates = activeLessons.map((lesson, index) => ({
     lesson,
     state: getLessonState(lesson, index),
   }));
@@ -94,7 +140,7 @@ export function PearlHarborJourneyMap({
           </h1>
           <div className="flex items-center justify-center gap-2 text-white/50 text-xs sm:text-sm">
             <Crown size={14} className="text-amber-400 sm:w-4 sm:h-4" />
-            <span>{completedCount} of {PEARL_HARBOR_LESSONS.length} completed</span>
+            <span>{completedCount} of {activeLessons.length} completed</span>
           </div>
         </div>
 
