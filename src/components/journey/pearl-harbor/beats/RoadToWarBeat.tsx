@@ -11,13 +11,14 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, ArrowRight, Map, Clock, Sparkles } from 'lucide-react';
 import { WW2Host } from '@/types';
-import { InteractiveMap, MapHotspot, TimedChallenge, TimedQuestion, PreModuleVideoScreen } from '../shared';
+import { InteractiveMap, MapHotspot, TimedChallenge, TimedQuestion, PreModuleVideoScreen, PostModuleVideoScreen } from '../shared';
 import { usePearlHarborProgress } from '../hooks/usePearlHarborProgress';
-import { subscribeToWW2ModuleAssets, type WW2BeatHotspotConfig, type PreModuleVideoConfig } from '@/lib/firestore';
+import { subscribeToWW2ModuleAssets, type WW2BeatHotspotConfig, type PreModuleVideoConfig, type PostModuleVideoConfig } from '@/lib/firestore';
 import { BEAT_1_DEFAULT_IMAGE } from '@/data/pearlHarborDefaults';
+import { playXPSound } from '@/lib/xpAudioManager';
 
-type Screen = 'pre-video' | 'intro' | 'map-explore' | 'timed-challenge' | 'reveal' | 'completion';
-const SCREENS: Screen[] = ['pre-video', 'intro', 'map-explore', 'timed-challenge', 'reveal', 'completion'];
+type Screen = 'pre-video' | 'intro' | 'map-explore' | 'timed-challenge' | 'reveal' | 'post-video' | 'completion';
+const SCREENS: Screen[] = ['pre-video', 'intro', 'map-explore', 'timed-challenge', 'reveal', 'post-video', 'completion'];
 
 const LESSON_DATA = {
   id: 'ph-beat-1',
@@ -148,6 +149,7 @@ export function RoadToWarBeat({ host, onComplete, onSkip, onBack, isPreview = fa
   const [customHotspotConfig, setCustomHotspotConfig] = useState<WW2BeatHotspotConfig | null>(null);
   const [beatMediaImage, setBeatMediaImage] = useState<string | null>(null);
   const [preModuleVideoConfig, setPreModuleVideoConfig] = useState<PreModuleVideoConfig | null>(null);
+  const [postModuleVideoConfig, setPostModuleVideoConfig] = useState<PostModuleVideoConfig | null>(null);
   const [hasLoadedConfig, setHasLoadedConfig] = useState(false);
 
   const { saveCheckpoint, clearCheckpoint, getCheckpoint } = usePearlHarborProgress();
@@ -182,6 +184,15 @@ export function RoadToWarBeat({ host, onComplete, onSkip, onBack, isPreview = fa
         setPreModuleVideoConfig(preModuleVideo);
       } else {
         setPreModuleVideoConfig(null);
+      }
+
+      // Check for post-module video config
+      const postModuleVideo = assets?.postModuleVideos?.[LESSON_DATA.id];
+      if (postModuleVideo?.enabled && postModuleVideo?.videoUrl) {
+        console.log('[RoadToWarBeat] Found post-module video:', postModuleVideo);
+        setPostModuleVideoConfig(postModuleVideo);
+      } else {
+        setPostModuleVideoConfig(null);
       }
 
       setHasLoadedConfig(true);
@@ -242,13 +253,24 @@ export function RoadToWarBeat({ host, onComplete, onSkip, onBack, isPreview = fa
     }
     const currentIndex = SCREENS.indexOf(screen);
     if (currentIndex < SCREENS.length - 1) {
-      setScreen(SCREENS[currentIndex + 1]);
+      let nextScreenIndex = currentIndex + 1;
+      // Skip post-video if not configured
+      if (SCREENS[nextScreenIndex] === 'post-video' && !postModuleVideoConfig?.enabled) {
+        nextScreenIndex++;
+      }
+      if (nextScreenIndex < SCREENS.length) {
+        setScreen(SCREENS[nextScreenIndex]);
+      } else {
+        clearCheckpoint();
+        const earnedXP = skippedScreens.size === 0 ? LESSON_DATA.xpReward : 0;
+        onComplete(earnedXP);
+      }
     } else {
       clearCheckpoint();
       const earnedXP = skippedScreens.size === 0 ? LESSON_DATA.xpReward : 0;
       onComplete(earnedXP);
     }
-  }, [screen, skippedScreens, clearCheckpoint, onComplete]);
+  }, [screen, skippedScreens, clearCheckpoint, onComplete, postModuleVideoConfig]);
 
   const handleHotspotView = (id: string) => {
     setViewedHotspots((prev) => new Set([...prev, id]));
@@ -504,6 +526,15 @@ export function RoadToWarBeat({ host, onComplete, onSkip, onBack, isPreview = fa
             </motion.div>
           )}
 
+          {/* POST-MODULE VIDEO */}
+          {screen === 'post-video' && postModuleVideoConfig && (
+            <PostModuleVideoScreen
+              config={postModuleVideoConfig}
+              beatTitle="Why Pearl Harbor? The Road to War"
+              onComplete={() => setScreen('completion')}
+            />
+          )}
+
           {/* COMPLETION SCREEN */}
           {screen === 'completion' && (
             <motion.div
@@ -512,6 +543,9 @@ export function RoadToWarBeat({ host, onComplete, onSkip, onBack, isPreview = fa
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="flex flex-col h-full p-6"
+              onAnimationComplete={() => {
+                if (skippedScreens.size === 0) playXPSound();
+              }}
             >
               <div className="flex-1 flex flex-col items-center justify-center">
                 <motion.div

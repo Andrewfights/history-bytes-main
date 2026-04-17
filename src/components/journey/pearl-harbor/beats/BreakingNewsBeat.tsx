@@ -11,8 +11,9 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Sparkles, Radio, Newspaper, ArrowRight, Play, Pause } from 'lucide-react';
 import { WW2Host } from '@/types';
-import { DragAndDropSorter, SortableItem, PreModuleVideoScreen } from '../shared';
-import { subscribeToWW2ModuleAssets, type PreModuleVideoConfig } from '@/lib/firestore';
+import { DragAndDropSorter, SortableItem, PreModuleVideoScreen, PostModuleVideoScreen } from '../shared';
+import { subscribeToWW2ModuleAssets, type PreModuleVideoConfig, type PostModuleVideoConfig } from '@/lib/firestore';
+import { playXPSound } from '@/lib/xpAudioManager';
 import { usePearlHarborProgress } from '../hooks/usePearlHarborProgress';
 import { useWW2ModuleAssets } from '../hooks/useWW2ModuleAssets';
 
@@ -23,8 +24,8 @@ const MEDIA_KEYS = {
   nytFrontPage: 'new-york-times-front-page-facsimile',
 };
 
-type Screen = 'pre-video' | 'intro' | 'radio-dial' | 'newspaper' | 'opinion-shift' | 'tsukiyama' | 'completion';
-const SCREENS: Screen[] = ['pre-video', 'intro', 'radio-dial', 'newspaper', 'opinion-shift', 'tsukiyama', 'completion'];
+type Screen = 'pre-video' | 'intro' | 'radio-dial' | 'newspaper' | 'opinion-shift' | 'tsukiyama' | 'post-video' | 'completion';
+const SCREENS: Screen[] = ['pre-video', 'intro', 'radio-dial', 'newspaper', 'opinion-shift', 'tsukiyama', 'post-video', 'completion'];
 
 const LESSON_DATA = {
   id: 'ph-beat-5',
@@ -104,6 +105,7 @@ export function BreakingNewsBeat({ host, onComplete, onSkip, onBack, isPreview =
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [preModuleVideoConfig, setPreModuleVideoConfig] = useState<PreModuleVideoConfig | null>(null);
+  const [postModuleVideoConfig, setPostModuleVideoConfig] = useState<PostModuleVideoConfig | null>(null);
   const [hasLoadedConfig, setHasLoadedConfig] = useState(false);
 
   const { saveCheckpoint, clearCheckpoint, getCheckpoint } = usePearlHarborProgress();
@@ -187,6 +189,12 @@ export function BreakingNewsBeat({ host, onComplete, onSkip, onBack, isPreview =
       } else {
         setPreModuleVideoConfig(null);
       }
+      const postModuleVideo = assets?.postModuleVideos?.[LESSON_DATA.id];
+      if (postModuleVideo?.enabled && postModuleVideo?.videoUrl) {
+        setPostModuleVideoConfig(postModuleVideo);
+      } else {
+        setPostModuleVideoConfig(null);
+      }
       setHasLoadedConfig(true);
     });
     return () => unsubscribe();
@@ -208,12 +216,22 @@ export function BreakingNewsBeat({ host, onComplete, onSkip, onBack, isPreview =
   const nextScreen = useCallback(() => {
     const currentIndex = SCREENS.indexOf(screen);
     if (currentIndex < SCREENS.length - 1) {
-      setScreen(SCREENS[currentIndex + 1]);
+      let nextIndex = currentIndex + 1;
+      // Skip post-video if not configured
+      if (SCREENS[nextIndex] === 'post-video' && !postModuleVideoConfig) {
+        nextIndex++;
+      }
+      if (nextIndex < SCREENS.length) {
+        setScreen(SCREENS[nextIndex]);
+      } else {
+        clearCheckpoint();
+        onComplete(skipped ? 0 : LESSON_DATA.xpReward);
+      }
     } else {
       clearCheckpoint();
       onComplete(skipped ? 0 : LESSON_DATA.xpReward);
     }
-  }, [screen, skipped, clearCheckpoint, onComplete]);
+  }, [screen, skipped, clearCheckpoint, onComplete, postModuleVideoConfig]);
 
   const handleStationSelect = (station: RadioStation) => {
     setSelectedStation(station);
@@ -440,29 +458,127 @@ export function BreakingNewsBeat({ host, onComplete, onSkip, onBack, isPreview =
               ) : (
                 <div className="flex flex-col h-full p-6">
                   <div className="flex-1 flex flex-col items-center justify-center text-center">
-                    <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center mb-6">
+                    {/* Animated icon with glow */}
+                    <motion.div
+                      initial={{ scale: 0, rotate: -180 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      transition={{ type: 'spring', stiffness: 200, delay: 0.1 }}
+                      className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center mb-6 relative"
+                    >
+                      <motion.div
+                        className="absolute inset-0 rounded-full bg-green-500/20"
+                        animate={{ scale: [1, 1.4, 1], opacity: [0.5, 0, 0.5] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                      />
                       <ArrowRight size={40} className="text-green-400" />
                     </motion.div>
-                    <h2 className="text-2xl font-bold text-white mb-4">Overnight Transformation</h2>
-                    <div className="bg-white/5 rounded-xl p-6 max-w-sm border border-white/10">
-                      <div className="flex items-center justify-between gap-4">
-                        <div className="text-center">
-                          <p className="text-red-400 text-2xl font-bold">88%</p>
+
+                    <motion.h2
+                      className="text-2xl font-bold text-white mb-4"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2 }}
+                    >
+                      Overnight Transformation
+                    </motion.h2>
+
+                    {/* Enhanced stats card */}
+                    <motion.div
+                      className="bg-white/5 rounded-xl p-6 max-w-sm border border-white/10 relative overflow-hidden"
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.3 }}
+                    >
+                      {/* Shimmer effect */}
+                      <motion.div
+                        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent"
+                        animate={{ x: ['-100%', '100%'] }}
+                        transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+                      />
+
+                      <div className="flex items-center justify-between gap-4 relative z-10">
+                        {/* BEFORE stat */}
+                        <motion.div
+                          className="text-center"
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.5 }}
+                        >
+                          <motion.p
+                            className="text-red-400 text-3xl font-bold"
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ delay: 0.6, type: 'spring', stiffness: 200 }}
+                          >
+                            88%
+                          </motion.p>
                           <p className="text-white/50 text-xs">Opposed War</p>
                           <p className="text-white/30 text-xs">Jan 1940</p>
-                        </div>
-                        <ArrowRight className="text-amber-400" />
-                        <div className="text-center">
-                          <p className="text-green-400 text-2xl font-bold">97%</p>
+                        </motion.div>
+
+                        {/* Animated arrow */}
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: 0.7 }}
+                        >
+                          <motion.div
+                            animate={{ x: [0, 5, 0] }}
+                            transition={{ duration: 1, repeat: Infinity }}
+                          >
+                            <ArrowRight className="text-amber-400" size={28} />
+                          </motion.div>
+                        </motion.div>
+
+                        {/* AFTER stat */}
+                        <motion.div
+                          className="text-center"
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.8 }}
+                        >
+                          <motion.p
+                            className="text-green-400 text-3xl font-bold"
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ delay: 0.9, type: 'spring', stiffness: 200 }}
+                          >
+                            97%
+                          </motion.p>
                           <p className="text-white/50 text-xs">Approved War</p>
                           <p className="text-white/30 text-xs">Dec 8 1941</p>
-                        </div>
+                        </motion.div>
                       </div>
-                    </div>
+
+                      {/* Connecting line animation */}
+                      <motion.div
+                        className="absolute bottom-2 left-1/2 -translate-x-1/2 h-0.5 bg-gradient-to-r from-red-400 via-amber-400 to-green-400 rounded-full"
+                        initial={{ width: 0 }}
+                        animate={{ width: '80%' }}
+                        transition={{ delay: 1, duration: 0.8 }}
+                      />
+                    </motion.div>
+
+                    {/* Additional context */}
+                    <motion.p
+                      className="text-white/40 text-sm mt-4 max-w-xs"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 1.2 }}
+                    >
+                      One day changed everything
+                    </motion.p>
                   </div>
-                  <button onClick={nextScreen} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors">
+
+                  <motion.button
+                    onClick={nextScreen}
+                    className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 1.3 }}
+                  >
                     One More Story
-                  </button>
+                  </motion.button>
                 </div>
               )}
             </motion.div>
@@ -501,9 +617,29 @@ export function BreakingNewsBeat({ host, onComplete, onSkip, onBack, isPreview =
             </motion.div>
           )}
 
+          {/* POST-MODULE VIDEO */}
+          {screen === 'post-video' && postModuleVideoConfig && (
+            <PostModuleVideoScreen
+              config={postModuleVideoConfig}
+              beatTitle="Breaking News"
+              onComplete={() => setScreen('completion')}
+            />
+          )}
+
           {/* COMPLETION */}
           {screen === 'completion' && (
-            <motion.div key="completion" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full p-6">
+            <motion.div
+              key="completion"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex flex-col h-full p-6"
+              onAnimationComplete={() => {
+                if (!skipped) {
+                  playXPSound();
+                }
+              }}
+            >
               <div className="flex-1 flex flex-col items-center justify-center">
                 <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="text-6xl mb-6">📻</motion.div>
                 <h2 className="text-2xl font-bold text-white mb-2">Beat 5 Complete!</h2>

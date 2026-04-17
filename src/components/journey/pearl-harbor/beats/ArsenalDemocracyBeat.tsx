@@ -11,12 +11,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Sparkles, Factory, Globe, AlertTriangle, TrendingUp } from 'lucide-react';
 import { WW2Host } from '@/types';
-import { TimedChallenge, TimedQuestion, PreModuleVideoScreen } from '../shared';
-import { subscribeToWW2ModuleAssets, type PreModuleVideoConfig } from '@/lib/firestore';
+import { TimedChallenge, TimedQuestion, PreModuleVideoScreen, PostModuleVideoScreen } from '../shared';
+import { subscribeToWW2ModuleAssets, type PreModuleVideoConfig, type PostModuleVideoConfig } from '@/lib/firestore';
+import { playXPSound } from '@/lib/xpAudioManager';
 import { usePearlHarborProgress } from '../hooks/usePearlHarborProgress';
 
-type Screen = 'pre-video' | 'intro' | 'production' | 'timed-challenge' | 'strategy' | 'dark-side' | 'completion';
-const SCREENS: Screen[] = ['pre-video', 'intro', 'production', 'timed-challenge', 'strategy', 'dark-side', 'completion'];
+type Screen = 'pre-video' | 'intro' | 'production' | 'timed-challenge' | 'strategy' | 'dark-side' | 'post-video' | 'completion';
+const SCREENS: Screen[] = ['pre-video', 'intro', 'production', 'timed-challenge', 'strategy', 'dark-side', 'post-video', 'completion'];
 
 const LESSON_DATA = {
   id: 'ph-beat-9',
@@ -96,6 +97,7 @@ export function ArsenalDemocracyBeat({ host, onComplete, onSkip, onBack, isPrevi
   const [challengeScore, setChallengeScore] = useState(0);
   const [skipped, setSkipped] = useState(false);
   const [preModuleVideoConfig, setPreModuleVideoConfig] = useState<PreModuleVideoConfig | null>(null);
+  const [postModuleVideoConfig, setPostModuleVideoConfig] = useState<PostModuleVideoConfig | null>(null);
   const [hasLoadedConfig, setHasLoadedConfig] = useState(false);
 
   const { saveCheckpoint, clearCheckpoint, getCheckpoint } = usePearlHarborProgress();
@@ -122,7 +124,7 @@ export function ArsenalDemocracyBeat({ host, onComplete, onSkip, onBack, isPrevi
     }
   }, [screen, saveCheckpoint]);
 
-  // Subscribe to Firestore for pre-module video config
+  // Subscribe to Firestore for pre/post-module video configs
   useEffect(() => {
     const unsubscribe = subscribeToWW2ModuleAssets((assets) => {
       const preModuleVideo = assets?.preModuleVideos?.[LESSON_DATA.id];
@@ -131,6 +133,14 @@ export function ArsenalDemocracyBeat({ host, onComplete, onSkip, onBack, isPrevi
       } else {
         setPreModuleVideoConfig(null);
       }
+
+      const postModuleVideo = assets?.postModuleVideos?.[LESSON_DATA.id];
+      if (postModuleVideo?.enabled && postModuleVideo?.videoUrl) {
+        setPostModuleVideoConfig(postModuleVideo);
+      } else {
+        setPostModuleVideoConfig(null);
+      }
+
       setHasLoadedConfig(true);
     });
     return () => unsubscribe();
@@ -152,12 +162,22 @@ export function ArsenalDemocracyBeat({ host, onComplete, onSkip, onBack, isPrevi
   const nextScreen = useCallback(() => {
     const currentIndex = SCREENS.indexOf(screen);
     if (currentIndex < SCREENS.length - 1) {
-      setScreen(SCREENS[currentIndex + 1]);
+      let nextScreenIndex = currentIndex + 1;
+      // Skip post-video if not configured
+      if (SCREENS[nextScreenIndex] === 'post-video' && !postModuleVideoConfig?.enabled) {
+        nextScreenIndex++;
+      }
+      if (nextScreenIndex < SCREENS.length) {
+        setScreen(SCREENS[nextScreenIndex]);
+      } else {
+        clearCheckpoint();
+        onComplete(skipped ? 0 : LESSON_DATA.xpReward);
+      }
     } else {
       clearCheckpoint();
       onComplete(skipped ? 0 : LESSON_DATA.xpReward);
     }
-  }, [screen, skipped, clearCheckpoint, onComplete]);
+  }, [screen, skipped, clearCheckpoint, onComplete, postModuleVideoConfig]);
 
   const handleChallengeComplete = (score: number, total: number, streak: number) => {
     setChallengeScore(score);
@@ -388,9 +408,27 @@ export function ArsenalDemocracyBeat({ host, onComplete, onSkip, onBack, isPrevi
             </motion.div>
           )}
 
+          {/* POST-MODULE VIDEO */}
+          {screen === 'post-video' && postModuleVideoConfig && (
+            <PostModuleVideoScreen
+              config={postModuleVideoConfig}
+              beatTitle="Arsenal of Democracy"
+              onComplete={() => setScreen('completion')}
+            />
+          )}
+
           {/* COMPLETION */}
           {screen === 'completion' && (
-            <motion.div key="completion" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full p-6 items-center justify-center">
+            <motion.div
+              key="completion"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex flex-col h-full p-6 items-center justify-center"
+              onAnimationComplete={() => {
+                if (!skipped) playXPSound();
+              }}
+            >
               <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="text-6xl mb-6">🏭</motion.div>
               <h2 className="text-2xl font-bold text-white mb-2">Beat 9 Complete!</h2>
               <p className="text-white/60 mb-6">Arsenal of Democracy - America Transforms</p>

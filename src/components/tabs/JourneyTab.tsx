@@ -437,12 +437,16 @@ export function JourneyTab() {
     console.log('[PearlHarbor] Theater select - theaterMedia:', theaterMedia);
     console.log('[PearlHarbor] cinematicVideoUrl:', cinematicUrl);
 
-    if (cinematicUrl) {
-      console.log('[PearlHarbor] Playing cinematic video...');
+    // Only show cinematic if user hasn't started Pearl Harbor yet
+    const hasStartedPearlHarbor = pearlHarborProgress.completedActivities.length > 0 ||
+      pearlHarborProgress.unlockedLessons.length > 0;
+
+    if (cinematicUrl && !hasStartedPearlHarbor) {
+      console.log('[PearlHarbor] Playing cinematic video (first time user)...');
       setCinematicVideoUrl(cinematicUrl);
       setShowCinematicVideo(true);
     } else {
-      console.log('[PearlHarbor] No cinematic configured, entering journey directly');
+      console.log('[PearlHarbor] Skipping cinematic (returning user or not configured), entering journey directly');
       enterPearlHarborJourney();
     }
   };

@@ -57,6 +57,7 @@ import {
   updateWW2BeatStatements,
   updateWW2BeatHotspots,
   updateWW2BeatPreModuleVideo,
+  updateWW2BeatPostModuleVideo,
   archiveWW2Beat,
   restoreWW2Beat,
   saveWW2BeatOrder,
@@ -66,6 +67,7 @@ import {
   type WW2BeatHotspot,
   type WW2BeatHotspotConfig,
   type PreModuleVideoConfig,
+  type PostModuleVideoConfig,
 } from '@/lib/firestore';
 import { uploadFile } from '@/lib/supabase';
 import { isFirebaseConfigured } from '@/lib/firebase';
@@ -1232,14 +1234,16 @@ interface PreModuleVideoSectionProps {
   config?: PreModuleVideoConfig;
   onSave: (beatId: string, config: PreModuleVideoConfig | null) => Promise<void>;
   onUploadVideo: (beatId: string, mediaKey: string, file: File, onProgress?: (progress: number) => void) => Promise<void>;
+  onRemove: (beatId: string, mediaKey: string) => Promise<void>;
 }
 
-function PreModuleVideoSection({ beatId, config, onSave, onUploadVideo }: PreModuleVideoSectionProps) {
+function PreModuleVideoSection({ beatId, config, onSave, onUploadVideo, onRemove }: PreModuleVideoSectionProps) {
   const [isEnabled, setIsEnabled] = useState(config?.enabled ?? false);
   const [videoUrl, setVideoUrl] = useState(config?.videoUrl ?? '');
   const [title, setTitle] = useState(config?.title ?? '');
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -1314,6 +1318,26 @@ function PreModuleVideoSection({ beatId, config, onSave, onUploadVideo }: PreMod
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!videoUrl) return;
+
+    setIsDeleting(true);
+    try {
+      // Remove the video file from storage
+      await onRemove(beatId, 'pre-module-video');
+      // Clear the config
+      await onSave(beatId, null);
+      // Reset local state
+      setVideoUrl('');
+      setTitle('');
+      setIsEnabled(false);
+    } catch (error) {
+      console.error('[PreModuleVideo] Delete failed:', error);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -1422,10 +1446,20 @@ function PreModuleVideoSection({ beatId, config, onSave, onUploadVideo }: PreMod
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-xs text-slate-400">Video Preview</label>
-                <span className="text-xs text-green-400 flex items-center gap-1">
-                  <Check size={12} />
-                  Video uploaded
-                </span>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-green-400 flex items-center gap-1">
+                    <Check size={12} />
+                    Video uploaded
+                  </span>
+                  <button
+                    onClick={handleDelete}
+                    disabled={isDeleting}
+                    className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1 transition-colors disabled:opacity-50"
+                  >
+                    {isDeleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                    Delete
+                  </button>
+                </div>
               </div>
               <div className="rounded-lg overflow-hidden bg-black border border-slate-600">
                 <video
@@ -1444,6 +1478,266 @@ function PreModuleVideoSection({ beatId, config, onSave, onUploadVideo }: PreMod
               onClick={handleSave}
               disabled={isSaving || !videoUrl}
               className="px-4 py-2 bg-purple-500 hover:bg-purple-400 text-white text-sm font-bold rounded-lg flex items-center gap-2 transition-colors disabled:opacity-50"
+            >
+              {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+              Save Configuration
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface PostModuleVideoSectionProps {
+  beatId: string;
+  config?: PostModuleVideoConfig;
+  onSave: (beatId: string, config: PostModuleVideoConfig | null) => Promise<void>;
+  onUploadVideo: (beatId: string, mediaKey: string, file: File, onProgress?: (progress: number) => void) => Promise<void>;
+  onRemove: (beatId: string, mediaKey: string) => Promise<void>;
+}
+
+function PostModuleVideoSection({ beatId, config, onSave, onUploadVideo, onRemove }: PostModuleVideoSectionProps) {
+  const [isEnabled, setIsEnabled] = useState(config?.enabled ?? false);
+  const [videoUrl, setVideoUrl] = useState(config?.videoUrl ?? '');
+  const [title, setTitle] = useState(config?.title ?? '');
+  const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Sync state when config changes
+  useEffect(() => {
+    setIsEnabled(config?.enabled ?? false);
+    setVideoUrl(config?.videoUrl ?? '');
+    setTitle(config?.title ?? '');
+  }, [config]);
+
+  const handleToggle = async () => {
+    const newEnabled = !isEnabled;
+    setIsEnabled(newEnabled);
+
+    if (!newEnabled) {
+      // Disable - remove the config
+      setIsSaving(true);
+      try {
+        await onSave(beatId, null);
+      } finally {
+        setIsSaving(false);
+      }
+    }
+  };
+
+  const handleSave = async () => {
+    if (!videoUrl) return;
+
+    setIsSaving(true);
+    try {
+      await onSave(beatId, {
+        videoUrl,
+        enabled: isEnabled,
+        title: title || undefined,
+        skipAllowed: true,
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Check file size (warn if > 100MB)
+    const fileSizeMB = file.size / (1024 * 1024);
+    console.log(`[PostModuleVideo] Uploading file: ${file.name}, size: ${fileSizeMB.toFixed(2)} MB`);
+
+    setIsUploading(true);
+    setUploadProgress(0);
+    setUploadError(null);
+
+    try {
+      // Upload with a specific key for post-module videos
+      await onUploadVideo(beatId, `post-module-video`, file, (progress) => {
+        console.log(`[PostModuleVideo] Upload progress: ${progress.toFixed(1)}%`);
+        setUploadProgress(progress);
+      });
+      console.log('[PostModuleVideo] Upload complete!');
+      // The URL will be available via subscription after upload
+    } catch (error) {
+      console.error('[PostModuleVideo] Upload failed:', error);
+      setUploadError(error instanceof Error ? error.message : 'Upload failed. Please try again.');
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!videoUrl) return;
+
+    setIsDeleting(true);
+    try {
+      // Remove the video file from storage
+      await onRemove(beatId, 'post-module-video');
+      // Clear the config
+      await onSave(beatId, null);
+      // Reset local state
+      setVideoUrl('');
+      setTitle('');
+      setIsEnabled(false);
+    } catch (error) {
+      console.error('[PostModuleVideo] Delete failed:', error);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h4 className="text-white/60 text-xs uppercase tracking-wide flex items-center gap-2">
+          <Video size={14} />
+          Completion Video
+          <span className="text-green-400 text-[10px]">Post-Module</span>
+        </h4>
+
+        {/* Toggle Switch */}
+        <button
+          onClick={handleToggle}
+          disabled={isSaving}
+          className={`relative w-12 h-6 rounded-full transition-colors ${
+            isEnabled ? 'bg-green-500' : 'bg-slate-600'
+          } ${isSaving ? 'opacity-50' : ''}`}
+        >
+          <div
+            className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
+              isEnabled ? 'translate-x-7' : 'translate-x-1'
+            }`}
+          />
+        </button>
+      </div>
+
+      {isEnabled && (
+        <div className="bg-slate-800/50 rounded-lg p-4 border border-green-500/30 space-y-4">
+          <p className="text-slate-400 text-xs">
+            This video will play after the module completes, before the XP reward screen. Use it for celebration, summary, or transition content.
+          </p>
+
+          {/* Title Input */}
+          <div>
+            <label className="text-xs text-slate-400 mb-1.5 block">Video Title (optional)</label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g., Great Job! or Beat Complete!"
+              className="w-full bg-slate-700 text-white text-sm rounded-lg px-3 py-2 border border-slate-600 focus:border-green-500 focus:outline-none"
+            />
+          </div>
+
+          {/* Video URL Input or Upload */}
+          <div>
+            <label className="text-xs text-slate-400 mb-1.5 block">Video URL</label>
+            <div className="flex gap-2">
+              <input
+                type="url"
+                value={videoUrl}
+                onChange={(e) => setVideoUrl(e.target.value)}
+                placeholder="https://example.com/video.mp4"
+                className="flex-1 bg-slate-700 text-white text-sm rounded-lg px-3 py-2 border border-slate-600 focus:border-green-500 focus:outline-none"
+                disabled={isUploading}
+              />
+              <button
+                onClick={handleUploadClick}
+                disabled={isUploading}
+                className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white text-xs rounded-lg flex items-center gap-1.5 transition-colors disabled:opacity-50"
+              >
+                {isUploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                {isUploading ? 'Uploading...' : 'Upload Video'}
+              </button>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                accept="video/*"
+                className="hidden"
+              />
+            </div>
+          </div>
+
+          {/* Upload Progress Bar */}
+          {isUploading && (
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs text-slate-400">
+                <span>Uploading video... (large files may take a while)</span>
+                <span>{Math.round(uploadProgress)}%</span>
+              </div>
+              <div className="h-3 bg-slate-700 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-green-500 transition-all duration-300 ease-out"
+                  style={{ width: `${uploadProgress}%` }}
+                />
+              </div>
+              <p className="text-xs text-slate-500">Please keep this window open until upload completes.</p>
+            </div>
+          )}
+
+          {/* Upload Error */}
+          {uploadError && (
+            <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-3">
+              <p className="text-red-400 text-sm flex items-center gap-2">
+                <AlertCircle size={16} />
+                {uploadError}
+              </p>
+            </div>
+          )}
+
+          {/* Video Preview */}
+          {videoUrl && !isUploading && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs text-slate-400">Video Preview</label>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-green-400 flex items-center gap-1">
+                    <Check size={12} />
+                    Video uploaded
+                  </span>
+                  <button
+                    onClick={handleDelete}
+                    disabled={isDeleting}
+                    className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1 transition-colors disabled:opacity-50"
+                  >
+                    {isDeleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                    Delete
+                  </button>
+                </div>
+              </div>
+              <div className="rounded-lg overflow-hidden bg-black border border-slate-600">
+                <video
+                  src={videoUrl}
+                  controls
+                  className="w-full max-h-64"
+                  preload="metadata"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Save Button */}
+          <div className="flex justify-end">
+            <button
+              onClick={handleSave}
+              disabled={isSaving || !videoUrl}
+              className="px-4 py-2 bg-green-500 hover:bg-green-400 text-white text-sm font-bold rounded-lg flex items-center gap-2 transition-colors disabled:opacity-50"
             >
               {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
               Save Configuration
@@ -1569,12 +1863,14 @@ function BeatCard({
   uploadedMedia,
   customHotspotConfig,
   preModuleVideoConfig,
+  postModuleVideoConfig,
   onUpload,
   onRemove,
   onSaveQuestions,
   onSaveStatements,
   onEditHotspots,
   onSavePreModuleVideo,
+  onSavePostModuleVideo,
   onArchive,
   showDragHandle,
 }: {
@@ -1586,12 +1882,14 @@ function BeatCard({
   uploadedMedia: Record<string, string>;
   customHotspotConfig?: WW2BeatHotspotConfig;
   preModuleVideoConfig?: PreModuleVideoConfig;
+  postModuleVideoConfig?: PostModuleVideoConfig;
   onUpload: (beatId: string, mediaKey: string, file: File, onProgress?: (progress: number) => void) => Promise<void>;
   onRemove: (beatId: string, mediaKey: string) => Promise<void>;
   onSaveQuestions: (beatId: string, questions: WW2BeatQuestion[]) => Promise<void>;
   onSaveStatements: (beatId: string, statements: WW2BeatStatement[]) => Promise<void>;
   onEditHotspots: (beatId: string) => void;
   onSavePreModuleVideo: (beatId: string, config: PreModuleVideoConfig | null) => Promise<void>;
+  onSavePostModuleVideo: (beatId: string, config: PostModuleVideoConfig | null) => Promise<void>;
   onArchive?: (beatId: string) => void;
   showDragHandle?: boolean;
 }) {
@@ -1777,6 +2075,18 @@ function BeatCard({
                   config={preModuleVideoConfig}
                   onSave={onSavePreModuleVideo}
                   onUploadVideo={onUpload}
+                  onRemove={onRemove}
+                />
+              )}
+
+              {/* Post-Module Completion Video - show for all beats except exam */}
+              {!isExam && (
+                <PostModuleVideoSection
+                  beatId={lesson.id}
+                  config={postModuleVideoConfig}
+                  onSave={onSavePostModuleVideo}
+                  onUploadVideo={onUpload}
+                  onRemove={onRemove}
                 />
               )}
 
@@ -2487,8 +2797,22 @@ export function WW2ModuleEditor() {
   }, [uploadedAssets]);
 
   // Get pre-module video config for a beat
+  // Merges the config with any uploaded video URL from mediaUrls
   const getPreModuleVideoConfig = useCallback((beatId: string): PreModuleVideoConfig | undefined => {
-    return uploadedAssets?.preModuleVideos?.[beatId];
+    const config = uploadedAssets?.preModuleVideos?.[beatId];
+    const uploadedUrl = uploadedAssets?.mediaUrls?.[beatId]?.['pre-module-video'];
+
+    // If we have an uploaded URL, merge it with the config
+    if (uploadedUrl) {
+      return {
+        videoUrl: uploadedUrl,
+        enabled: config?.enabled ?? false,
+        title: config?.title,
+        skipAllowed: config?.skipAllowed ?? true,
+      };
+    }
+
+    return config;
   }, [uploadedAssets]);
 
   // Handle saving pre-module video config
@@ -2498,6 +2822,36 @@ export function WW2ModuleEditor() {
       console.log('Pre-module video saved for beat:', beatId);
     } catch (error) {
       console.error('Error saving pre-module video:', error);
+      throw error;
+    }
+  }, []);
+
+  // Get post-module video config for a beat
+  // Merges the config with any uploaded video URL from mediaUrls
+  const getPostModuleVideoConfig = useCallback((beatId: string): PostModuleVideoConfig | undefined => {
+    const config = uploadedAssets?.postModuleVideos?.[beatId];
+    const uploadedUrl = uploadedAssets?.mediaUrls?.[beatId]?.['post-module-video'];
+
+    // If we have an uploaded URL, merge it with the config
+    if (uploadedUrl) {
+      return {
+        videoUrl: uploadedUrl,
+        enabled: config?.enabled ?? false,
+        title: config?.title,
+        skipAllowed: config?.skipAllowed ?? true,
+      };
+    }
+
+    return config;
+  }, [uploadedAssets]);
+
+  // Handle saving post-module video config
+  const handleSavePostModuleVideo = useCallback(async (beatId: string, config: PostModuleVideoConfig | null) => {
+    try {
+      await updateWW2BeatPostModuleVideo(beatId, config);
+      console.log('Post-module video saved for beat:', beatId);
+    } catch (error) {
+      console.error('Error saving post-module video:', error);
       throw error;
     }
   }, []);
@@ -2624,12 +2978,14 @@ export function WW2ModuleEditor() {
               uploadedMedia={getUploadedMedia(lesson.id)}
               customHotspotConfig={getHotspotConfig(lesson.id)}
               preModuleVideoConfig={getPreModuleVideoConfig(lesson.id)}
+              postModuleVideoConfig={getPostModuleVideoConfig(lesson.id)}
               onUpload={handleUpload}
               onRemove={handleRemove}
               onSaveQuestions={handleSaveQuestions}
               onSaveStatements={handleSaveStatements}
               onEditHotspots={handleEditHotspots}
               onSavePreModuleVideo={handleSavePreModuleVideo}
+              onSavePostModuleVideo={handleSavePostModuleVideo}
               onArchive={handleArchiveBeat}
               showDragHandle={true}
             />

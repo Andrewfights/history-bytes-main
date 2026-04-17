@@ -11,13 +11,14 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Sparkles, ChevronRight, User, Quote, CheckCircle2, XCircle } from 'lucide-react';
 import { WW2Host } from '@/types';
-import { PreModuleVideoScreen } from '../shared';
-import { subscribeToWW2ModuleAssets, type PreModuleVideoConfig } from '@/lib/firestore';
+import { PreModuleVideoScreen, PostModuleVideoScreen } from '../shared';
+import { subscribeToWW2ModuleAssets, type PreModuleVideoConfig, type PostModuleVideoConfig } from '@/lib/firestore';
+import { playXPSound } from '@/lib/xpAudioManager';
 import { usePearlHarborProgress } from '../hooks/usePearlHarborProgress';
 import { useWW2ModuleAssets } from '../hooks/useWW2ModuleAssets';
 
-type Screen = 'pre-video' | 'intro' | 'story-1' | 'quiz-1' | 'story-2' | 'quiz-2' | 'story-3' | 'quiz-3' | 'story-4' | 'quiz-4' | 'completion';
-const SCREENS: Screen[] = ['pre-video', 'intro', 'story-1', 'quiz-1', 'story-2', 'quiz-2', 'story-3', 'quiz-3', 'story-4', 'quiz-4', 'completion'];
+type Screen = 'pre-video' | 'intro' | 'story-1' | 'quiz-1' | 'story-2' | 'quiz-2' | 'story-3' | 'quiz-3' | 'story-4' | 'quiz-4' | 'post-video' | 'completion';
+const SCREENS: Screen[] = ['pre-video', 'intro', 'story-1', 'quiz-1', 'story-2', 'quiz-2', 'story-3', 'quiz-3', 'story-4', 'quiz-4', 'post-video', 'completion'];
 
 const LESSON_DATA = {
   id: 'ph-beat-4',
@@ -165,6 +166,7 @@ export function VoicesFromHarborBeat({ host, onComplete, onSkip, onBack, isPrevi
   const [showQuizResult, setShowQuizResult] = useState(false);
   const [skipped, setSkipped] = useState(false);
   const [preModuleVideoConfig, setPreModuleVideoConfig] = useState<PreModuleVideoConfig | null>(null);
+  const [postModuleVideoConfig, setPostModuleVideoConfig] = useState<PostModuleVideoConfig | null>(null);
   const [hasLoadedConfig, setHasLoadedConfig] = useState(false);
 
   const { saveCheckpoint, clearCheckpoint, getCheckpoint } = usePearlHarborProgress();
@@ -211,6 +213,12 @@ export function VoicesFromHarborBeat({ host, onComplete, onSkip, onBack, isPrevi
       } else {
         setPreModuleVideoConfig(null);
       }
+      const postModuleVideo = assets?.postModuleVideos?.[LESSON_DATA.id];
+      if (postModuleVideo?.enabled && postModuleVideo?.videoUrl) {
+        setPostModuleVideoConfig(postModuleVideo);
+      } else {
+        setPostModuleVideoConfig(null);
+      }
       setHasLoadedConfig(true);
     });
     return () => unsubscribe();
@@ -232,18 +240,23 @@ export function VoicesFromHarborBeat({ host, onComplete, onSkip, onBack, isPrevi
   const nextScreen = useCallback(() => {
     const currentIndex = SCREENS.indexOf(screen);
     if (currentIndex < SCREENS.length - 1) {
-      setScreen(SCREENS[currentIndex + 1]);
+      let nextScreenIndex = currentIndex + 1;
+      // Skip post-video if not configured
+      if (SCREENS[nextScreenIndex] === 'post-video' && !postModuleVideoConfig?.enabled) {
+        nextScreenIndex++;
+      }
+      setScreen(SCREENS[nextScreenIndex]);
       setShowQuizResult(false);
       // Update story index for story screens
-      if (SCREENS[currentIndex + 1].startsWith('story-')) {
-        const storyNum = parseInt(SCREENS[currentIndex + 1].split('-')[1]) - 1;
+      if (SCREENS[nextScreenIndex].startsWith('story-')) {
+        const storyNum = parseInt(SCREENS[nextScreenIndex].split('-')[1]) - 1;
         setCurrentStoryIndex(storyNum);
       }
     } else {
       clearCheckpoint();
       onComplete(skipped ? 0 : LESSON_DATA.xpReward);
     }
-  }, [screen, skipped, clearCheckpoint, onComplete]);
+  }, [screen, skipped, clearCheckpoint, onComplete, postModuleVideoConfig]);
 
   const handleQuizAnswer = (perspectiveId: string, answerIndex: number) => {
     setQuizAnswers((prev) => ({ ...prev, [perspectiveId]: answerIndex }));
@@ -452,11 +465,27 @@ export function VoicesFromHarborBeat({ host, onComplete, onSkip, onBack, isPrevi
             </motion.div>
           )}
 
+          {/* POST-MODULE VIDEO */}
+          {screen === 'post-video' && postModuleVideoConfig && (
+            <PostModuleVideoScreen
+              config={postModuleVideoConfig}
+              beatTitle="Voices from the Harbor"
+              onComplete={() => setScreen('completion')}
+            />
+          )}
+
           {/* COMPLETION */}
           {screen === 'completion' && (
             <motion.div key="completion" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full p-6">
               <div className="flex-1 flex flex-col items-center justify-center">
-                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="text-6xl mb-6">🎙️</motion.div>
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  onAnimationComplete={() => {
+                    if (!skipped) playXPSound();
+                  }}
+                  className="text-6xl mb-6"
+                >🎙️</motion.div>
                 <h2 className="text-2xl font-bold text-white mb-2">Beat 4 Complete!</h2>
                 <p className="text-white/60 mb-6">Voices from the Harbor</p>
                 <div className="flex items-center gap-2 px-6 py-3 bg-amber-500/20 rounded-full mb-8">

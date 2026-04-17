@@ -1521,6 +1521,14 @@ export interface PreModuleVideoConfig {
   skipAllowed?: boolean;      // Whether users can skip (default true)
 }
 
+// Post-module completion video configuration (celebration video after beat completes)
+export interface PostModuleVideoConfig {
+  videoUrl: string;           // URL of the video
+  enabled: boolean;           // Whether to show the post-module video
+  title?: string;             // Optional title to display (defaults to "Beat Complete!")
+  skipAllowed?: boolean;      // Whether users can skip (default true)
+}
+
 export interface FirestoreWW2ModuleAssets {
   id: string;  // Always 'ww2ModuleAssets'
   // Beat media assets
@@ -1539,6 +1547,8 @@ export interface FirestoreWW2ModuleAssets {
   theaterMedia?: Record<string, TheaterMediaConfig>;  // Key: theater ID (e.g., 'pearl-harbor', 'normandy')
   // Pre-module intro videos (explainer videos before a beat starts)
   preModuleVideos?: Record<string, PreModuleVideoConfig>;  // Key: beat ID -> video config
+  // Post-module completion videos (celebration videos after beat completes)
+  postModuleVideos?: Record<string, PostModuleVideoConfig>;  // Key: beat ID -> video config
   // Archived beats (hidden from student view)
   archivedBeats?: Record<string, { archivedAt: Timestamp }>;  // Key: beat ID -> archive info
   // Custom beat ordering (overrides default lesson order)
@@ -1618,6 +1628,22 @@ export async function updateWW2BeatPreModuleVideo(
   }
 
   return saveWW2ModuleAssets({ preModuleVideos });
+}
+
+export async function updateWW2BeatPostModuleVideo(
+  beatId: string,
+  config: PostModuleVideoConfig | null
+): Promise<boolean> {
+  const current = await getWW2ModuleAssets();
+  const postModuleVideos = current?.postModuleVideos || {};
+
+  if (config) {
+    postModuleVideos[beatId] = config;
+  } else {
+    delete postModuleVideos[beatId];
+  }
+
+  return saveWW2ModuleAssets({ postModuleVideos });
 }
 
 // ============ Beat Archive Operations ============

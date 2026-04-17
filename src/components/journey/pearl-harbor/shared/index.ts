@@ -13,3 +13,4 @@ export { FactOrMythSwiper } from './FactOrMythSwiper';
 export type { SortableItem } from './DragAndDropSorter';
 export { DragAndDropSorter } from './DragAndDropSorter';
 export { PreModuleVideoScreen } from './PreModuleVideoScreen';
+export { PostModuleVideoScreen } from './PostModuleVideoScreen';

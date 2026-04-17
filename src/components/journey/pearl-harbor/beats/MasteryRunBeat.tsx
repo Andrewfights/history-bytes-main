@@ -11,13 +11,14 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Sparkles, Trophy, Target, Award, Star } from 'lucide-react';
 import { WW2Host } from '@/types';
-import { TimedChallenge, TimedQuestion, PreModuleVideoScreen } from '../shared';
-import { subscribeToWW2ModuleAssets, type PreModuleVideoConfig } from '@/lib/firestore';
+import { TimedChallenge, TimedQuestion, PreModuleVideoScreen, PostModuleVideoScreen } from '../shared';
+import { subscribeToWW2ModuleAssets, type PreModuleVideoConfig, type PostModuleVideoConfig } from '@/lib/firestore';
+import { playXPSound } from '@/lib/xpAudioManager';
 import { usePearlHarborProgress } from '../hooks/usePearlHarborProgress';
 import { MASTERY_SCORING } from '@/data/pearlHarborLessons';
 
-type Screen = 'pre-video' | 'intro' | 'quiz' | 'results' | 'completion';
-const SCREENS: Screen[] = ['pre-video', 'intro', 'quiz', 'results', 'completion'];
+type Screen = 'pre-video' | 'intro' | 'quiz' | 'results' | 'post-video' | 'completion';
+const SCREENS: Screen[] = ['pre-video', 'intro', 'quiz', 'results', 'post-video', 'completion'];
 
 const LESSON_DATA = {
   id: 'ph-beat-10',
@@ -148,6 +149,7 @@ export function MasteryRunBeat({ host, onComplete, onSkip, onBack, isPreview = f
   const [maxStreak, setMaxStreak] = useState(0);
   const [skipped, setSkipped] = useState(false);
   const [preModuleVideoConfig, setPreModuleVideoConfig] = useState<PreModuleVideoConfig | null>(null);
+  const [postModuleVideoConfig, setPostModuleVideoConfig] = useState<PostModuleVideoConfig | null>(null);
   const [hasLoadedConfig, setHasLoadedConfig] = useState(false);
 
   const { saveCheckpoint, clearCheckpoint, getCheckpoint } = usePearlHarborProgress();
@@ -174,7 +176,7 @@ export function MasteryRunBeat({ host, onComplete, onSkip, onBack, isPreview = f
     }
   }, [screen, score, saveCheckpoint]);
 
-  // Subscribe to Firestore for pre-module video config
+  // Subscribe to Firestore for pre-module and post-module video config
   useEffect(() => {
     const unsubscribe = subscribeToWW2ModuleAssets((assets) => {
       const preModuleVideo = assets?.preModuleVideos?.[LESSON_DATA.id];
@@ -182,6 +184,12 @@ export function MasteryRunBeat({ host, onComplete, onSkip, onBack, isPreview = f
         setPreModuleVideoConfig(preModuleVideo);
       } else {
         setPreModuleVideoConfig(null);
+      }
+      const postModuleVideo = assets?.postModuleVideos?.[LESSON_DATA.id];
+      if (postModuleVideo?.enabled && postModuleVideo?.videoUrl) {
+        setPostModuleVideoConfig(postModuleVideo);
+      } else {
+        setPostModuleVideoConfig(null);
       }
       setHasLoadedConfig(true);
     });
@@ -204,13 +212,18 @@ export function MasteryRunBeat({ host, onComplete, onSkip, onBack, isPreview = f
   const nextScreen = useCallback(() => {
     const currentIndex = SCREENS.indexOf(screen);
     if (currentIndex < SCREENS.length - 1) {
-      setScreen(SCREENS[currentIndex + 1]);
+      let nextIndex = currentIndex + 1;
+      // Skip post-video if not configured
+      if (SCREENS[nextIndex] === 'post-video' && !postModuleVideoConfig) {
+        nextIndex++;
+      }
+      setScreen(SCREENS[nextIndex]);
     } else {
       clearCheckpoint();
       const earnedXP = skipped ? 0 : calculateXP();
       onComplete(earnedXP);
     }
-  }, [screen, skipped, clearCheckpoint, onComplete, score]);
+  }, [screen, skipped, clearCheckpoint, onComplete, score, postModuleVideoConfig]);
 
   const handleQuizComplete = (finalScore: number, total: number, streak: number) => {
     setScore(finalScore);
@@ -400,12 +413,26 @@ export function MasteryRunBeat({ host, onComplete, onSkip, onBack, isPreview = f
             </motion.div>
           )}
 
+          {/* POST-MODULE VIDEO */}
+          {screen === 'post-video' && postModuleVideoConfig && (
+            <PostModuleVideoScreen
+              config={postModuleVideoConfig}
+              beatTitle="Mastery Run"
+              onComplete={nextScreen}
+            />
+          )}
+
           {/* COMPLETION */}
           {screen === 'completion' && (
             <motion.div key="completion" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full p-6 items-center justify-center">
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
+                onAnimationComplete={() => {
+                  if (!skipped) {
+                    playXPSound();
+                  }
+                }}
                 className="w-24 h-24 rounded-full bg-gradient-to-br from-amber-500 to-yellow-600 flex items-center justify-center mb-6 shadow-lg shadow-amber-500/30"
               >
                 <Trophy size={48} className="text-white" />

@@ -13,8 +13,9 @@ import { ArrowLeft, Sparkles, Clock, MapPin, Volume2, VolumeX } from 'lucide-rea
 import { WW2Host } from '@/types';
 import { usePearlHarborProgress } from '../hooks/usePearlHarborProgress';
 import { useWW2ModuleAssets } from '../hooks/useWW2ModuleAssets';
-import { PreModuleVideoScreen } from '../shared';
-import { subscribeToWW2ModuleAssets, type PreModuleVideoConfig } from '@/lib/firestore';
+import { PreModuleVideoScreen, PostModuleVideoScreen } from '../shared';
+import { subscribeToWW2ModuleAssets, type PreModuleVideoConfig, type PostModuleVideoConfig } from '@/lib/firestore';
+import { playXPSound } from '@/lib/xpAudioManager';
 
 // Media keys from WW2ModuleEditor
 const MEDIA_KEYS = {
@@ -22,8 +23,8 @@ const MEDIA_KEYS = {
   attackSounds: 'period-accurate-attack-sounds-optional',
 };
 
-type Screen = 'pre-video' | 'intro' | 'map-overview' | 'timeline' | 'hotspots' | 'reflection' | 'completion';
-const SCREENS: Screen[] = ['pre-video', 'intro', 'map-overview', 'timeline', 'hotspots', 'reflection', 'completion'];
+type Screen = 'pre-video' | 'intro' | 'map-overview' | 'timeline' | 'hotspots' | 'reflection' | 'post-video' | 'completion';
+const SCREENS: Screen[] = ['pre-video', 'intro', 'map-overview', 'timeline', 'hotspots', 'reflection', 'post-video', 'completion'];
 
 const LESSON_DATA = {
   id: 'ph-beat-3',
@@ -73,6 +74,13 @@ const TIMELINE_EVENTS: TimelineEvent[] = [
     description: '170 additional aircraft arrive. Focus shifts to airfields and remaining ships.',
     icon: '✈️',
     position: { x: 45, y: 20 },
+  },
+  {
+    time: '9:30 AM',
+    title: 'USS Shaw Explodes',
+    description: 'The destroyer USS Shaw\'s forward magazine detonates, creating one of the most photographed explosions of the attack.',
+    icon: '💥',
+    position: { x: 50, y: 60 },
   },
 ];
 
@@ -138,13 +146,14 @@ export function ToraToraToraBeat({ host, onComplete, onSkip, onBack, isPreview =
   const [audioEnabled, setAudioEnabled] = useState(false);
   const [skipped, setSkipped] = useState(false);
   const [preModuleVideoConfig, setPreModuleVideoConfig] = useState<PreModuleVideoConfig | null>(null);
+  const [postModuleVideoConfig, setPostModuleVideoConfig] = useState<PostModuleVideoConfig | null>(null);
   const [hasLoadedConfig, setHasLoadedConfig] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const { saveCheckpoint, clearCheckpoint, getCheckpoint } = usePearlHarborProgress();
   const { getMediaUrl } = useWW2ModuleAssets();
 
-  // Subscribe to Firestore for pre-module video config
+  // Subscribe to Firestore for pre/post-module video configs
   useEffect(() => {
     const unsubscribe = subscribeToWW2ModuleAssets((assets) => {
       const preModuleVideo = assets?.preModuleVideos?.[LESSON_DATA.id];
@@ -153,6 +162,14 @@ export function ToraToraToraBeat({ host, onComplete, onSkip, onBack, isPreview =
       } else {
         setPreModuleVideoConfig(null);
       }
+
+      const postModuleVideo = assets?.postModuleVideos?.[LESSON_DATA.id];
+      if (postModuleVideo?.enabled && postModuleVideo?.videoUrl) {
+        setPostModuleVideoConfig(postModuleVideo);
+      } else {
+        setPostModuleVideoConfig(null);
+      }
+
       setHasLoadedConfig(true);
     });
     return () => unsubscribe();
@@ -230,12 +247,22 @@ export function ToraToraToraBeat({ host, onComplete, onSkip, onBack, isPreview =
   const nextScreen = useCallback(() => {
     const currentIndex = SCREENS.indexOf(screen);
     if (currentIndex < SCREENS.length - 1) {
-      setScreen(SCREENS[currentIndex + 1]);
+      let nextScreenIndex = currentIndex + 1;
+      // Skip post-video if not configured
+      if (SCREENS[nextScreenIndex] === 'post-video' && !postModuleVideoConfig?.enabled) {
+        nextScreenIndex++;
+      }
+      if (nextScreenIndex < SCREENS.length) {
+        setScreen(SCREENS[nextScreenIndex]);
+      } else {
+        clearCheckpoint();
+        onComplete(skipped ? 0 : LESSON_DATA.xpReward);
+      }
     } else {
       clearCheckpoint();
       onComplete(skipped ? 0 : LESSON_DATA.xpReward);
     }
-  }, [screen, skipped, clearCheckpoint, onComplete]);
+  }, [screen, skipped, clearCheckpoint, onComplete, postModuleVideoConfig]);
 
   const handleHotspotClick = (hotspot: MapHotspot) => {
     setSelectedHotspot(hotspot);
@@ -366,41 +393,101 @@ export function ToraToraToraBeat({ host, onComplete, onSkip, onBack, isPreview =
 
               {/* Timeline events */}
               <div className="flex-1 overflow-y-auto space-y-3">
-                {TIMELINE_EVENTS.map((event, index) => (
-                  <motion.div
-                    key={event.time}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: index <= currentEventIndex ? 1 : 0.3, x: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    className={`p-4 rounded-xl border ${index <= currentEventIndex ? 'bg-white/10 border-amber-500/50' : 'bg-white/5 border-white/10'}`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <span className="text-2xl">{event.icon}</span>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-amber-400 font-mono font-bold">{event.time}</span>
-                          <span className="text-white font-bold">{event.title}</span>
+                {TIMELINE_EVENTS.map((event, index) => {
+                  const isCurrentEvent = index === currentEventIndex;
+                  const isPastEvent = index < currentEventIndex;
+                  const isActive = index <= currentEventIndex;
+
+                  return (
+                    <motion.div
+                      key={event.time}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{
+                        opacity: isActive ? 1 : 0.3,
+                        x: 0,
+                        scale: isCurrentEvent ? 1.02 : 1,
+                      }}
+                      transition={{
+                        delay: index * 0.05,
+                        type: 'spring',
+                        stiffness: 300,
+                        damping: 25,
+                      }}
+                      className={`relative p-4 rounded-xl border transition-colors ${
+                        isCurrentEvent
+                          ? 'bg-amber-500/15 border-amber-400'
+                          : isPastEvent
+                          ? 'bg-green-500/10 border-green-500/30'
+                          : 'bg-white/5 border-white/10'
+                      }`}
+                    >
+                      {/* Pulse glow for current event */}
+                      {isCurrentEvent && (
+                        <motion.div
+                          className="absolute inset-0 rounded-xl border-2 border-amber-400"
+                          animate={{ opacity: [0.4, 0.8, 0.4] }}
+                          transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+                        />
+                      )}
+                      <div className="flex items-start gap-3 relative z-10">
+                        <motion.span
+                          className="text-2xl"
+                          animate={isCurrentEvent ? { scale: [1, 1.2, 1] } : {}}
+                          transition={{ duration: 0.6, repeat: isCurrentEvent ? Infinity : 0, repeatDelay: 1 }}
+                        >
+                          {event.icon}
+                        </motion.span>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className={`font-mono font-bold ${isCurrentEvent ? 'text-amber-300' : 'text-amber-400'}`}>
+                              {event.time}
+                            </span>
+                            <span className="text-white font-bold">{event.title}</span>
+                            {isPastEvent && <span className="text-green-400 text-xs">✓</span>}
+                          </div>
+                          <p className="text-white/60 text-sm">{event.description}</p>
                         </div>
-                        <p className="text-white/60 text-sm">{event.description}</p>
                       </div>
-                    </div>
-                  </motion.div>
-                ))}
+                    </motion.div>
+                  );
+                })}
               </div>
 
-              {/* Timeline scrubber */}
+              {/* Timeline scrubber - Enhanced */}
               <div className="mt-4 mb-2">
+                {/* Custom track with glow effect */}
+                <div className="relative h-2 bg-white/10 rounded-full overflow-hidden">
+                  <motion.div
+                    className="absolute h-full bg-gradient-to-r from-amber-500 to-amber-400 rounded-full"
+                    style={{ width: `${(currentEventIndex / (TIMELINE_EVENTS.length - 1)) * 100}%` }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                  />
+                  <motion.div
+                    className="absolute h-full w-full bg-amber-400/20"
+                    animate={{ opacity: [0.3, 0.6, 0.3] }}
+                    transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                  />
+                </div>
                 <input
                   type="range"
                   min={0}
                   max={TIMELINE_EVENTS.length - 1}
                   value={currentEventIndex}
                   onChange={(e) => setCurrentEventIndex(parseInt(e.target.value))}
-                  className="w-full accent-amber-500"
+                  className="w-full -mt-2 relative z-10 opacity-0 cursor-pointer h-6"
+                  style={{ WebkitAppearance: 'none' }}
                 />
-                <div className="flex justify-between text-white/40 text-xs mt-1">
-                  <span>7:48 AM</span>
-                  <span>9:45 AM</span>
+                {/* Time markers */}
+                <div className="flex justify-between text-white/40 text-[10px] mt-1 px-1">
+                  {TIMELINE_EVENTS.map((event, idx) => (
+                    <motion.span
+                      key={event.time}
+                      className={`${idx === currentEventIndex ? 'text-amber-400 font-bold' : ''}`}
+                      animate={{ scale: idx === currentEventIndex ? 1.1 : 1 }}
+                    >
+                      {event.time.replace(' AM', '')}
+                    </motion.span>
+                  ))}
                 </div>
               </div>
 
@@ -417,13 +504,23 @@ export function ToraToraToraBeat({ host, onComplete, onSkip, onBack, isPreview =
           {/* HOTSPOTS */}
           {screen === 'hotspots' && (
             <motion.div key="hotspots" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full p-4">
-              <div className="mb-4 text-center">
+              <motion.div
+                className="mb-4 text-center"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+              >
                 <h3 className="text-lg font-bold text-white mb-1">Explore the Damage</h3>
                 <p className="text-white/60 text-sm">Tap locations to learn about casualties</p>
-              </div>
+              </motion.div>
 
-              {/* Map with hotspots */}
-              <div className="relative flex-1 bg-blue-900/30 rounded-2xl border border-white/10 overflow-hidden">
+              {/* Map with hotspots - Enhanced */}
+              <motion.div
+                className="relative flex-1 bg-blue-900/30 rounded-2xl border border-white/10 overflow-hidden"
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.3, type: 'spring', stiffness: 200 }}
+              >
                 {aerialMapUrl ? (
                   <img
                     src={aerialMapUrl}
@@ -437,49 +534,124 @@ export function ToraToraToraBeat({ host, onComplete, onSkip, onBack, isPreview =
                   </>
                 )}
 
-                {MAP_HOTSPOTS.map((hotspot) => (
-                  <motion.button
-                    key={hotspot.id}
-                    onClick={() => handleHotspotClick(hotspot)}
-                    className={`absolute w-8 h-8 -translate-x-1/2 -translate-y-1/2 rounded-full flex items-center justify-center ${viewedHotspots.has(hotspot.id) ? 'bg-amber-500' : 'bg-red-500'}`}
-                    style={{ left: `${hotspot.position.x}%`, top: `${hotspot.position.y}%` }}
-                    animate={{ scale: [1, 1.2, 1] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                  >
-                    <span className="text-white text-xs font-bold">!</span>
-                  </motion.button>
-                ))}
-              </div>
+                {MAP_HOTSPOTS.map((hotspot, index) => {
+                  const isViewed = viewedHotspots.has(hotspot.id);
+                  return (
+                    <motion.button
+                      key={hotspot.id}
+                      onClick={() => handleHotspotClick(hotspot)}
+                      className="absolute -translate-x-1/2 -translate-y-1/2"
+                      style={{ left: `${hotspot.position.x}%`, top: `${hotspot.position.y}%` }}
+                      initial={{ scale: 0, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ delay: 0.4 + index * 0.1, type: 'spring', stiffness: 300 }}
+                    >
+                      {/* Outer ripple ring for unviewed */}
+                      {!isViewed && (
+                        <motion.div
+                          className="absolute inset-[-8px] rounded-full border-2 border-red-400"
+                          animate={{ scale: [1, 1.5, 1], opacity: [0.6, 0, 0.6] }}
+                          transition={{ duration: 2, repeat: Infinity, ease: 'easeOut' }}
+                        />
+                      )}
+                      {/* Glow effect */}
+                      <motion.div
+                        className={`absolute inset-[-4px] rounded-full ${isViewed ? 'bg-amber-400/30' : 'bg-red-500/40'}`}
+                        animate={{ scale: [1, 1.2, 1] }}
+                        transition={{ duration: 1.5, repeat: Infinity }}
+                      />
+                      {/* Main button */}
+                      <div
+                        className={`relative w-8 h-8 rounded-full flex items-center justify-center ${isViewed ? 'bg-amber-500' : 'bg-red-500'} shadow-lg`}
+                      >
+                        <motion.span
+                          className="text-white text-xs font-bold"
+                          animate={!isViewed ? { scale: [1, 1.1, 1] } : {}}
+                          transition={{ duration: 0.5, repeat: Infinity }}
+                        >
+                          {isViewed ? '✓' : '!'}
+                        </motion.span>
+                      </div>
+                    </motion.button>
+                  );
+                })}
+              </motion.div>
 
-              {/* Hotspot detail modal */}
+              {/* Hotspot detail modal - Enhanced */}
               <AnimatePresence>
                 {selectedHotspot && (
                   <motion.div
-                    initial={{ opacity: 0, y: 50 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 50 }}
-                    className="absolute bottom-20 left-4 right-4 bg-slate-800 rounded-2xl p-4 border border-white/10"
+                    initial={{ opacity: 0, y: 50, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 50, scale: 0.95 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                    className="absolute bottom-20 left-4 right-4 bg-gradient-to-b from-slate-800 to-slate-900 rounded-2xl p-5 border border-white/20 shadow-2xl"
                   >
-                    <button onClick={() => setSelectedHotspot(null)} className="absolute top-2 right-2 text-white/40 hover:text-white">✕</button>
-                    <h4 className="text-white font-bold text-lg mb-2">{selectedHotspot.name}</h4>
-                    <p className="text-white/70 text-sm mb-2">{selectedHotspot.description}</p>
-                    <p className="text-red-400 font-bold">{selectedHotspot.casualties}</p>
+                    <motion.div
+                      className="absolute inset-0 rounded-2xl border border-red-500/30"
+                      animate={{ opacity: [0.3, 0.6, 0.3] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                    />
+                    <button onClick={() => setSelectedHotspot(null)} className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/20 transition-colors">✕</button>
+                    <motion.h4
+                      className="text-white font-bold text-lg mb-2"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.1 }}
+                    >
+                      {selectedHotspot.name}
+                    </motion.h4>
+                    <motion.p
+                      className="text-white/70 text-sm mb-3"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.2 }}
+                    >
+                      {selectedHotspot.description}
+                    </motion.p>
+                    <motion.p
+                      className="text-red-400 font-bold text-lg"
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.3, type: 'spring' }}
+                    >
+                      {selectedHotspot.casualties}
+                    </motion.p>
                   </motion.div>
                 )}
               </AnimatePresence>
 
-              {/* Progress */}
-              <div className="mt-4 text-center text-white/40 text-sm">
-                {viewedHotspots.size}/{MAP_HOTSPOTS.length} locations explored
-              </div>
+              {/* Progress - Enhanced */}
+              <motion.div
+                className="mt-4 text-center"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5 }}
+              >
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  {MAP_HOTSPOTS.map((h) => (
+                    <motion.div
+                      key={h.id}
+                      className={`w-2 h-2 rounded-full ${viewedHotspots.has(h.id) ? 'bg-amber-400' : 'bg-white/20'}`}
+                      animate={viewedHotspots.has(h.id) ? { scale: [1, 1.3, 1] } : {}}
+                      transition={{ duration: 0.3 }}
+                    />
+                  ))}
+                </div>
+                <p className="text-white/40 text-sm">
+                  {viewedHotspots.size}/{MAP_HOTSPOTS.length} locations explored
+                </p>
+              </motion.div>
 
-              <button
+              <motion.button
                 onClick={nextScreen}
                 disabled={!allHotspotsViewed}
                 className={`mt-4 w-full py-4 font-bold rounded-xl transition-colors ${allHotspotsViewed ? 'bg-amber-500 hover:bg-amber-400 text-black' : 'bg-white/10 text-white/30'}`}
+                animate={allHotspotsViewed ? { scale: [1, 1.02, 1] } : {}}
+                transition={{ duration: 1.5, repeat: Infinity }}
               >
                 {allHotspotsViewed ? 'Continue' : `Explore ${3 - viewedHotspots.size} more locations`}
-              </button>
+              </motion.button>
             </motion.div>
           )}
 
@@ -487,43 +659,144 @@ export function ToraToraToraBeat({ host, onComplete, onSkip, onBack, isPreview =
           {screen === 'reflection' && (
             <motion.div key="reflection" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full p-6">
               <div className="flex-1 flex flex-col items-center justify-center text-center">
-                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="w-20 h-20 rounded-full bg-red-500/20 flex items-center justify-center mb-6">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: 'spring', stiffness: 200, delay: 0.1 }}
+                  className="w-20 h-20 rounded-full bg-red-500/20 flex items-center justify-center mb-6 relative"
+                >
+                  <motion.div
+                    className="absolute inset-0 rounded-full bg-red-500/10"
+                    animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0, 0.5] }}
+                    transition={{ duration: 3, repeat: Infinity }}
+                  />
                   <span className="text-4xl">🕯️</span>
                 </motion.div>
-                <h2 className="text-2xl font-bold text-white mb-6">The Cost</h2>
-                <div className="bg-white/5 rounded-2xl p-6 max-w-sm border border-white/10">
-                  <div className="grid grid-cols-2 gap-4 text-center">
-                    <div>
-                      <p className="text-3xl font-bold text-red-400">2,403</p>
+                <motion.h2
+                  className="text-2xl font-bold text-white mb-6"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                >
+                  The Cost
+                </motion.h2>
+                <motion.div
+                  className="bg-white/5 rounded-2xl p-6 max-w-sm border border-white/10 relative overflow-hidden"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.3 }}
+                >
+                  {/* Subtle shimmer effect */}
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent"
+                    animate={{ x: ['-100%', '100%'] }}
+                    transition={{ duration: 3, repeat: Infinity, repeatDelay: 2 }}
+                  />
+                  <div className="grid grid-cols-2 gap-4 text-center relative z-10">
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.4 }}
+                    >
+                      <motion.p
+                        className="text-3xl font-bold text-red-400"
+                        initial={{ scale: 0.5 }}
+                        animate={{ scale: 1 }}
+                        transition={{ delay: 0.5, type: 'spring', stiffness: 200 }}
+                      >
+                        2,403
+                      </motion.p>
                       <p className="text-white/50 text-sm">Americans Killed</p>
-                    </div>
-                    <div>
-                      <p className="text-3xl font-bold text-amber-400">1,178</p>
+                    </motion.div>
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.5 }}
+                    >
+                      <motion.p
+                        className="text-3xl font-bold text-amber-400"
+                        initial={{ scale: 0.5 }}
+                        animate={{ scale: 1 }}
+                        transition={{ delay: 0.6, type: 'spring', stiffness: 200 }}
+                      >
+                        1,178
+                      </motion.p>
                       <p className="text-white/50 text-sm">Wounded</p>
-                    </div>
-                    <div>
-                      <p className="text-3xl font-bold text-white">21</p>
+                    </motion.div>
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.6 }}
+                    >
+                      <motion.p
+                        className="text-3xl font-bold text-white"
+                        initial={{ scale: 0.5 }}
+                        animate={{ scale: 1 }}
+                        transition={{ delay: 0.7, type: 'spring', stiffness: 200 }}
+                      >
+                        21
+                      </motion.p>
                       <p className="text-white/50 text-sm">Ships Sunk/Damaged</p>
-                    </div>
-                    <div>
-                      <p className="text-3xl font-bold text-white">188</p>
+                    </motion.div>
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.7 }}
+                    >
+                      <motion.p
+                        className="text-3xl font-bold text-white"
+                        initial={{ scale: 0.5 }}
+                        animate={{ scale: 1 }}
+                        transition={{ delay: 0.8, type: 'spring', stiffness: 200 }}
+                      >
+                        188
+                      </motion.p>
                       <p className="text-white/50 text-sm">Aircraft Destroyed</p>
-                    </div>
+                    </motion.div>
                   </div>
-                </div>
-                <p className="text-white/60 mt-6 max-w-sm text-sm">
+                </motion.div>
+                <motion.p
+                  className="text-white/60 mt-6 max-w-sm text-sm"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 1 }}
+                >
                   Japanese losses: 64 killed, 29 aircraft, 5 midget submarines. The attack lasted 110 minutes.
-                </p>
+                </motion.p>
               </div>
-              <button onClick={nextScreen} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors">
+              <motion.button
+                onClick={nextScreen}
+                className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1.1 }}
+              >
                 Complete Beat 3
-              </button>
+              </motion.button>
             </motion.div>
+          )}
+
+          {/* POST-MODULE VIDEO */}
+          {screen === 'post-video' && postModuleVideoConfig && (
+            <PostModuleVideoScreen
+              config={postModuleVideoConfig}
+              beatTitle="Tora! Tora! Tora! - The Attack Begins"
+              onComplete={() => setScreen('completion')}
+            />
           )}
 
           {/* COMPLETION */}
           {screen === 'completion' && (
-            <motion.div key="completion" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full p-6">
+            <motion.div
+              key="completion"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex flex-col h-full p-6"
+              onAnimationComplete={() => {
+                if (!skipped) playXPSound();
+              }}
+            >
               <div className="flex-1 flex flex-col items-center justify-center">
                 <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="text-6xl mb-6">✈️</motion.div>
                 <h2 className="text-2xl font-bold text-white mb-2">Beat 3 Complete!</h2>

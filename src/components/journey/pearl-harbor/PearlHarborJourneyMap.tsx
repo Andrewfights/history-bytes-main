@@ -355,8 +355,8 @@ export function PearlHarborJourneyMap({
       {/* Music Control */}
       <MusicControl position="bottom-left" />
 
-      {/* View Map Button */}
-      <motion.button
+      {/* View Map Button - Hidden for now */}
+      {/* <motion.button
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
@@ -369,7 +369,7 @@ export function PearlHarborJourneyMap({
       >
         <Globe size={18} className="sm:w-5 sm:h-5" />
         <span>View Map</span>
-      </motion.button>
+      </motion.button> */}
     </div>
   );
 }

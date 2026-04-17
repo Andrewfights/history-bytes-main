@@ -11,12 +11,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Sparkles, Anchor, AlertTriangle, Target, Shield } from 'lucide-react';
 import { WW2Host } from '@/types';
-import { PreModuleVideoScreen } from '../shared';
-import { subscribeToWW2ModuleAssets, type PreModuleVideoConfig } from '@/lib/firestore';
+import { PreModuleVideoScreen, PostModuleVideoScreen } from '../shared';
+import { subscribeToWW2ModuleAssets, type PreModuleVideoConfig, type PostModuleVideoConfig } from '@/lib/firestore';
+import { playXPSound } from '@/lib/xpAudioManager';
 import { usePearlHarborProgress } from '../hooks/usePearlHarborProgress';
 
-type Screen = 'pre-video' | 'intro' | 'situation' | 'arguments' | 'decision' | 'consequences' | 'myth-check' | 'completion';
-const SCREENS: Screen[] = ['pre-video', 'intro', 'situation', 'arguments', 'decision', 'consequences', 'myth-check', 'completion'];
+type Screen = 'pre-video' | 'intro' | 'situation' | 'arguments' | 'decision' | 'consequences' | 'myth-check' | 'post-video' | 'completion';
+const SCREENS: Screen[] = ['pre-video', 'intro', 'situation', 'arguments', 'decision', 'consequences', 'myth-check', 'post-video', 'completion'];
 
 const LESSON_DATA = {
   id: 'ph-beat-6',
@@ -114,6 +115,7 @@ export function NagumoDilemmaBeat({ host, onComplete, onSkip, onBack, isPreview 
   const [showAttackArgs, setShowAttackArgs] = useState(true);
   const [skipped, setSkipped] = useState(false);
   const [preModuleVideoConfig, setPreModuleVideoConfig] = useState<PreModuleVideoConfig | null>(null);
+  const [postModuleVideoConfig, setPostModuleVideoConfig] = useState<PostModuleVideoConfig | null>(null);
   const [hasLoadedConfig, setHasLoadedConfig] = useState(false);
 
   const { saveCheckpoint, clearCheckpoint, getCheckpoint } = usePearlHarborProgress();
@@ -143,7 +145,7 @@ export function NagumoDilemmaBeat({ host, onComplete, onSkip, onBack, isPreview 
     }
   }, [screen, selectedDecision, saveCheckpoint]);
 
-  // Subscribe to Firestore for pre-module video config
+  // Subscribe to Firestore for pre-module and post-module video config
   useEffect(() => {
     const unsubscribe = subscribeToWW2ModuleAssets((assets) => {
       const preModuleVideo = assets?.preModuleVideos?.[LESSON_DATA.id];
@@ -151,6 +153,12 @@ export function NagumoDilemmaBeat({ host, onComplete, onSkip, onBack, isPreview 
         setPreModuleVideoConfig(preModuleVideo);
       } else {
         setPreModuleVideoConfig(null);
+      }
+      const postModuleVideo = assets?.postModuleVideos?.[LESSON_DATA.id];
+      if (postModuleVideo?.enabled && postModuleVideo?.videoUrl) {
+        setPostModuleVideoConfig(postModuleVideo);
+      } else {
+        setPostModuleVideoConfig(null);
       }
       setHasLoadedConfig(true);
     });
@@ -173,12 +181,17 @@ export function NagumoDilemmaBeat({ host, onComplete, onSkip, onBack, isPreview 
   const nextScreen = useCallback(() => {
     const currentIndex = SCREENS.indexOf(screen);
     if (currentIndex < SCREENS.length - 1) {
-      setScreen(SCREENS[currentIndex + 1]);
+      let nextIndex = currentIndex + 1;
+      // Skip post-video if not configured
+      if (SCREENS[nextIndex] === 'post-video' && !postModuleVideoConfig) {
+        nextIndex++;
+      }
+      setScreen(SCREENS[nextIndex]);
     } else {
       clearCheckpoint();
       onComplete(skipped ? 0 : LESSON_DATA.xpReward);
     }
-  }, [screen, skipped, clearCheckpoint, onComplete]);
+  }, [screen, skipped, clearCheckpoint, onComplete, postModuleVideoConfig]);
 
   const handleDecision = (decision: Decision) => {
     setSelectedDecision(decision);
@@ -495,9 +508,18 @@ export function NagumoDilemmaBeat({ host, onComplete, onSkip, onBack, isPreview 
             </motion.div>
           )}
 
+          {/* POST-MODULE VIDEO */}
+          {screen === 'post-video' && postModuleVideoConfig && (
+            <PostModuleVideoScreen
+              config={postModuleVideoConfig}
+              beatTitle="Nagumo's Dilemma"
+              onComplete={() => setScreen('completion')}
+            />
+          )}
+
           {/* COMPLETION */}
           {screen === 'completion' && (
-            <motion.div key="completion" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full p-6">
+            <motion.div key="completion" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onAnimationComplete={() => playXPSound()} className="flex flex-col h-full p-6">
               <div className="flex-1 flex flex-col items-center justify-center">
                 <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="text-6xl mb-6">⚓</motion.div>
                 <h2 className="text-2xl font-bold text-white mb-2">Beat 6 Complete!</h2>

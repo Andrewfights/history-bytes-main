@@ -12,11 +12,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Radio, Sparkles, Award, AlertTriangle } from 'lucide-react';
 import { WW2Host } from '@/types';
 import { usePearlHarborProgress } from '../hooks/usePearlHarborProgress';
-import { PreModuleVideoScreen } from '../shared';
-import { subscribeToWW2ModuleAssets, type PreModuleVideoConfig } from '@/lib/firestore';
+import { PreModuleVideoScreen, PostModuleVideoScreen } from '../shared';
+import { subscribeToWW2ModuleAssets, type PreModuleVideoConfig, type PostModuleVideoConfig } from '@/lib/firestore';
+import { playXPSound } from '@/lib/xpAudioManager';
 
-type Screen = 'pre-video' | 'intro' | 'radar-setup' | 'blip-appears' | 'decision' | 'outcome' | 'legacy' | 'completion';
-const SCREENS: Screen[] = ['pre-video', 'intro', 'radar-setup', 'blip-appears', 'decision', 'outcome', 'legacy', 'completion'];
+type Screen = 'pre-video' | 'intro' | 'radar-setup' | 'blip-appears' | 'decision' | 'outcome' | 'legacy' | 'post-video' | 'completion';
+const SCREENS: Screen[] = ['pre-video', 'intro', 'radar-setup', 'blip-appears', 'decision', 'outcome', 'legacy', 'post-video', 'completion'];
 
 const LESSON_DATA = {
   id: 'ph-beat-2',
@@ -92,6 +93,7 @@ export function RadarBlipBeat({ host, onComplete, onSkip, onBack, isPreview = fa
   const [radarPulse, setRadarPulse] = useState(0);
   const [skipped, setSkipped] = useState(false);
   const [preModuleVideoConfig, setPreModuleVideoConfig] = useState<PreModuleVideoConfig | null>(null);
+  const [postModuleVideoConfig, setPostModuleVideoConfig] = useState<PostModuleVideoConfig | null>(null);
   const [hasLoadedConfig, setHasLoadedConfig] = useState(false);
 
   const { saveCheckpoint, clearCheckpoint, getCheckpoint } = usePearlHarborProgress();
@@ -119,7 +121,7 @@ export function RadarBlipBeat({ host, onComplete, onSkip, onBack, isPreview = fa
     return blips;
   }, []);
 
-  // Subscribe to Firestore for pre-module video config
+  // Subscribe to Firestore for pre/post-module video configs
   useEffect(() => {
     const unsubscribe = subscribeToWW2ModuleAssets((assets) => {
       const preModuleVideo = assets?.preModuleVideos?.[LESSON_DATA.id];
@@ -129,6 +131,15 @@ export function RadarBlipBeat({ host, onComplete, onSkip, onBack, isPreview = fa
       } else {
         setPreModuleVideoConfig(null);
       }
+
+      const postModuleVideo = assets?.postModuleVideos?.[LESSON_DATA.id];
+      if (postModuleVideo?.enabled && postModuleVideo?.videoUrl) {
+        console.log('[RadarBlipBeat] Found post-module video:', postModuleVideo);
+        setPostModuleVideoConfig(postModuleVideo);
+      } else {
+        setPostModuleVideoConfig(null);
+      }
+
       setHasLoadedConfig(true);
     });
     return () => unsubscribe();
@@ -188,12 +199,22 @@ export function RadarBlipBeat({ host, onComplete, onSkip, onBack, isPreview = fa
   const nextScreen = useCallback(() => {
     const currentIndex = SCREENS.indexOf(screen);
     if (currentIndex < SCREENS.length - 1) {
-      setScreen(SCREENS[currentIndex + 1]);
+      let nextScreenIndex = currentIndex + 1;
+      // Skip post-video if not configured
+      if (SCREENS[nextScreenIndex] === 'post-video' && !postModuleVideoConfig?.enabled) {
+        nextScreenIndex++;
+      }
+      if (nextScreenIndex < SCREENS.length) {
+        setScreen(SCREENS[nextScreenIndex]);
+      } else {
+        clearCheckpoint();
+        onComplete(skipped ? 0 : LESSON_DATA.xpReward);
+      }
     } else {
       clearCheckpoint();
       onComplete(skipped ? 0 : LESSON_DATA.xpReward);
     }
-  }, [screen, skipped, clearCheckpoint, onComplete]);
+  }, [screen, skipped, clearCheckpoint, onComplete, postModuleVideoConfig]);
 
   const handleDecision = (decision: DecisionOption) => {
     setSelectedDecision(decision);
@@ -469,9 +490,27 @@ export function RadarBlipBeat({ host, onComplete, onSkip, onBack, isPreview = fa
             </motion.div>
           )}
 
+          {/* POST-MODULE VIDEO */}
+          {screen === 'post-video' && postModuleVideoConfig && (
+            <PostModuleVideoScreen
+              config={postModuleVideoConfig}
+              beatTitle="The Radar Blip"
+              onComplete={() => setScreen('completion')}
+            />
+          )}
+
           {/* COMPLETION */}
           {screen === 'completion' && (
-            <motion.div key="completion" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full p-6">
+            <motion.div
+              key="completion"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex flex-col h-full p-6"
+              onAnimationComplete={() => {
+                if (!skipped) playXPSound();
+              }}
+            >
               <div className="flex-1 flex flex-col items-center justify-center">
                 <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="text-6xl mb-6">📡</motion.div>
                 <h2 className="text-2xl font-bold text-white mb-2">Beat 2 Complete!</h2>

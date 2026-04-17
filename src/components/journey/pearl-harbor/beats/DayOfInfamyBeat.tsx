@@ -11,8 +11,9 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Sparkles, FileText, Edit3, Users, AlertCircle, Play, Pause, Volume2 } from 'lucide-react';
 import { WW2Host } from '@/types';
-import { DragAndDropSorter, SortableItem, PreModuleVideoScreen } from '../shared';
-import { subscribeToWW2ModuleAssets, type PreModuleVideoConfig } from '@/lib/firestore';
+import { DragAndDropSorter, SortableItem, PreModuleVideoScreen, PostModuleVideoScreen } from '../shared';
+import { subscribeToWW2ModuleAssets, type PreModuleVideoConfig, type PostModuleVideoConfig } from '@/lib/firestore';
+import { playXPSound } from '@/lib/xpAudioManager';
 import { usePearlHarborProgress } from '../hooks/usePearlHarborProgress';
 import { useWW2ModuleAssets } from '../hooks/useWW2ModuleAssets';
 
@@ -21,8 +22,8 @@ const MEDIA_KEYS = {
   fdrSpeech: 'fdr-day-of-infamy-speech-audio-optional',
 };
 
-type Screen = 'pre-video' | 'intro' | 'speech-evolution' | 'reconstruct' | 'vote' | 'marshall' | 'completion';
-const SCREENS: Screen[] = ['pre-video', 'intro', 'speech-evolution', 'reconstruct', 'vote', 'marshall', 'completion'];
+type Screen = 'pre-video' | 'intro' | 'speech-evolution' | 'reconstruct' | 'vote' | 'marshall' | 'post-video' | 'completion';
+const SCREENS: Screen[] = ['pre-video', 'intro', 'speech-evolution', 'reconstruct', 'vote', 'marshall', 'post-video', 'completion'];
 
 const LESSON_DATA = {
   id: 'ph-beat-8',
@@ -56,6 +57,7 @@ export function DayOfInfamyBeat({ host, onComplete, onSkip, onBack, isPreview = 
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [preModuleVideoConfig, setPreModuleVideoConfig] = useState<PreModuleVideoConfig | null>(null);
+  const [postModuleVideoConfig, setPostModuleVideoConfig] = useState<PostModuleVideoConfig | null>(null);
   const [hasLoadedConfig, setHasLoadedConfig] = useState(false);
 
   const { saveCheckpoint, clearCheckpoint, getCheckpoint } = usePearlHarborProgress();
@@ -123,6 +125,12 @@ export function DayOfInfamyBeat({ host, onComplete, onSkip, onBack, isPreview = 
       } else {
         setPreModuleVideoConfig(null);
       }
+      const postModuleVideo = assets?.postModuleVideos?.[LESSON_DATA.id];
+      if (postModuleVideo?.enabled && postModuleVideo?.videoUrl) {
+        setPostModuleVideoConfig(postModuleVideo);
+      } else {
+        setPostModuleVideoConfig(null);
+      }
       setHasLoadedConfig(true);
     });
     return () => unsubscribe();
@@ -144,12 +152,17 @@ export function DayOfInfamyBeat({ host, onComplete, onSkip, onBack, isPreview = 
   const nextScreen = useCallback(() => {
     const currentIndex = SCREENS.indexOf(screen);
     if (currentIndex < SCREENS.length - 1) {
-      setScreen(SCREENS[currentIndex + 1]);
+      let nextScreenValue = SCREENS[currentIndex + 1];
+      // Skip post-video if not configured
+      if (nextScreenValue === 'post-video' && !postModuleVideoConfig?.enabled) {
+        nextScreenValue = 'completion';
+      }
+      setScreen(nextScreenValue);
     } else {
       clearCheckpoint();
       onComplete(skipped ? 0 : LESSON_DATA.xpReward);
     }
-  }, [screen, skipped, clearCheckpoint, onComplete]);
+  }, [screen, skipped, clearCheckpoint, onComplete, postModuleVideoConfig]);
 
   const handleReconstructComplete = (isCorrect: boolean, attempts: number) => {
     setReconstructComplete(true);
@@ -474,9 +487,18 @@ export function DayOfInfamyBeat({ host, onComplete, onSkip, onBack, isPreview = 
             </motion.div>
           )}
 
+          {/* POST-MODULE VIDEO */}
+          {screen === 'post-video' && postModuleVideoConfig && (
+            <PostModuleVideoScreen
+              config={postModuleVideoConfig}
+              beatTitle="A Date Which Will Live in Infamy"
+              onComplete={() => setScreen('completion')}
+            />
+          )}
+
           {/* COMPLETION */}
           {screen === 'completion' && (
-            <motion.div key="completion" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full p-6">
+            <motion.div key="completion" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full p-6" onAnimationComplete={() => { if (!skipped) playXPSound(); }}>
               <div className="flex-1 flex flex-col items-center justify-center">
                 <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="text-6xl mb-6">📜</motion.div>
                 <h2 className="text-2xl font-bold text-white mb-2">Beat 8 Complete!</h2>
