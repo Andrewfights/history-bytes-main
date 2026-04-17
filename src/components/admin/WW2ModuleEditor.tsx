@@ -1234,9 +1234,10 @@ interface PreModuleVideoSectionProps {
   config?: PreModuleVideoConfig;
   onSave: (beatId: string, config: PreModuleVideoConfig | null) => Promise<void>;
   onUploadVideo: (beatId: string, mediaKey: string, file: File, onProgress?: (progress: number) => void) => Promise<void>;
+  onClearMediaUrl: (beatId: string, mediaKey: string) => Promise<void>;
 }
 
-function PreModuleVideoSection({ beatId, config, onSave, onUploadVideo }: PreModuleVideoSectionProps) {
+function PreModuleVideoSection({ beatId, config, onSave, onUploadVideo, onClearMediaUrl }: PreModuleVideoSectionProps) {
   const [isEnabled, setIsEnabled] = useState(config?.enabled ?? false);
   const [videoUrl, setVideoUrl] = useState(config?.videoUrl ?? '');
   const [title, setTitle] = useState(config?.title ?? '');
@@ -1331,7 +1332,9 @@ function PreModuleVideoSection({ beatId, config, onSave, onUploadVideo }: PreMod
     setIsDeleting(true);
     setShowDeleteConfirm(false);
     try {
-      // Only clear the config - keep the video in storage for the library
+      // Clear the media URL reference (keeps file in storage for library)
+      await onClearMediaUrl(beatId, 'pre-module-video');
+      // Clear the config
       await onSave(beatId, null);
       // Reset local state
       setVideoUrl('');
@@ -1547,9 +1550,10 @@ interface PostModuleVideoSectionProps {
   config?: PostModuleVideoConfig;
   onSave: (beatId: string, config: PostModuleVideoConfig | null) => Promise<void>;
   onUploadVideo: (beatId: string, mediaKey: string, file: File, onProgress?: (progress: number) => void) => Promise<void>;
+  onClearMediaUrl: (beatId: string, mediaKey: string) => Promise<void>;
 }
 
-function PostModuleVideoSection({ beatId, config, onSave, onUploadVideo }: PostModuleVideoSectionProps) {
+function PostModuleVideoSection({ beatId, config, onSave, onUploadVideo, onClearMediaUrl }: PostModuleVideoSectionProps) {
   const [isEnabled, setIsEnabled] = useState(config?.enabled ?? false);
   const [videoUrl, setVideoUrl] = useState(config?.videoUrl ?? '');
   const [title, setTitle] = useState(config?.title ?? '');
@@ -1644,7 +1648,9 @@ function PostModuleVideoSection({ beatId, config, onSave, onUploadVideo }: PostM
     setIsDeleting(true);
     setShowDeleteConfirm(false);
     try {
-      // Only clear the config - keep the video in storage for the library
+      // Clear the media URL reference (keeps file in storage for library)
+      await onClearMediaUrl(beatId, 'post-module-video');
+      // Clear the config
       await onSave(beatId, null);
       // Reset local state
       setVideoUrl('');
@@ -2181,6 +2187,7 @@ function BeatCard({
                   config={preModuleVideoConfig}
                   onSave={onSavePreModuleVideo}
                   onUploadVideo={onUpload}
+                  onClearMediaUrl={onRemove}
                 />
               )}
 
@@ -2191,6 +2198,7 @@ function BeatCard({
                   config={postModuleVideoConfig}
                   onSave={onSavePostModuleVideo}
                   onUploadVideo={onUpload}
+                  onClearMediaUrl={onRemove}
                 />
               )}
 
