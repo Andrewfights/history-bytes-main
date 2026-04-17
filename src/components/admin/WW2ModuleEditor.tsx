@@ -1446,20 +1446,10 @@ function PreModuleVideoSection({ beatId, config, onSave, onUploadVideo, onRemove
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-xs text-slate-400">Video Preview</label>
-                <div className="flex items-center gap-3">
-                  <span className="text-xs text-green-400 flex items-center gap-1">
-                    <Check size={12} />
-                    Video uploaded
-                  </span>
-                  <button
-                    onClick={handleDelete}
-                    disabled={isDeleting}
-                    className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1 transition-colors disabled:opacity-50"
-                  >
-                    {isDeleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
-                    Delete
-                  </button>
-                </div>
+                <span className="text-xs text-green-400 flex items-center gap-1">
+                  <Check size={12} />
+                  Video uploaded
+                </span>
               </div>
               <div className="rounded-lg overflow-hidden bg-black border border-slate-600">
                 <video
@@ -1469,6 +1459,15 @@ function PreModuleVideoSection({ beatId, config, onSave, onUploadVideo, onRemove
                   preload="metadata"
                 />
               </div>
+              {/* Delete Button */}
+              <button
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="w-full py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 text-sm font-medium rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-50 border border-red-500/30"
+              >
+                {isDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                Delete Video
+              </button>
             </div>
           )}
 
@@ -1706,20 +1705,10 @@ function PostModuleVideoSection({ beatId, config, onSave, onUploadVideo, onRemov
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-xs text-slate-400">Video Preview</label>
-                <div className="flex items-center gap-3">
-                  <span className="text-xs text-green-400 flex items-center gap-1">
-                    <Check size={12} />
-                    Video uploaded
-                  </span>
-                  <button
-                    onClick={handleDelete}
-                    disabled={isDeleting}
-                    className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1 transition-colors disabled:opacity-50"
-                  >
-                    {isDeleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
-                    Delete
-                  </button>
-                </div>
+                <span className="text-xs text-green-400 flex items-center gap-1">
+                  <Check size={12} />
+                  Video uploaded
+                </span>
               </div>
               <div className="rounded-lg overflow-hidden bg-black border border-slate-600">
                 <video
@@ -1729,6 +1718,15 @@ function PostModuleVideoSection({ beatId, config, onSave, onUploadVideo, onRemov
                   preload="metadata"
                 />
               </div>
+              {/* Delete Button */}
+              <button
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="w-full py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 text-sm font-medium rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-50 border border-red-500/30"
+              >
+                {isDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                Delete Video
+              </button>
             </div>
           )}
 
