@@ -1234,16 +1234,16 @@ interface PreModuleVideoSectionProps {
   config?: PreModuleVideoConfig;
   onSave: (beatId: string, config: PreModuleVideoConfig | null) => Promise<void>;
   onUploadVideo: (beatId: string, mediaKey: string, file: File, onProgress?: (progress: number) => void) => Promise<void>;
-  onRemove: (beatId: string, mediaKey: string) => Promise<void>;
 }
 
-function PreModuleVideoSection({ beatId, config, onSave, onUploadVideo, onRemove }: PreModuleVideoSectionProps) {
+function PreModuleVideoSection({ beatId, config, onSave, onUploadVideo }: PreModuleVideoSectionProps) {
   const [isEnabled, setIsEnabled] = useState(config?.enabled ?? false);
   const [videoUrl, setVideoUrl] = useState(config?.videoUrl ?? '');
   const [title, setTitle] = useState(config?.title ?? '');
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -1321,14 +1321,17 @@ function PreModuleVideoSection({ beatId, config, onSave, onUploadVideo, onRemove
     }
   };
 
-  const handleDelete = async () => {
+  const handleDeleteClick = () => {
+    setShowDeleteConfirm(true);
+  };
+
+  const handleDeleteConfirm = async () => {
     if (!videoUrl) return;
 
     setIsDeleting(true);
+    setShowDeleteConfirm(false);
     try {
-      // Remove the video file from storage
-      await onRemove(beatId, 'pre-module-video');
-      // Clear the config
+      // Only clear the config - keep the video in storage for the library
       await onSave(beatId, null);
       // Reset local state
       setVideoUrl('');
@@ -1341,8 +1344,59 @@ function PreModuleVideoSection({ beatId, config, onSave, onUploadVideo, onRemove
     }
   };
 
+  const handleDeleteCancel = () => {
+    setShowDeleteConfirm(false);
+  };
+
   return (
     <div className="space-y-3">
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {showDeleteConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+            onClick={handleDeleteCancel}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-slate-800 rounded-xl p-6 max-w-sm w-full border border-slate-700 shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="text-center">
+                <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center mx-auto mb-4">
+                  <Trash2 size={24} className="text-red-400" />
+                </div>
+                <h3 className="text-lg font-bold text-white mb-2">Remove Video?</h3>
+                <p className="text-slate-400 text-sm mb-6">
+                  This will remove the video from this beat. The video file will remain in your library for future use.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleDeleteCancel}
+                    className="flex-1 py-2.5 bg-slate-700 hover:bg-slate-600 text-white text-sm font-medium rounded-lg transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleDeleteConfirm}
+                    disabled={isDeleting}
+                    className="flex-1 py-2.5 bg-red-500 hover:bg-red-400 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {isDeleting ? <Loader2 size={14} className="animate-spin" /> : null}
+                    Remove
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="flex items-center justify-between">
         <h4 className="text-white/60 text-xs uppercase tracking-wide flex items-center gap-2">
           <Video size={14} />
@@ -1461,12 +1515,12 @@ function PreModuleVideoSection({ beatId, config, onSave, onUploadVideo, onRemove
               </div>
               {/* Delete Button */}
               <button
-                onClick={handleDelete}
+                onClick={handleDeleteClick}
                 disabled={isDeleting}
                 className="w-full py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 text-sm font-medium rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-50 border border-red-500/30"
               >
                 {isDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-                Delete Video
+                Remove Video
               </button>
             </div>
           )}
@@ -1493,16 +1547,16 @@ interface PostModuleVideoSectionProps {
   config?: PostModuleVideoConfig;
   onSave: (beatId: string, config: PostModuleVideoConfig | null) => Promise<void>;
   onUploadVideo: (beatId: string, mediaKey: string, file: File, onProgress?: (progress: number) => void) => Promise<void>;
-  onRemove: (beatId: string, mediaKey: string) => Promise<void>;
 }
 
-function PostModuleVideoSection({ beatId, config, onSave, onUploadVideo, onRemove }: PostModuleVideoSectionProps) {
+function PostModuleVideoSection({ beatId, config, onSave, onUploadVideo }: PostModuleVideoSectionProps) {
   const [isEnabled, setIsEnabled] = useState(config?.enabled ?? false);
   const [videoUrl, setVideoUrl] = useState(config?.videoUrl ?? '');
   const [title, setTitle] = useState(config?.title ?? '');
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -1580,14 +1634,17 @@ function PostModuleVideoSection({ beatId, config, onSave, onUploadVideo, onRemov
     }
   };
 
-  const handleDelete = async () => {
+  const handleDeleteClick = () => {
+    setShowDeleteConfirm(true);
+  };
+
+  const handleDeleteConfirm = async () => {
     if (!videoUrl) return;
 
     setIsDeleting(true);
+    setShowDeleteConfirm(false);
     try {
-      // Remove the video file from storage
-      await onRemove(beatId, 'post-module-video');
-      // Clear the config
+      // Only clear the config - keep the video in storage for the library
       await onSave(beatId, null);
       // Reset local state
       setVideoUrl('');
@@ -1600,8 +1657,59 @@ function PostModuleVideoSection({ beatId, config, onSave, onUploadVideo, onRemov
     }
   };
 
+  const handleDeleteCancel = () => {
+    setShowDeleteConfirm(false);
+  };
+
   return (
     <div className="space-y-3">
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {showDeleteConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+            onClick={handleDeleteCancel}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-slate-800 rounded-xl p-6 max-w-sm w-full border border-slate-700 shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="text-center">
+                <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center mx-auto mb-4">
+                  <Trash2 size={24} className="text-red-400" />
+                </div>
+                <h3 className="text-lg font-bold text-white mb-2">Remove Video?</h3>
+                <p className="text-slate-400 text-sm mb-6">
+                  This will remove the video from this beat. The video file will remain in your library for future use.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleDeleteCancel}
+                    className="flex-1 py-2.5 bg-slate-700 hover:bg-slate-600 text-white text-sm font-medium rounded-lg transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleDeleteConfirm}
+                    disabled={isDeleting}
+                    className="flex-1 py-2.5 bg-red-500 hover:bg-red-400 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {isDeleting ? <Loader2 size={14} className="animate-spin" /> : null}
+                    Remove
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="flex items-center justify-between">
         <h4 className="text-white/60 text-xs uppercase tracking-wide flex items-center gap-2">
           <Video size={14} />
@@ -1720,12 +1828,12 @@ function PostModuleVideoSection({ beatId, config, onSave, onUploadVideo, onRemov
               </div>
               {/* Delete Button */}
               <button
-                onClick={handleDelete}
+                onClick={handleDeleteClick}
                 disabled={isDeleting}
                 className="w-full py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 text-sm font-medium rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-50 border border-red-500/30"
               >
                 {isDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-                Delete Video
+                Remove Video
               </button>
             </div>
           )}
@@ -2073,7 +2181,6 @@ function BeatCard({
                   config={preModuleVideoConfig}
                   onSave={onSavePreModuleVideo}
                   onUploadVideo={onUpload}
-                  onRemove={onRemove}
                 />
               )}
 
@@ -2084,7 +2191,6 @@ function BeatCard({
                   config={postModuleVideoConfig}
                   onSave={onSavePostModuleVideo}
                   onUploadVideo={onUpload}
-                  onRemove={onRemove}
                 />
               )}
 
