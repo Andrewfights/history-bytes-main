@@ -191,6 +191,7 @@ export function JourneyTab() {
     selectedHostId,
     isReturningUser,
     hasSeenWelcomeVideo,
+    isLoading: isPreferencesLoading,
     selectHost,
     clearHostSelection,
     updateLastVisit,
@@ -268,21 +269,22 @@ export function JourneyTab() {
 
   // Check for pending Pearl Harbor entry (from HomeTab JourneyCard)
   useEffect(() => {
-    if (pendingPearlHarbor) {
-      // If user has selected a host, go to theater selection
-      if (hasSelectedHost && selectedHostId) {
-        updateLastVisit();
-        trackArcVisit(WW2_ARC_ID);
-        setSelectedArcId(WW2_ARC_ID);
-        setView('ww2-theaters');
-      } else {
-        // New user - show host selection
-        setShowWW2HostSelection(true);
-      }
-      // Clear flag AFTER navigation is set to avoid race condition
-      setPendingPearlHarbor(false);
+    // Wait for preferences to load before processing
+    if (isPreferencesLoading || !pendingPearlHarbor) return;
+
+    // If user has selected a host, go to theater selection
+    if (hasSelectedHost && selectedHostId) {
+      updateLastVisit();
+      trackArcVisit(WW2_ARC_ID);
+      setSelectedArcId(WW2_ARC_ID);
+      setView('ww2-theaters');
+    } else {
+      // No host selected - show host selection
+      setShowWW2HostSelection(true);
     }
-  }, [pendingPearlHarbor, hasSelectedHost, selectedHostId]);
+    // Clear flag AFTER navigation is set to avoid race condition
+    setPendingPearlHarbor(false);
+  }, [pendingPearlHarbor, hasSelectedHost, selectedHostId, isPreferencesLoading]);
 
   // Restore view state on mount
   useEffect(() => {
@@ -320,15 +322,20 @@ export function JourneyTab() {
 
   // WW2 Entry Flow Handlers
   const handleEnterWW2 = () => {
-    if (hasSelectedHost && isReturningUser) {
-      // Returning user with saved host - show greeting
-      setShowWW2HostGreeting(true);
-    } else if (hasSelectedHost) {
-      // Has host but not returning - go to path selection
+    // Wait for preferences to load before deciding
+    if (isPreferencesLoading) {
+      // Will re-trigger when loading completes
+      return;
+    }
+
+    if (hasSelectedHost && selectedHostId) {
+      // User has selected a host - go directly to theaters
       updateLastVisit();
-      setShowWW2PathSelection(true);
+      trackArcVisit(WW2_ARC_ID);
+      setSelectedArcId(WW2_ARC_ID);
+      setView('ww2-theaters');
     } else {
-      // New user - show host selection
+      // No host selected - show host selection
       setShowWW2HostSelection(true);
     }
   };
@@ -777,9 +784,13 @@ export function JourneyTab() {
             >
               <button
                 onClick={() => {
+                  // Wait for preferences to load
+                  if (isPreferencesLoading) return;
+
                   trackArcVisit(WW2_ARC_ID);
                   setSelectedArcId(WW2_ARC_ID);
                   if (hasSelectedHost && selectedHostId) {
+                    updateLastVisit();
                     setView('ww2-theaters');
                   } else {
                     setShowWW2HostSelection(true);
