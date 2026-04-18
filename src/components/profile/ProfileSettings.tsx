@@ -11,6 +11,7 @@ import { usePantheonProgress, TierBadge, PantheonRoom } from '@/components/journ
 import { isAdminUser } from '@/components/admin/AdminRoute';
 import { useWW2Preferences } from '@/components/journey/ww2/hooks/useWW2Preferences';
 import { getWW2HostById } from '@/data/ww2Hosts';
+import { WW2HostSelection } from '@/components/journey/ww2';
 
 
 const avatarOptions = ['👤', '🧑‍🎓', '🦉', '🏛️', '⚔️', '🌍', '🎭', '📜', '🔺', '👑'];
@@ -37,8 +38,9 @@ export function ProfileSettings() {
   const [showStudyNotes, setShowStudyNotes] = useState(false);
   const [showPantheon, setShowPantheon] = useState(false);
   const { getTotalSouvenirs, getHighestTier, isLoading: isPantheonLoading } = usePantheonProgress();
-  const { selectedHostId, clearHostSelection, hasSelectedHost } = useWW2Preferences();
+  const { selectedHostId, selectHost, hasSelectedHost } = useWW2Preferences();
   const currentHost = selectedHostId ? getWW2HostById(selectedHostId) : null;
+  const [showHostSelection, setShowHostSelection] = useState(false);
 
   const handleSave = () => {
     updateUser({ displayName });
@@ -193,7 +195,7 @@ export function ProfileSettings() {
               </div>
             </div>
             <button
-              onClick={clearHostSelection}
+              onClick={() => setShowHostSelection(true)}
               className="px-3 py-1.5 text-xs font-medium bg-white/10 hover:bg-white/20 text-white/80 rounded-lg transition-colors"
             >
               Change
@@ -442,6 +444,17 @@ export function ProfileSettings() {
           <PantheonRoom onBack={() => setShowPantheon(false)} />
         )}
       </AnimatePresence>
+
+      {/* Host Selection Modal */}
+      {showHostSelection && (
+        <WW2HostSelection
+          onSelectHost={(hostId) => {
+            selectHost(hostId);
+            setShowHostSelection(false);
+          }}
+          onClose={() => setShowHostSelection(false)}
+        />
+      )}
     </div>
   );
 }
