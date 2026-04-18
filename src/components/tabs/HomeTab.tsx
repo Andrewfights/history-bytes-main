@@ -34,7 +34,7 @@ export function HomeTab({ onStartSession, onPlayDaily, onSelectTopic }: HomeTabP
   // Get Pearl Harbor progress for featured hero
   const { progress, totalXP } = usePearlHarborProgress();
   const completedLessons = progress.completedActivities.filter(
-    id => id.startsWith('ph-lesson-')
+    id => id.startsWith('ph-beat-')
   ).length;
   const totalLessons = PEARL_HARBOR_LESSONS.length;
 

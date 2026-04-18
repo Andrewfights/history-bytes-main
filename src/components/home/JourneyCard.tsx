@@ -16,9 +16,9 @@ interface JourneyCardProps {
 export function JourneyCard({ onEnterJourney }: JourneyCardProps) {
   const { progress, totalXP, isLoading } = usePearlHarborProgress();
 
-  // Count completed lessons (those starting with ph-lesson-)
+  // Count completed lessons (beats use ph-beat- prefix)
   const completedLessons = progress.completedActivities.filter(
-    id => id.startsWith('ph-lesson-')
+    id => id.startsWith('ph-beat-')
   ).length;
 
   const totalLessons = PEARL_HARBOR_LESSONS.length;

@@ -1,11 +1,12 @@
 /**
- * Pearl Harbor Beats - 11-Beat Curriculum Components
- * Total XP: 670 across all beats (520 + 150 for Final Exam)
+ * Pearl Harbor Beats - 12-Beat Curriculum Components
+ * Total XP: 725 across all beats (575 + 150 for Final Exam)
  */
 
 export { RoadToWarBeat } from './RoadToWarBeat';
 export { RadarBlipBeat } from './RadarBlipBeat';
 export { ToraToraToraBeat } from './ToraToraToraBeat';
+export { DamageDoneBeat } from './DamageDoneBeat';
 export { VoicesFromHarborBeat } from './VoicesFromHarborBeat';
 export { BreakingNewsBeat } from './BreakingNewsBeat';
 export { NagumoDilemmaBeat } from './NagumoDilemmaBeat';

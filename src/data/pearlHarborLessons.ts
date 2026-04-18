@@ -1,13 +1,14 @@
 /**
  * Pearl Harbor Lessons Data
- * 10-Beat Curriculum following PRD specification
- * Total XP: 520 across 10 beats
+ * 12-Beat Curriculum following PRD specification
+ * Total XP: 725 across 12 beats (575 core + 150 Final Exam)
  */
 
 export type BeatType =
   | 'road-to-war'
   | 'radar-blip'
   | 'tora-tora-tora'
+  | 'damage-done'
   | 'voices-harbor'
   | 'breaking-news'
   | 'nagumo-dilemma'
@@ -78,6 +79,20 @@ export const PEARL_HARBOR_LESSONS: PearlHarborLesson[] = [
   {
     id: 'ph-beat-4',
     number: 4,
+    title: 'Damage Done',
+    subtitle: 'The Full Impact',
+    type: 'damage-done',
+    icon: '💥',
+    xpReward: 55,
+    description: 'Explore the timeline and full impact of the attack',
+    screens: 5,
+    formats: ['Interactive Timeline', 'Interactive Map'],
+    narrativeArc: 'Impact / Consequences',
+    duration: '5-7 min',
+  },
+  {
+    id: 'ph-beat-5',
+    number: 5,
     title: 'Voices from the Harbor',
     subtitle: 'Stories of December 7',
     type: 'voices-harbor',
@@ -90,8 +105,8 @@ export const PEARL_HARBOR_LESSONS: PearlHarborLesson[] = [
     duration: '5-6 min',
   },
   {
-    id: 'ph-beat-5',
-    number: 5,
+    id: 'ph-beat-6',
+    number: 6,
     title: 'Breaking News',
     subtitle: 'America Learns',
     type: 'breaking-news',
@@ -104,8 +119,8 @@ export const PEARL_HARBOR_LESSONS: PearlHarborLesson[] = [
     duration: '4-5 min',
   },
   {
-    id: 'ph-beat-6',
-    number: 6,
+    id: 'ph-beat-7',
+    number: 7,
     title: "Nagumo's Dilemma",
     subtitle: 'The Third Wave',
     type: 'nagumo-dilemma',
@@ -118,8 +133,8 @@ export const PEARL_HARBOR_LESSONS: PearlHarborLesson[] = [
     duration: '6-7 min',
   },
   {
-    id: 'ph-beat-7',
-    number: 7,
+    id: 'ph-beat-8',
+    number: 8,
     title: 'Fact or Myth?',
     subtitle: 'Pearl Harbor Legends',
     type: 'fact-or-myth',
@@ -132,8 +147,8 @@ export const PEARL_HARBOR_LESSONS: PearlHarborLesson[] = [
     duration: '4-5 min',
   },
   {
-    id: 'ph-beat-8',
-    number: 8,
+    id: 'ph-beat-9',
+    number: 9,
     title: 'Day of Infamy',
     subtitle: "FDR's Response",
     type: 'day-of-infamy',
@@ -146,8 +161,8 @@ export const PEARL_HARBOR_LESSONS: PearlHarborLesson[] = [
     duration: '5-6 min',
   },
   {
-    id: 'ph-beat-9',
-    number: 9,
+    id: 'ph-beat-10',
+    number: 10,
     title: 'Arsenal of Democracy',
     subtitle: 'America Transforms',
     type: 'arsenal-democracy',
@@ -160,8 +175,8 @@ export const PEARL_HARBOR_LESSONS: PearlHarborLesson[] = [
     duration: '4-5 min',
   },
   {
-    id: 'ph-beat-10',
-    number: 10,
+    id: 'ph-beat-11',
+    number: 11,
     title: 'Mastery Run',
     subtitle: 'Pearl Harbor Final Challenge',
     type: 'mastery-run',
@@ -174,8 +189,8 @@ export const PEARL_HARBOR_LESSONS: PearlHarborLesson[] = [
     duration: '6-8 min',
   },
   {
-    id: 'ph-beat-11',
-    number: 11,
+    id: 'ph-beat-12',
+    number: 12,
     title: 'Final Exam',
     subtitle: 'Pearl Harbor Chapter Assessment',
     type: 'final-exam',
@@ -190,7 +205,7 @@ export const PEARL_HARBOR_LESSONS: PearlHarborLesson[] = [
 ];
 
 export const TOTAL_XP = PEARL_HARBOR_LESSONS.reduce((sum, lesson) => sum + lesson.xpReward, 0);
-// Total: 670 XP (520 XP core curriculum + 150 XP Final Exam)
+// Total: 725 XP (575 XP core curriculum + 150 XP Final Exam)
 
 export function getLessonById(id: string): PearlHarborLesson | undefined {
   return PEARL_HARBOR_LESSONS.find(lesson => lesson.id === id);
@@ -208,7 +223,7 @@ export function getLessonByNumber(number: number): PearlHarborLesson | undefined
   return PEARL_HARBOR_LESSONS.find(lesson => lesson.number === number);
 }
 
-// XP Scoring tiers for Mastery Run (Beat 10)
+// XP Scoring tiers for Mastery Run (Beat 11)
 export const MASTERY_SCORING = {
   perfect: { minCorrect: 12, xp: 75, badge: 'Pearl Harbor Scholar' },
   excellent: { minCorrect: 10, xp: 60, badge: null },
@@ -216,7 +231,7 @@ export const MASTERY_SCORING = {
   needsWork: { minCorrect: 0, xp: 30, badge: null },
 };
 
-// XP Scoring tiers for Final Exam (Beat 11)
+// XP Scoring tiers for Final Exam (Beat 12)
 export const FINAL_EXAM_SCORING = {
   perfect: { minCorrect: 15, xp: 150, badge: 'pearl-harbor-scholar', tier: 'Perfect Score', goldStar: true },
   expert: { minCorrect: 12, xp: 120, badge: 'pearl-harbor-expert', tier: 'Expert' },

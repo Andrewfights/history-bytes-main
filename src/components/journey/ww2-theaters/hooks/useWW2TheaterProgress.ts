@@ -60,10 +60,10 @@ export function useWW2TheaterProgress() {
 
       const phProgress = JSON.parse(stored);
       const completedLessons = (phProgress.completedActivities || []).filter(
-        (id: string) => id.startsWith('ph-lesson-')
+        (id: string) => id.startsWith('ph-beat-')
       );
 
-      // Need all 7 lessons completed
+      // Need all lessons completed
       return completedLessons.length >= PEARL_HARBOR_LESSONS.length;
     } catch (error) {
       console.error('Failed to check Pearl Harbor progress:', error);

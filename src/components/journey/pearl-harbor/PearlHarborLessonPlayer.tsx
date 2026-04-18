@@ -28,6 +28,7 @@ import {
   RoadToWarBeat,
   RadarBlipBeat,
   ToraToraToraBeat,
+  DamageDoneBeat,
   VoicesFromHarborBeat,
   BreakingNewsBeat,
   NagumoDilemmaBeat,
@@ -185,6 +186,16 @@ export function PearlHarborLessonPlayer({
     case 'tora-tora-tora':
       return (
         <ToraToraToraBeat
+          host={host}
+          onComplete={handleLessonComplete}
+          onSkip={handleLessonSkip}
+          onBack={onBack}
+        />
+      );
+
+    case 'damage-done':
+      return (
+        <DamageDoneBeat
           host={host}
           onComplete={handleLessonComplete}
           onSkip={handleLessonSkip}

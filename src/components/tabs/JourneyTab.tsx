@@ -190,9 +190,11 @@ export function JourneyTab() {
     hasSelectedHost,
     selectedHostId,
     isReturningUser,
+    hasSeenWelcomeVideo,
     selectHost,
     clearHostSelection,
     updateLastVisit,
+    markWelcomeVideoSeen,
   } = useWW2Preferences();
   const [showWW2HostSelection, setShowWW2HostSelection] = useState(false);
   const [showWW2HostGreeting, setShowWW2HostGreeting] = useState(false);
@@ -335,14 +337,14 @@ export function JourneyTab() {
     selectHost(hostId);
     setShowWW2HostSelection(false);
 
-    // Check if host has a welcome video
+    // Check if host has a welcome video AND user hasn't seen it yet
     const host = getWW2HostById(hostId);
-    if (host?.welcomeVideoUrl) {
-      // Show welcome video first
+    if (host?.welcomeVideoUrl && !hasSeenWelcomeVideo) {
+      // Show welcome video first (only once ever)
       setPendingHostId(hostId);
       setShowWW2WelcomeVideo(true);
     } else {
-      // No welcome video, go directly to theater selection
+      // No welcome video or already seen - go directly to theater selection
       trackArcVisit(WW2_ARC_ID);
       setSelectedArcId(WW2_ARC_ID);
       setView('ww2-theaters');
@@ -352,6 +354,9 @@ export function JourneyTab() {
   const handleWW2WelcomeVideoEnd = () => {
     setShowWW2WelcomeVideo(false);
     setPendingHostId(null);
+
+    // Mark welcome video as seen so it never plays again
+    markWelcomeVideoSeen();
 
     // After welcome video, go to theater selection (not directly to Pearl Harbor)
     console.log('[WW2] Welcome video ended, going to theater selection');
@@ -755,7 +760,7 @@ export function JourneyTab() {
                         {getLessonById(pearlHarborCheckpoint.lessonId)?.title || 'Pearl Harbor Lesson'}
                       </h3>
                       <p className="text-[10px] sm:text-xs text-white/60">
-                        Screen {pearlHarborCheckpoint.screenIndex + 1} • {pearlHarborCheckpoint.screen}
+                        In progress
                       </p>
                     </div>
                     <ArrowRight size={18} className="text-green-400 group-hover:translate-x-1 transition-transform sm:w-5 sm:h-5" />

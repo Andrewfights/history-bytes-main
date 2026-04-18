@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Eye, EyeOff, LogOut, Edit2, Check, TrendingUp, TrendingDown, Target, BookOpen, Brain, Gamepad2, Play, Camera, Crown, Settings, ChevronDown, ChevronUp, Key, Trophy } from 'lucide-react';
+import { User, Eye, EyeOff, LogOut, Edit2, Check, TrendingUp, TrendingDown, Target, BookOpen, Brain, Gamepad2, Play, Camera, Crown, Settings, ChevronDown, ChevronUp, Key, Trophy, Users } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { getRank, getNextRankXP } from '@/types';
 import { BadgeShowcase } from '@/components/badges/BadgeShowcase';
@@ -9,6 +9,8 @@ import { StudyNotes } from './StudyNotes';
 import { ApiKeySettings } from './ApiKeySettings';
 import { usePantheonProgress, TierBadge, PantheonRoom } from '@/components/journey/pantheon';
 import { isAdminUser } from '@/components/admin/AdminRoute';
+import { useWW2Preferences } from '@/components/journey/ww2/hooks/useWW2Preferences';
+import { getWW2HostById } from '@/data/ww2Hosts';
 
 
 const avatarOptions = ['👤', '🧑‍🎓', '🦉', '🏛️', '⚔️', '🌍', '🎭', '📜', '🔺', '👑'];
@@ -35,6 +37,8 @@ export function ProfileSettings() {
   const [showStudyNotes, setShowStudyNotes] = useState(false);
   const [showPantheon, setShowPantheon] = useState(false);
   const { getTotalSouvenirs, getHighestTier, isLoading: isPantheonLoading } = usePantheonProgress();
+  const { selectedHostId, clearHostSelection, hasSelectedHost } = useWW2Preferences();
+  const currentHost = selectedHostId ? getWW2HostById(selectedHostId) : null;
 
   const handleSave = () => {
     updateUser({ displayName });
@@ -158,6 +162,45 @@ export function ProfileSettings() {
           </motion.div>
         );
       })()}
+
+      {/* WW2 Guide Section */}
+      {hasSelectedHost && currentHost && (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className="bg-card border border-border rounded-xl p-4"
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <Users size={16} className="text-amber-500" />
+            <h3 className="text-xs uppercase tracking-[0.2em] font-bold text-muted-foreground">Your WW2 Guide</h3>
+          </div>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div
+                className="w-12 h-12 rounded-full flex items-center justify-center text-2xl overflow-hidden"
+                style={{ backgroundColor: currentHost.primaryColor + '30' }}
+              >
+                {currentHost.avatarUrl ? (
+                  <img src={currentHost.avatarUrl} alt={currentHost.name} className="w-full h-full object-cover" />
+                ) : (
+                  currentHost.avatar
+                )}
+              </div>
+              <div>
+                <p className="font-bold text-white">{currentHost.name}</p>
+                <p className="text-xs text-white/60">{currentHost.description}</p>
+              </div>
+            </div>
+            <button
+              onClick={clearHostSelection}
+              className="px-3 py-1.5 text-xs font-medium bg-white/10 hover:bg-white/20 text-white/80 rounded-lg transition-colors"
+            >
+              Change
+            </button>
+          </div>
+        </motion.div>
+      )}
 
       {/* Badge Showcase */}
       <motion.div

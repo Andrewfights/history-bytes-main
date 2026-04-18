@@ -34,9 +34,9 @@ export function JourneyResumeBanner({ onResume }: JourneyResumeBannerProps) {
     }
   }, []);
 
-  // Count completed lessons
+  // Count completed lessons (beats use ph-beat- prefix)
   const completedLessons = progress.completedActivities.filter(
-    id => id.startsWith('ph-lesson-')
+    id => id.startsWith('ph-beat-')
   ).length;
 
   const totalLessons = PEARL_HARBOR_LESSONS.length;

@@ -818,6 +818,7 @@ export interface UserWW2Preferences {
   selectedHostId: string | null;
   lastVisitDate: string;
   hasSeenIntro: boolean;
+  hasSeenWelcomeVideo?: boolean;
 }
 
 // ---- Pearl Harbor Module Types ----

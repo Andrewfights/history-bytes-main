@@ -16,6 +16,7 @@ const DEFAULT_PREFERENCES: UserWW2Preferences = {
   selectedHostId: null,
   lastVisitDate: '',
   hasSeenIntro: false,
+  hasSeenWelcomeVideo: false,
 };
 
 export function useWW2Preferences() {
@@ -147,6 +148,11 @@ export function useWW2Preferences() {
     savePreferences({ hasSeenIntro: true });
   }, [savePreferences]);
 
+  // Mark welcome video as seen
+  const markWelcomeVideoSeen = useCallback(() => {
+    savePreferences({ hasSeenWelcomeVideo: true });
+  }, [savePreferences]);
+
   // Update last visit date
   const updateLastVisit = useCallback(() => {
     savePreferences({ lastVisitDate: new Date().toISOString() });
@@ -173,9 +179,11 @@ export function useWW2Preferences() {
     hasSelectedHost: !!preferences.selectedHostId,
     selectedHostId: preferences.selectedHostId,
     hasSeenIntro: preferences.hasSeenIntro,
+    hasSeenWelcomeVideo: preferences.hasSeenWelcomeVideo,
     isReturningUser: isReturningUser(),
     selectHost,
     markIntroSeen,
+    markWelcomeVideoSeen,
     updateLastVisit,
     clearHostSelection,
   };
