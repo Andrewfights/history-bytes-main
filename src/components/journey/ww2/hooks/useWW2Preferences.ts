@@ -39,7 +39,8 @@ export function useWW2Preferences() {
           localPrefs = JSON.parse(stored) as UserWW2Preferences;
         }
 
-        // If user is logged in and Firebase is configured, try to load from Firestore
+        // For authenticated users, Firestore is the source of truth
+        // This ensures cross-device sync works correctly
         if (user && isFirebaseConfigured() && !hasLoadedFromFirestore.current) {
           try {
             const docRef = doc(db, FIRESTORE_COLLECTION, user.uid);
@@ -49,31 +50,34 @@ export function useWW2Preferences() {
               const firestoreData = docSnap.data();
               const firestorePrefs = firestoreData.ww2Preferences as UserWW2Preferences | undefined;
 
-              if (firestorePrefs) {
-                // Merge: prefer Firestore data if it has a more recent lastVisitDate
-                const firestoreDate = firestorePrefs.lastVisitDate ? new Date(firestorePrefs.lastVisitDate).getTime() : 0;
-                const localDate = localPrefs.lastVisitDate ? new Date(localPrefs.lastVisitDate).getTime() : 0;
-
-                if (firestoreDate >= localDate) {
-                  localPrefs = firestorePrefs;
-                  // Update localStorage with Firestore data
-                  localStorage.setItem(WW2_PREFERENCES_KEY, JSON.stringify(firestorePrefs));
-                  console.log('[WW2Preferences] Loaded from Firestore');
-                } else {
-                  // Local is newer, sync to Firestore
-                  await syncToFirestore(user.uid, localPrefs);
-                  console.log('[WW2Preferences] Synced local to Firestore');
-                }
-                hasLoadedFromFirestore.current = true;
+              if (firestorePrefs && firestorePrefs.selectedHostId) {
+                // Firestore has host data - use it (source of truth for auth'd users)
+                localPrefs = {
+                  ...DEFAULT_PREFERENCES,
+                  ...firestorePrefs,
+                };
+                // Update localStorage to match Firestore
+                localStorage.setItem(WW2_PREFERENCES_KEY, JSON.stringify(localPrefs));
+                console.log('[WW2Preferences] Loaded from Firestore (source of truth):', localPrefs.selectedHostId);
+              } else if (localPrefs.selectedHostId) {
+                // Firestore exists but no host - sync local to Firestore
+                await syncToFirestore(user.uid, localPrefs);
+                console.log('[WW2Preferences] Synced local host to Firestore');
               }
+              hasLoadedFromFirestore.current = true;
             } else if (localPrefs.selectedHostId) {
-              // No Firestore data but we have local data - sync it
+              // No Firestore doc but we have local data - create it
               await syncToFirestore(user.uid, localPrefs);
               hasLoadedFromFirestore.current = true;
               console.log('[WW2Preferences] Initial sync to Firestore');
+            } else {
+              // No data anywhere - mark as loaded
+              hasLoadedFromFirestore.current = true;
+              console.log('[WW2Preferences] No host data found');
             }
           } catch (firestoreError) {
             console.warn('[WW2Preferences] Firestore load failed, using localStorage:', firestoreError);
+            hasLoadedFromFirestore.current = true; // Don't block on error
           }
         }
 
