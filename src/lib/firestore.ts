@@ -1821,7 +1821,10 @@ export async function getAllTheaterMedia(): Promise<Record<string, TheaterMediaC
 }
 
 export function subscribeToWW2ModuleAssets(callback: (assets: FirestoreWW2ModuleAssets | null) => void): Unsubscribe {
+  console.log('[Firestore] subscribeToWW2ModuleAssets called, Firebase configured:', isFirebaseConfigured());
+
   if (!isFirebaseConfigured()) {
+    console.warn('[Firestore] Firebase not configured - returning null');
     callback(null);
     return () => {};
   }
@@ -1829,9 +1832,16 @@ export function subscribeToWW2ModuleAssets(callback: (assets: FirestoreWW2Module
   return onSnapshot(
     doc(db, 'appSettings', 'ww2ModuleAssets'),
     (docSnap) => {
+      console.log('[Firestore] WW2 Module assets snapshot received:', {
+        exists: docSnap.exists(),
+        id: docSnap.id,
+        hasPreModuleVideos: !!docSnap.data()?.preModuleVideos,
+        preModuleVideoKeys: docSnap.data()?.preModuleVideos ? Object.keys(docSnap.data()?.preModuleVideos) : [],
+      });
       if (docSnap.exists()) {
         callback({ id: docSnap.id, ...docSnap.data() } as FirestoreWW2ModuleAssets);
       } else {
+        console.warn('[Firestore] WW2 Module assets document does not exist');
         callback(null);
       }
     },

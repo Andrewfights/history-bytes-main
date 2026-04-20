@@ -179,10 +179,18 @@ export function RoadToWarBeat({ host, onComplete, onSkip, onBack, isPreview = fa
 
       // Check for pre-module video config
       const preModuleVideo = assets?.preModuleVideos?.[LESSON_DATA.id];
+      console.log('[RoadToWarBeat] Pre-module video check:', {
+        lessonId: LESSON_DATA.id,
+        allPreModuleVideos: assets?.preModuleVideos,
+        thisLessonVideo: preModuleVideo,
+        enabled: preModuleVideo?.enabled,
+        videoUrl: preModuleVideo?.videoUrl,
+      });
       if (preModuleVideo?.enabled) {
         console.log('[RoadToWarBeat] Found pre-module video:', preModuleVideo);
         setPreModuleVideoConfig(preModuleVideo);
       } else {
+        console.log('[RoadToWarBeat] No pre-module video - enabled:', preModuleVideo?.enabled);
         setPreModuleVideoConfig(null);
       }
 
