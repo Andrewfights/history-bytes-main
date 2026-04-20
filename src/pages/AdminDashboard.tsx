@@ -109,7 +109,7 @@ export default function AdminDashboard() {
       {/* Header */}
       <div className="mb-6 sm:mb-8">
         <h1 className="font-editorial text-2xl sm:text-3xl font-bold text-foreground">Dashboard</h1>
-        <p className="text-muted-foreground mt-1 text-sm sm:text-base">Manage your History Bytes content</p>
+        <p className="text-muted-foreground mt-1 text-sm sm:text-base">Manage your History Academy content</p>
       </div>
 
       {/* Stats Grid */}

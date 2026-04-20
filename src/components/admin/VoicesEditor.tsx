@@ -88,7 +88,7 @@ export default function VoicesEditor() {
     setGeneratingAudio(configId);
     const audioUrl = await generateSpeech({
       voiceId: config.elevenLabsVoiceId,
-      text: `Hello, I am ${config.name}. Welcome to History Bytes!`,
+      text: `Hello, I am ${config.name}. Welcome to History Academy!`,
       stability: config.stability,
       similarityBoost: config.similarityBoost,
       style: config.style,

@@ -89,7 +89,7 @@ export function AppSettingsEditor() {
             <div className="flex-1">
               <h3 className="font-medium text-foreground">Welcome Screen</h3>
               <p className="text-sm text-muted-foreground mt-1">
-                Show the "Welcome to History Bytes" onboarding screen for new/demo users
+                Show the "Welcome to History Academy" onboarding screen for new/demo users
               </p>
             </div>
             <button

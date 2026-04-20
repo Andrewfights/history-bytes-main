@@ -46,7 +46,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
         >
           Welcome to
           <br />
-          <span className="text-primary">History Bytes</span>
+          <span className="text-primary">History Academy</span>
         </motion.h1>
 
         {/* Subtitle */}

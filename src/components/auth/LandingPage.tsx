@@ -268,7 +268,7 @@ export function LandingPage({ onAuthSuccess }: LandingPageProps) {
             </motion.div>
 
             <h1 className="font-editorial text-4xl font-bold text-foreground mb-3">
-              History Bytes
+              History Academy
             </h1>
             <p className="text-muted-foreground mb-8">
               Campaign through time. Learn history like never before.
@@ -775,7 +775,7 @@ export function LandingPage({ onAuthSuccess }: LandingPageProps) {
       {/* Footer */}
       <div className="py-6 text-center">
         <p className="text-xs text-muted-foreground">
-          History Bytes - Learn history through immersive experiences
+          History Academy - Learn history through immersive experiences
         </p>
       </div>
     </div>
