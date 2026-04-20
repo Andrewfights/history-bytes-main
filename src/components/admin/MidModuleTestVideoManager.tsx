@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Video, Upload, Trash2, Play, Pause, Check, AlertCircle, Save, Edit2, X, Users, Scissors, Clock } from 'lucide-react';
+import { Video, Upload, Trash2, Play, Pause, Check, AlertCircle, Save, Edit2, X, Users, Scissors, Clock, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import { MediaPicker } from './MediaPicker';
 import { VideoTrimModal } from './VideoTrimModal';
@@ -261,6 +261,21 @@ export function MidModuleTestVideoManager() {
     return { readyCount, missingCount, total: questionVideos.length };
   };
 
+  // Calculate total progress across all hosts
+  const getTotalProgress = () => {
+    let totalReady = 0;
+    let totalVideos = questionVideos.length * WW2_HOSTS.length;
+
+    questionVideos.forEach(q => {
+      WW2_HOSTS.forEach(host => {
+        if (q.hostStatuses[host.id] === 'ready') totalReady++;
+      });
+    });
+
+    return { totalReady, totalVideos };
+  };
+
+  const totalProgress = getTotalProgress();
   const activeHostProgress = getHostProgress(activeHostTab);
 
   if (loading) {
@@ -276,13 +291,17 @@ export function MidModuleTestVideoManager() {
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-2">
-          <h1 className="text-2xl font-bold text-foreground">Mid-Module Test Videos</h1>
+          <h1 className="text-2xl font-bold text-foreground">Knowledge Check Manager</h1>
           <span className="flex items-center gap-1.5 px-2 py-1 bg-amber-500/10 text-amber-400 rounded-full text-xs font-medium">
             After Beat 5
           </span>
+          <span className="flex items-center gap-1.5 px-2 py-1 bg-primary/10 text-primary rounded-full text-xs font-medium">
+            <Users size={12} />
+            3 Hosts
+          </span>
         </div>
         <p className="text-muted-foreground">
-          Upload video clips for each of the 5 mid-module test questions. Each question needs a video per host.
+          Manage the 5 mid-module test questions. Edit questions, set correct answers, configure timer duration, and upload video clips per host ({totalProgress.totalReady}/{totalProgress.totalVideos} total videos).
         </p>
       </div>
 
@@ -336,10 +355,20 @@ export function MidModuleTestVideoManager() {
             style={{ width: `${(activeHostProgress.readyCount / activeHostProgress.total) * 100}%` }}
           />
         </div>
+        <div className="flex gap-4 mt-3 text-xs">
+          <span className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-green-500" />
+            Ready: {activeHostProgress.readyCount}
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-red-500" />
+            Missing: {activeHostProgress.missingCount}
+          </span>
+        </div>
       </div>
 
-      {/* Question Cards */}
-      <div className="space-y-4">
+      {/* Question Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
         {questionVideos.map((qv, index) => (
           <QuestionVideoCard
             key={qv.question.id}
@@ -400,7 +429,7 @@ export function MidModuleTestVideoManager() {
   );
 }
 
-// Question Video Card Component
+// Question Video Card Component - Grid style like ExamVideoManager
 interface QuestionVideoCardProps {
   questionState: QuestionVideoState;
   questionNumber: number;
@@ -425,6 +454,7 @@ function QuestionVideoCard({
 
   const video = questionState.hostVideos[activeHost];
   const status = questionState.hostStatuses[activeHost];
+  const { question } = questionState;
 
   const togglePlay = () => {
     if (videoRef.current) {
@@ -438,150 +468,169 @@ function QuestionVideoCard({
   };
 
   return (
-    <div className="bg-card border border-border rounded-xl overflow-hidden">
-      <div className="flex flex-col md:flex-row">
-        {/* Video Preview */}
-        <div className="relative w-full md:w-64 aspect-video bg-muted shrink-0">
-          {video ? (
-            <>
-              <video
-                ref={videoRef}
-                src={video.videoUrl}
-                className="w-full h-full object-cover"
-                loop
-                muted
-                playsInline
-                onEnded={() => setIsPlaying(false)}
-                onPause={() => setIsPlaying(false)}
-                onPlay={() => setIsPlaying(true)}
-              />
-              <button
-                onClick={togglePlay}
-                className="absolute inset-0 flex items-center justify-center bg-black/30 hover:bg-black/40 transition-colors group"
-              >
-                <div className="w-10 h-10 rounded-full bg-white/90 group-hover:bg-white flex items-center justify-center shadow-lg">
-                  {isPlaying ? (
-                    <Pause size={18} className="text-gray-900" />
-                  ) : (
-                    <Play size={18} className="text-gray-900 ml-0.5" />
-                  )}
-                </div>
-              </button>
-              {video.trimStart !== undefined && video.trimEnd !== undefined && (
-                <div className="absolute bottom-2 right-2 px-2 py-1 rounded bg-primary/80 text-white text-xs font-medium">
+    <motion.div
+      layout
+      className="bg-card border border-border rounded-xl overflow-hidden"
+    >
+      {/* Video Preview / Upload Area */}
+      <div className="relative aspect-video bg-muted">
+        {video ? (
+          <>
+            <video
+              ref={videoRef}
+              src={video.videoUrl}
+              className="w-full h-full object-cover"
+              loop
+              muted
+              playsInline
+              onEnded={() => setIsPlaying(false)}
+              onPause={() => setIsPlaying(false)}
+              onPlay={() => setIsPlaying(true)}
+            />
+            <button
+              onClick={togglePlay}
+              className="absolute inset-0 flex items-center justify-center bg-black/30 hover:bg-black/40 transition-colors group"
+            >
+              <div className="w-12 h-12 rounded-full bg-white/90 group-hover:bg-white flex items-center justify-center shadow-lg">
+                {isPlaying ? (
+                  <Pause size={20} className="text-gray-900" />
+                ) : (
+                  <Play size={20} className="text-gray-900 ml-0.5" />
+                )}
+              </div>
+            </button>
+            {/* Duration / Trim info badge */}
+            <div className="absolute bottom-2 right-2 flex gap-1">
+              {video.trimStart !== undefined && video.trimEnd !== undefined ? (
+                <div className="px-2 py-1 rounded bg-primary/80 text-white text-xs font-medium">
                   ✂️ {video.trimStart.toFixed(1)}s - {video.trimEnd.toFixed(1)}s
                 </div>
-              )}
-            </>
-          ) : (
-            <button
-              onClick={onUpload}
-              className="w-full h-full flex flex-col items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors"
-            >
-              <Video size={28} className="mb-2 opacity-50" />
-              <span className="text-sm font-medium">Add Video</span>
-            </button>
-          )}
+              ) : video.duration ? (
+                <div className="px-2 py-1 rounded bg-black/70 text-white text-xs">
+                  {video.duration.toFixed(1)}s
+                </div>
+              ) : null}
+            </div>
+          </>
+        ) : (
+          <button
+            onClick={onUpload}
+            className="w-full h-full flex flex-col items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors"
+          >
+            <Video size={32} className="mb-2 opacity-50" />
+            <span className="text-sm font-medium">Add Video</span>
+          </button>
+        )}
 
-          {/* Host indicators */}
-          <div className="absolute top-2 left-2 flex gap-1">
-            {WW2_HOSTS.map(host => (
-              <div
-                key={host.id}
-                className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
-                  questionState.hostVideos[host.id]
-                    ? host.id === activeHost
-                      ? `${host.color} text-white ring-2 ring-white`
-                      : `${host.color} text-white opacity-60`
-                    : 'bg-black/50 text-white/50'
-                }`}
-              >
-                {host.avatar}
-              </div>
-            ))}
-          </div>
+        {/* Host video indicator */}
+        <div className="absolute top-2 left-2 flex gap-1">
+          {WW2_HOSTS.map(host => (
+            <div
+              key={host.id}
+              className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${
+                questionState.hostVideos[host.id]
+                  ? host.id === activeHost
+                    ? `${host.color} text-white ring-2 ring-white`
+                    : `${host.color} text-white opacity-60`
+                  : 'bg-black/50 text-white/50'
+              }`}
+              title={`${host.name}: ${questionState.hostVideos[host.id] ? 'Has video' : 'No video'}`}
+            >
+              {host.avatar}
+            </div>
+          ))}
         </div>
 
-        {/* Question Info */}
-        <div className="flex-1 p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="font-bold text-foreground">Q{questionNumber}</span>
-            <span className="flex items-center gap-1 ml-auto text-xs">
-              {status === 'ready' ? (
-                <>
-                  <Check size={14} className="text-green-400" />
-                  <span className="text-green-400">Ready</span>
-                </>
-              ) : (
-                <>
-                  <AlertCircle size={14} className="text-red-400" />
-                  <span className="text-red-400">Missing</span>
-                </>
-              )}
-            </span>
-          </div>
-
-          <p className="text-sm text-foreground mb-2 line-clamp-2">
-            {questionState.question.question}
-          </p>
-
-          <div className="flex flex-wrap items-center gap-1 mb-3">
-            {questionState.question.options.map((opt, idx) => (
-              <span
-                key={idx}
-                className={`px-2 py-0.5 rounded text-xs ${
-                  idx === questionState.question.correctIndex
-                    ? 'bg-green-500/20 text-green-400'
-                    : 'bg-muted text-muted-foreground'
-                }`}
-              >
-                {String.fromCharCode(65 + idx)}
-              </span>
-            ))}
-            <span className="ml-2 px-2 py-0.5 rounded text-xs bg-amber-500/20 text-amber-400 flex items-center gap-1">
-              <Clock size={10} />
-              {questionState.question.timerDuration || 30}s
-            </span>
-          </div>
-
-          {/* Actions */}
-          <div className="flex gap-2">
-            <button
-              onClick={onUpload}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
-            >
-              <Upload size={14} />
-              {video ? 'Replace' : 'Upload'}
-            </button>
-            <button
-              onClick={onEditQuestion}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted text-foreground text-sm font-medium hover:bg-muted/80 transition-colors"
-            >
-              <Edit2 size={14} />
-              Edit
-            </button>
-            {video && (
-              <>
-                <button
-                  onClick={onTrim}
-                  className="flex items-center justify-center px-3 py-2 rounded-lg bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 transition-colors"
-                  title="Trim video"
-                >
-                  <Scissors size={14} />
-                </button>
-                <button
-                  onClick={onRemove}
-                  className="flex items-center justify-center px-3 py-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
-                  title="Remove video"
-                >
-                  <Trash2 size={14} />
-                </button>
-              </>
-            )}
-          </div>
+        {/* Timer badge */}
+        <div className="absolute top-2 right-2 px-2 py-1 rounded bg-amber-500/80 text-white text-xs font-medium flex items-center gap-1">
+          <Clock size={12} />
+          {question.timerDuration || 30}s
         </div>
       </div>
-    </div>
+
+      {/* Question Info */}
+      <div className="p-4">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="font-bold text-foreground text-lg">Q{questionNumber}</span>
+          <span className="flex items-center gap-1 ml-auto text-xs">
+            {status === 'ready' ? (
+              <>
+                <Check size={14} className="text-green-400" />
+                <span className="text-green-400">Ready</span>
+              </>
+            ) : (
+              <>
+                <AlertCircle size={14} className="text-red-400" />
+                <span className="text-red-400">Missing</span>
+              </>
+            )}
+          </span>
+        </div>
+
+        {/* Question text */}
+        <p className="text-sm text-foreground mb-3 line-clamp-2">
+          {question.question}
+        </p>
+
+        {/* Answer options */}
+        <div className="space-y-1 mb-3">
+          {question.options.map((opt, idx) => (
+            <div
+              key={idx}
+              className={`flex items-center gap-2 px-2 py-1 rounded text-xs ${
+                idx === question.correctIndex
+                  ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                  : 'bg-muted text-muted-foreground'
+              }`}
+            >
+              <span className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-bold shrink-0">
+                {String.fromCharCode(65 + idx)}
+              </span>
+              <span className="truncate">{opt}</span>
+              {idx === question.correctIndex && (
+                <Check size={12} className="ml-auto shrink-0" />
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-2">
+          <button
+            onClick={onUpload}
+            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+          >
+            <Upload size={16} />
+            {video ? 'Replace' : 'Upload'}
+          </button>
+          <button
+            onClick={onEditQuestion}
+            className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors"
+            title="Edit question"
+          >
+            <Edit2 size={16} />
+          </button>
+          {video && (
+            <>
+              <button
+                onClick={onTrim}
+                className="flex items-center justify-center px-3 py-2 rounded-lg bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 transition-colors"
+                title="Trim video"
+              >
+                <Scissors size={16} />
+              </button>
+              <button
+                onClick={onRemove}
+                className="flex items-center justify-center px-3 py-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
+                title="Remove video"
+              >
+                <Trash2 size={16} />
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </motion.div>
   );
 }
 
@@ -631,7 +680,7 @@ function QuestionEditModal({ question, onSave, onClose, isSaving }: QuestionEdit
 
           {/* Options */}
           <div>
-            <label className="block text-sm font-medium text-foreground mb-2">Options</label>
+            <label className="block text-sm font-medium text-foreground mb-2">Options (click letter to set as correct answer)</label>
             <div className="space-y-2">
               {editedQuestion.options.map((opt, idx) => (
                 <div key={idx} className="flex items-center gap-2">
@@ -651,15 +700,17 @@ function QuestionEditModal({ question, onSave, onClose, isSaving }: QuestionEdit
                     onChange={(e) => handleOptionChange(idx, e.target.value)}
                     className="flex-1 p-2 bg-muted border border-border rounded-lg text-foreground"
                   />
+                  {idx === editedQuestion.correctIndex && (
+                    <span className="text-green-400 text-xs font-medium px-2">CORRECT</span>
+                  )}
                 </div>
               ))}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">Click a letter to set it as the correct answer</p>
           </div>
 
           {/* Explanation */}
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1">Explanation</label>
+            <label className="block text-sm font-medium text-foreground mb-1">Explanation (shown after answering)</label>
             <textarea
               value={editedQuestion.explanation}
               onChange={(e) => setEditedQuestion({ ...editedQuestion, explanation: e.target.value })}
