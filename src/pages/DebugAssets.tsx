@@ -11,15 +11,18 @@ import {
   Loader2,
   Database,
   Video,
-  Image as ImageIcon,
   RefreshCw,
   ArrowLeft,
-  AlertTriangle
+  AlertTriangle,
+  Plus,
+  Trash2
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { isFirebaseConfigured } from '@/lib/firebase';
 import {
   subscribeToWW2ModuleAssets,
+  saveWW2ModuleAssets,
+  updateWW2BeatPreModuleVideo,
   type FirestoreWW2ModuleAssets,
   type PreModuleVideoConfig,
   type PostModuleVideoConfig,
@@ -36,8 +39,53 @@ export default function DebugAssets() {
   const [assets, setAssets] = useState<FirestoreWW2ModuleAssets | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [actionStatus, setActionStatus] = useState<string | null>(null);
 
   const firebaseConfigured = isFirebaseConfigured();
+
+  // Test video URL (Big Buck Bunny - public domain)
+  const TEST_VIDEO_URL = 'https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
+
+  const handleInitializeDocument = async () => {
+    setActionStatus('Initializing Firestore document...');
+    try {
+      await saveWW2ModuleAssets({
+        beatMedia: {},
+        preModuleVideos: {},
+        postModuleVideos: {},
+      });
+      setActionStatus('Document created! Refresh to see changes.');
+      setRefreshKey(k => k + 1);
+    } catch (err) {
+      setActionStatus(`Error: ${err}`);
+    }
+  };
+
+  const handleAddTestVideo = async (beatId: string) => {
+    setActionStatus(`Adding test video to ${beatId}...`);
+    try {
+      await updateWW2BeatPreModuleVideo(beatId, {
+        videoUrl: TEST_VIDEO_URL,
+        enabled: true,
+        title: `Test Video - ${beatId}`,
+      });
+      setActionStatus(`Test video added to ${beatId}! Refresh to verify.`);
+      setRefreshKey(k => k + 1);
+    } catch (err) {
+      setActionStatus(`Error: ${err}`);
+    }
+  };
+
+  const handleDisableVideo = async (beatId: string) => {
+    setActionStatus(`Disabling video for ${beatId}...`);
+    try {
+      await updateWW2BeatPreModuleVideo(beatId, null);
+      setActionStatus(`Video disabled for ${beatId}!`);
+      setRefreshKey(k => k + 1);
+    } catch (err) {
+      setActionStatus(`Error: ${err}`);
+    }
+  };
 
   useEffect(() => {
     if (!firebaseConfigured) {
@@ -161,6 +209,31 @@ export default function DebugAssets() {
               {error}
             </div>
           )}
+          {actionStatus && (
+            <div className="text-blue-400 bg-blue-500/10 p-2 rounded mt-2">
+              {actionStatus}
+            </div>
+          )}
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex flex-wrap gap-2 mt-4">
+          {!assets && !loading && (
+            <button
+              onClick={handleInitializeDocument}
+              className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-sm font-medium"
+            >
+              Initialize Firestore Document
+            </button>
+          )}
+          {assets && (
+            <button
+              onClick={() => handleAddTestVideo('ph-beat-1')}
+              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm font-medium"
+            >
+              Add Test Video to Beat 1
+            </button>
+          )}
         </div>
       </motion.div>
 
@@ -228,6 +301,23 @@ export default function DebugAssets() {
                     <span className="font-medium text-sm">Beat {lesson.number}</span>
                     <span className="text-white/50 text-xs ml-2">{lesson.id}</span>
                   </div>
+                </div>
+                <div className="flex gap-1">
+                  {preStatus.type !== 'success' ? (
+                    <button
+                      onClick={() => handleAddTestVideo(lesson.id)}
+                      className="px-2 py-1 bg-purple-600/50 hover:bg-purple-600 rounded text-xs"
+                    >
+                      + Test
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleDisableVideo(lesson.id)}
+                      className="px-2 py-1 bg-red-600/50 hover:bg-red-600 rounded text-xs"
+                    >
+                      Remove
+                    </button>
+                  )}
                 </div>
               </div>
 
