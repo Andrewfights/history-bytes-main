@@ -10,6 +10,7 @@ import { AudioProvider } from "@/context/AudioContext";
 import { Loader2 } from 'lucide-react';
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import DebugAssets from "./pages/DebugAssets";
 
 // Lazy load admin components to reduce initial bundle size
 const AdminLayout = lazy(() => import('./components/admin/AdminLayout').then(m => ({ default: m.AdminLayout })));
@@ -61,6 +62,7 @@ const App = () => (
             <BrowserRouter>
               <Routes>
               <Route path="/" element={<Index />} />
+              <Route path="/debug-assets" element={<DebugAssets />} />
               {/* Admin Routes - Protected and Lazy Loaded */}
               <Route
                 path="/admin"
