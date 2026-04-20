@@ -472,7 +472,7 @@ export function FinalExamBeat({
   }
 
   return (
-    <div className="flex flex-col h-full bg-slate-950">
+    <div className="fixed inset-0 z-[60] pt-safe flex flex-col bg-slate-950">
       {/* Header */}
       <header className="shrink-0 px-4 py-3 flex items-center justify-between border-b border-white/10">
         <button
@@ -524,7 +524,7 @@ export function FinalExamBeat({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="flex flex-col h-full p-6"
-              style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}
+              style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))' }}
             >
               <div className="flex-1 flex flex-col items-center justify-center text-center">
                 {/* Host avatar */}
@@ -676,7 +676,7 @@ export function FinalExamBeat({
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 20 }}
                     className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-slate-950 via-slate-950 to-transparent pt-8 px-4"
-                    style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}
+                    style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))' }}
                   >
                     <div className="bg-white/5 rounded-xl p-4 border border-white/10">
                       <p className="text-white/80 text-sm leading-relaxed">

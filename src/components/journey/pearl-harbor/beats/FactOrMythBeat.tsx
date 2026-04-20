@@ -221,7 +221,7 @@ export function FactOrMythBeat({ host, onComplete, onSkip, onBack, isPreview = f
   };
 
   return (
-    <div className="fixed inset-0 bg-gradient-to-b from-slate-900 via-slate-950 to-black flex flex-col">
+    <div className="fixed inset-0 z-[60] pt-safe bg-gradient-to-b from-slate-900 via-slate-950 to-black flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
         <button
@@ -316,7 +316,7 @@ export function FactOrMythBeat({ host, onComplete, onSkip, onBack, isPreview = f
                 </div>
               </div>
 
-              <div className="space-y-3" style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}>
+              <div className="space-y-3" style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))' }}>
                 <button
                   onClick={() => nextScreen()}
                   className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors"
@@ -403,7 +403,7 @@ export function FactOrMythBeat({ host, onComplete, onSkip, onBack, isPreview = f
                 Next: Day of Infamy - Analyze FDR's historic speech
               </p>
 
-              <div style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}>
+              <div style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))' }}>
                 <button
                   onClick={() => nextScreen()}
                   className="mt-6 w-full max-w-sm py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors"

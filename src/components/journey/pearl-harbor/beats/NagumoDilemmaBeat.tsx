@@ -199,7 +199,7 @@ export function NagumoDilemmaBeat({ host, onComplete, onSkip, onBack, isPreview 
   };
 
   return (
-    <div className="fixed inset-0 bg-gradient-to-b from-slate-900 via-slate-950 to-black flex flex-col">
+    <div className="fixed inset-0 z-[60] pt-safe bg-gradient-to-b from-slate-900 via-slate-950 to-black flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
         <button onClick={onBack} className="p-2 -ml-2 text-white/60 hover:text-white transition-colors">
@@ -246,7 +246,7 @@ export function NagumoDilemmaBeat({ host, onComplete, onSkip, onBack, isPreview 
                   Should Japan launch a third strike against Pearl Harbor?
                 </p>
               </div>
-              <div className="space-y-3" style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}>
+              <div className="space-y-3" style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))' }}>
                 <button onClick={nextScreen} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors">
                   See the Situation
                 </button>
@@ -328,7 +328,7 @@ export function NagumoDilemmaBeat({ host, onComplete, onSkip, onBack, isPreview 
                 </div>
               </div>
 
-              <div style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}>
+              <div style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))' }}>
                 <button onClick={nextScreen} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors">
                   Hear the Arguments
                 </button>
@@ -378,7 +378,7 @@ export function NagumoDilemmaBeat({ host, onComplete, onSkip, onBack, isPreview 
                 ))}
               </div>
 
-              <div style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}>
+              <div style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))' }}>
                 <button onClick={nextScreen} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors">
                   Make Your Decision
                 </button>
@@ -469,7 +469,7 @@ export function NagumoDilemmaBeat({ host, onComplete, onSkip, onBack, isPreview 
                   </div>
                 </div>
               </div>
-              <div style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}>
+              <div style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))' }}>
                 <button onClick={nextScreen} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors">
                   One More Thing...
                 </button>
@@ -500,7 +500,7 @@ export function NagumoDilemmaBeat({ host, onComplete, onSkip, onBack, isPreview 
                   Even eyewitnesses reshape history. Always check the sources.
                 </p>
               </div>
-              <div style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}>
+              <div style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))' }}>
                 <button onClick={nextScreen} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors">
                   Complete Beat 6
                 </button>
@@ -532,7 +532,7 @@ export function NagumoDilemmaBeat({ host, onComplete, onSkip, onBack, isPreview 
                   Next: Fact or Myth? - Challenge common misconceptions
                 </p>
               </div>
-              <div style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}>
+              <div style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))' }}>
                 <button onClick={nextScreen} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors">
                   Continue
                 </button>

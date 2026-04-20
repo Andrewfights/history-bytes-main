@@ -272,7 +272,7 @@ export function ToraToraToraBeat({ host, onComplete, onSkip, onBack, isPreview =
   const allHotspotsViewed = viewedHotspots.size >= 3; // Require at least 3
 
   return (
-    <div className="fixed inset-0 bg-gradient-to-b from-slate-900 via-slate-950 to-black flex flex-col">
+    <div className="fixed inset-0 z-[60] pt-safe bg-gradient-to-b from-slate-900 via-slate-950 to-black flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
         <button onClick={onBack} className="p-2 -ml-2 text-white/60 hover:text-white transition-colors">
@@ -320,7 +320,7 @@ export function ToraToraToraBeat({ host, onComplete, onSkip, onBack, isPreview =
                   <p className="text-white/50 text-xs mt-2 text-center">— First radio transmission, 7:58 AM</p>
                 </div>
               </div>
-              <div className="space-y-3" style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}>
+              <div className="space-y-3" style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))' }}>
                 <button onClick={nextScreen} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors">
                   Experience the Attack
                 </button>
@@ -371,7 +371,7 @@ export function ToraToraToraBeat({ host, onComplete, onSkip, onBack, isPreview =
                   </ul>
                 </div>
               </div>
-              <div style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}>
+              <div style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))' }}>
                 <button onClick={nextScreen} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors">
                   See the Timeline
                 </button>

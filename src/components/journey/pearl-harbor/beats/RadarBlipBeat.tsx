@@ -222,7 +222,7 @@ export function RadarBlipBeat({ host, onComplete, onSkip, onBack, isPreview = fa
   };
 
   return (
-    <div className="fixed inset-0 bg-gradient-to-b from-slate-900 via-slate-950 to-black flex flex-col">
+    <div className="fixed inset-0 z-[60] pt-safe bg-gradient-to-b from-slate-900 via-slate-950 to-black flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
         <button onClick={onBack} className="p-2 -ml-2 text-white/60 hover:text-white transition-colors">
@@ -271,7 +271,7 @@ export function RadarBlipBeat({ host, onComplete, onSkip, onBack, isPreview = fa
                   </p>
                 </div>
               </div>
-              <div className="space-y-3" style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}>
+              <div className="space-y-3" style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))' }}>
                 <button onClick={nextScreen} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors">
                   Continue
                 </button>
@@ -326,7 +326,7 @@ export function RadarBlipBeat({ host, onComplete, onSkip, onBack, isPreview = fa
                   </p>
                 </div>
               </div>
-              <div style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}>
+              <div style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))' }}>
                 <button onClick={nextScreen} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors">
                   Keep Watching...
                 </button>
@@ -391,7 +391,7 @@ export function RadarBlipBeat({ host, onComplete, onSkip, onBack, isPreview = fa
                   </p>
                 </motion.div>
               </div>
-              <div style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}>
+              <div style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))' }}>
                 <button onClick={nextScreen} className="w-full py-4 bg-red-500 hover:bg-red-400 text-white font-bold rounded-xl transition-colors">
                   What Do You Do?
                 </button>
@@ -446,7 +446,7 @@ export function RadarBlipBeat({ host, onComplete, onSkip, onBack, isPreview = fa
                   </p>
                 </div>
               </div>
-              <div style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}>
+              <div style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))' }}>
                 <button onClick={nextScreen} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors">
                   What Happened to Lockard?
                 </button>
@@ -482,7 +482,7 @@ export function RadarBlipBeat({ host, onComplete, onSkip, onBack, isPreview = fa
                   "I did my job. I reported what I saw. The failure was in the system, not the soldiers."
                 </p>
               </div>
-              <div style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}>
+              <div style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))' }}>
                 <button onClick={nextScreen} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors">
                   Complete Beat 2
                 </button>
@@ -523,7 +523,7 @@ export function RadarBlipBeat({ host, onComplete, onSkip, onBack, isPreview = fa
                   Next: Tora! Tora! Tora! - Experience the attack minute by minute
                 </p>
               </div>
-              <div style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}>
+              <div style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))' }}>
                 <button onClick={nextScreen} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors">
                   Continue
                 </button>

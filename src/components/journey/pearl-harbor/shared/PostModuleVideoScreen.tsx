@@ -119,7 +119,7 @@ export function PostModuleVideoScreen({ config, beatTitle, onComplete }: PostMod
   };
 
   return (
-    <div className="fixed inset-0 bg-black flex flex-col z-[60]">
+    <div className="fixed inset-0 pt-safe bg-black flex flex-col z-[60]">
       {/* Video Container */}
       <div
         className="flex-1 relative flex items-center justify-center min-h-0 cursor-pointer"

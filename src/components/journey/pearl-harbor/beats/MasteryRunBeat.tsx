@@ -249,7 +249,7 @@ export function MasteryRunBeat({ host, onComplete, onSkip, onBack, isPreview = f
   const earnedXP = calculateXP();
 
   return (
-    <div className="fixed inset-0 bg-gradient-to-b from-slate-900 via-slate-950 to-black flex flex-col">
+    <div className="fixed inset-0 z-[60] pt-safe bg-gradient-to-b from-slate-900 via-slate-950 to-black flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
         <button onClick={onBack} className="p-2 -ml-2 text-white/60 hover:text-white transition-colors">
@@ -319,7 +319,7 @@ export function MasteryRunBeat({ host, onComplete, onSkip, onBack, isPreview = f
                 </div>
               </div>
 
-              <div className="space-y-3" style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}>
+              <div className="space-y-3" style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))' }}>
                 <button onClick={nextScreen} className="w-full py-4 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-black font-bold rounded-xl transition-colors">
                   Begin Mastery Run
                 </button>
@@ -455,7 +455,7 @@ export function MasteryRunBeat({ host, onComplete, onSkip, onBack, isPreview = f
                 <span className="text-amber-400 font-bold text-xl">+{skipped ? 0 : earnedXP} XP</span>
               </div>
 
-              <div style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}>
+              <div style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))' }}>
                 <button
                   onClick={nextScreen}
                   className="w-full max-w-sm py-4 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-black font-bold rounded-xl transition-colors shadow-lg shadow-amber-500/30"
