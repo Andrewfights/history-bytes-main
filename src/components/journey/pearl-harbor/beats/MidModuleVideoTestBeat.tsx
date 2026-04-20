@@ -430,7 +430,6 @@ export function MidModuleVideoTestBeat({ host, onComplete, onSkip, onBack, isPre
                       key={currentQ.id}
                       src={currentVideoUrl}
                       autoPlay
-                      loop
                       muted={isVideoMuted}
                       playsInline
                       className="w-full h-full object-contain bg-black"
