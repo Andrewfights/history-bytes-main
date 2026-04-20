@@ -1546,6 +1546,7 @@ export interface MidModuleTestQuestion {
   options: string[];
   correctIndex: number;
   explanation: string;
+  timerDuration?: number;  // Timer duration in seconds (optional, defaults to 30)
 }
 
 export interface MidModuleTestVideo {

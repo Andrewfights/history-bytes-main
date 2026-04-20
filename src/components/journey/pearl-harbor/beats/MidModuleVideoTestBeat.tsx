@@ -8,7 +8,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, X, Sparkles, CheckCircle, XCircle, Brain, Volume2, VolumeX } from 'lucide-react';
+import { ArrowLeft, X, Sparkles, CheckCircle, XCircle, Brain, Volume2, VolumeX, Clock } from 'lucide-react';
 import { WW2Host } from '@/types';
 import { PreModuleVideoScreen, PostModuleVideoScreen } from '../shared';
 import {
@@ -42,6 +42,7 @@ const DEFAULT_QUESTIONS: MidModuleTestQuestion[] = [
     ],
     correctIndex: 1,
     explanation: 'Radio networks like CBS, NBC, and MBS interrupted their regular Sunday programming to announce the attack, reaching millions of Americans within minutes.',
+    timerDuration: 30,
   },
   {
     id: 'mmt-q2',
@@ -54,6 +55,7 @@ const DEFAULT_QUESTIONS: MidModuleTestQuestion[] = [
     ],
     correctIndex: 2,
     explanation: 'By 1941, over 30 million American homes had radios. For the first time in history, news of an attack reached the entire nation within hours.',
+    timerDuration: 30,
   },
   {
     id: 'mmt-q3',
@@ -66,6 +68,7 @@ const DEFAULT_QUESTIONS: MidModuleTestQuestion[] = [
     ],
     correctIndex: 2,
     explanation: "Privates Lockard and Elliott at Opana Point detected a massive formation of aircraft over 100 miles away, but their warning was dismissed as a scheduled flight of American B-17s.",
+    timerDuration: 30,
   },
   {
     id: 'mmt-q4',
@@ -78,6 +81,7 @@ const DEFAULT_QUESTIONS: MidModuleTestQuestion[] = [
     ],
     correctIndex: 2,
     explanation: 'FDR personally edited his speech, changing "a date which will live in world history" to "a date which will live in infamy." This single word change made the line iconic.',
+    timerDuration: 30,
   },
   {
     id: 'mmt-q5',
@@ -90,6 +94,7 @@ const DEFAULT_QUESTIONS: MidModuleTestQuestion[] = [
     ],
     correctIndex: 1,
     explanation: 'The "Day of Infamy" speech was a formal request for Congress to declare war on Japan. Congress approved the declaration within an hour, with only one dissenting vote.',
+    timerDuration: 30,
   },
 ];
 
@@ -112,6 +117,7 @@ export function MidModuleVideoTestBeat({ host, onComplete, onSkip, onBack, isPre
   const [postModuleVideoConfig, setPostModuleVideoConfig] = useState<PostModuleVideoConfig | null>(null);
   const [hasLoadedConfig, setHasLoadedConfig] = useState(false);
   const [isVideoMuted, setIsVideoMuted] = useState(false);
+  const [timeRemaining, setTimeRemaining] = useState<number>(30);
 
   // Questions and videos from Firestore
   const [questions, setQuestions] = useState<MidModuleTestQuestion[]>(DEFAULT_QUESTIONS);
@@ -232,6 +238,45 @@ export function MidModuleVideoTestBeat({ host, onComplete, onSkip, onBack, isPre
       onComplete(earnedXP);
     }
   }, [screen, skipped, clearCheckpoint, onComplete, postModuleVideoConfig]);
+
+  // Get current question's timer duration (default 30 seconds)
+  const currentTimerDuration = useMemo(() => {
+    const q = questions[currentQuestion];
+    return q?.timerDuration || 30;
+  }, [questions, currentQuestion]);
+
+  // Reset timer when question changes
+  useEffect(() => {
+    if (screen === 'quiz' && !hasAnswered) {
+      setTimeRemaining(currentTimerDuration);
+    }
+  }, [currentQuestion, screen, hasAnswered, currentTimerDuration]);
+
+  // Timer countdown
+  useEffect(() => {
+    if (screen !== 'quiz' || hasAnswered || timeRemaining <= 0) return;
+
+    const timer = setInterval(() => {
+      setTimeRemaining(prev => {
+        if (prev <= 1) {
+          // Time's up - auto-submit with no answer or selected answer
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [screen, hasAnswered, timeRemaining]);
+
+  // Auto-submit when time runs out
+  useEffect(() => {
+    if (screen === 'quiz' && timeRemaining === 0 && !hasAnswered) {
+      // Force submit - mark as answered without adding to score
+      setHasAnswered(true);
+    }
+  }, [screen, timeRemaining, hasAnswered]);
 
   const handleAnswerSelect = (index: number) => {
     if (hasAnswered) return;
@@ -404,6 +449,22 @@ export function MidModuleVideoTestBeat({ host, onComplete, onSkip, onBack, isPre
                       Q{currentQuestion + 1}/{questions.length}
                     </span>
                   </div>
+
+                  {/* Timer overlay */}
+                  {!hasAnswered && (
+                    <motion.div
+                      className={`absolute bottom-2 left-2 px-2.5 py-1 rounded flex items-center gap-1.5 ${
+                        timeRemaining <= 5 ? 'bg-red-500/80' : timeRemaining <= 10 ? 'bg-amber-500/80' : 'bg-black/60'
+                      }`}
+                      animate={timeRemaining <= 5 ? { scale: [1, 1.05, 1] } : {}}
+                      transition={{ repeat: Infinity, duration: 0.5 }}
+                    >
+                      <Clock size={12} className="text-white" />
+                      <span className={`text-xs font-bold ${timeRemaining <= 5 ? 'text-white' : 'text-white/90'}`}>
+                        {timeRemaining}s
+                      </span>
+                    </motion.div>
+                  )}
 
                   {/* Score overlay */}
                   <div className="absolute top-2 right-2 px-2.5 py-1 bg-black/60 rounded">

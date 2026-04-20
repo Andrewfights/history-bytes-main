@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Video, Upload, Trash2, Play, Pause, Check, AlertCircle, Save, Edit2, X, Users, Scissors } from 'lucide-react';
+import { Video, Upload, Trash2, Play, Pause, Check, AlertCircle, Save, Edit2, X, Users, Scissors, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { MediaPicker } from './MediaPicker';
 import { VideoTrimModal } from './VideoTrimModal';
@@ -37,6 +37,7 @@ const DEFAULT_QUESTIONS: MidModuleTestQuestion[] = [
     options: ['Newspapers the next day', 'Radio broadcasts interrupting programs', 'Letters from soldiers', 'Movie theater newsreels'],
     correctIndex: 1,
     explanation: 'Radio networks like CBS, NBC, and MBS interrupted their regular Sunday programming to announce the attack, reaching millions of Americans within minutes.',
+    timerDuration: 30,
   },
   {
     id: 'mmt-q2',
@@ -44,6 +45,7 @@ const DEFAULT_QUESTIONS: MidModuleTestQuestion[] = [
     options: ['It was the first war ever reported', 'Most Americans had telephones', 'Millions heard it almost instantly via radio', 'It was announced by the military only'],
     correctIndex: 2,
     explanation: 'By 1941, over 30 million American homes had radios. For the first time in history, news of an attack reached the entire nation within hours.',
+    timerDuration: 30,
   },
   {
     id: 'mmt-q3',
@@ -51,6 +53,7 @@ const DEFAULT_QUESTIONS: MidModuleTestQuestion[] = [
     options: ['A submarine fleet', 'A small training squadron', 'A large formation of incoming aircraft', 'A weather anomaly'],
     correctIndex: 2,
     explanation: "Privates Lockard and Elliott at Opana Point detected a massive formation of aircraft over 100 miles away, but their warning was dismissed as a scheduled flight of American B-17s.",
+    timerDuration: 30,
   },
   {
     id: 'mmt-q4',
@@ -58,6 +61,7 @@ const DEFAULT_QUESTIONS: MidModuleTestQuestion[] = [
     options: ['Victory', 'Honor', 'Infamy', 'Freedom'],
     correctIndex: 2,
     explanation: 'FDR personally edited his speech, changing "a date which will live in world history" to "a date which will live in infamy." This single word change made the line iconic.',
+    timerDuration: 30,
   },
   {
     id: 'mmt-q5',
@@ -65,6 +69,7 @@ const DEFAULT_QUESTIONS: MidModuleTestQuestion[] = [
     options: ['To announce a peace agreement', 'To ask Congress to declare war', 'To introduce new military leaders', 'To explain the attack in detail'],
     correctIndex: 1,
     explanation: 'The "Day of Infamy" speech was a formal request for Congress to declare war on Japan. Congress approved the declaration within an hour, with only one dissenting vote.',
+    timerDuration: 30,
   },
 ];
 
@@ -520,7 +525,7 @@ function QuestionVideoCard({
             {questionState.question.question}
           </p>
 
-          <div className="flex flex-wrap gap-1 mb-3">
+          <div className="flex flex-wrap items-center gap-1 mb-3">
             {questionState.question.options.map((opt, idx) => (
               <span
                 key={idx}
@@ -533,6 +538,10 @@ function QuestionVideoCard({
                 {String.fromCharCode(65 + idx)}
               </span>
             ))}
+            <span className="ml-2 px-2 py-0.5 rounded text-xs bg-amber-500/20 text-amber-400 flex items-center gap-1">
+              <Clock size={10} />
+              {questionState.question.timerDuration || 30}s
+            </span>
           </div>
 
           {/* Actions */}
@@ -657,6 +666,43 @@ function QuestionEditModal({ question, onSave, onClose, isSaving }: QuestionEdit
               className="w-full p-3 bg-muted border border-border rounded-lg text-foreground resize-none"
               rows={3}
             />
+          </div>
+
+          {/* Timer Duration */}
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1 flex items-center gap-2">
+              <Clock size={16} className="text-amber-400" />
+              Timer Duration (seconds)
+            </label>
+            <div className="flex items-center gap-3">
+              <input
+                type="number"
+                min={10}
+                max={120}
+                value={editedQuestion.timerDuration || 30}
+                onChange={(e) => setEditedQuestion({ ...editedQuestion, timerDuration: parseInt(e.target.value) || 30 })}
+                className="w-24 p-2 bg-muted border border-border rounded-lg text-foreground"
+              />
+              <span className="text-sm text-muted-foreground">
+                How long students have to answer this question
+              </span>
+            </div>
+            <div className="flex gap-2 mt-2">
+              {[15, 20, 30, 45, 60].map(sec => (
+                <button
+                  key={sec}
+                  type="button"
+                  onClick={() => setEditedQuestion({ ...editedQuestion, timerDuration: sec })}
+                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                    (editedQuestion.timerDuration || 30) === sec
+                      ? 'bg-amber-500 text-black'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                  }`}
+                >
+                  {sec}s
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
