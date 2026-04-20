@@ -31,6 +31,7 @@ import {
   DamageDoneBeat,
   VoicesFromHarborBeat,
   BreakingNewsBeat,
+  MidModuleTestBeat,
   NagumoDilemmaBeat,
   FactOrMythBeat,
   DayOfInfamyBeat,
@@ -222,6 +223,16 @@ export function PearlHarborLessonPlayer({
     case 'breaking-news':
       return (
         <BreakingNewsBeat
+          host={host}
+          onComplete={handleLessonComplete}
+          onSkip={handleLessonSkip}
+          onBack={onBack}
+        />
+      );
+
+    case 'mid-module-test':
+      return (
+        <MidModuleTestBeat
           host={host}
           onComplete={handleLessonComplete}
           onSkip={handleLessonSkip}

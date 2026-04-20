@@ -21,6 +21,7 @@ export type BeatType =
   | 'damage-done'
   | 'voices-harbor'
   | 'breaking-news'
+  | 'mid-module-test'
   | 'day-of-infamy'
   | 'arsenal-democracy'
   | 'mastery-run'
@@ -123,6 +124,20 @@ export const PEARL_HARBOR_LESSONS: PearlHarborLesson[] = [
     formats: ['Audio Experience', 'Drag-and-Drop'],
     narrativeArc: 'Context / Transformation',
     duration: '4-5 min',
+  },
+  {
+    id: 'ph-beat-5-5',
+    number: 5,
+    title: 'Knowledge Check',
+    subtitle: 'Mid-Module Test',
+    type: 'mid-module-test',
+    icon: '🧠',
+    xpReward: 50,
+    description: 'Test your understanding of Pearl Harbor so far',
+    screens: 5,
+    formats: ['Multiple Choice Quiz'],
+    narrativeArc: 'Assessment / Checkpoint',
+    duration: '3-4 min',
   },
   // ARCHIVED: Nagumo's Dilemma (was beat 7) - see NagumoDilemmaBeat.tsx
   // ARCHIVED: Fact or Myth? (was beat 8) - see FactOrMythBeat.tsx

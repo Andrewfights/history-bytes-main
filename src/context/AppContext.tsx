@@ -723,8 +723,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setIsAuthenticated(true);
     setUserEmail(email);
 
-    if (isNewUser) {
-      // Clear all localStorage for new users
+    // Check if this is a demo user
+    const isDemoNewUser = userId === 'demo-new-user';
+    const isDemoReturningUser = userId === 'demo-existing-user';
+
+    if (isNewUser || isDemoNewUser) {
+      // Clear all localStorage for new users (including demo new user)
       clearAllStorage();
 
       // Reset to blank state with new user ID
@@ -765,8 +769,75 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       // Ensure onboarding shows
       setIsOnboarded(false);
+    } else if (isDemoReturningUser) {
+      // Demo returning user - set up predetermined progress
+      clearAllStorage();
+
+      // Set up user with some XP and streak
+      setUser({
+        ...mockUser,
+        id: userId,
+        displayName: 'History Scholar',
+        xp: 245, // Completed first 3 beats
+        streak: 3,
+        lastActiveDate: new Date().toISOString().split('T')[0],
+      });
+
+      // Set up some completed Pearl Harbor beats (first 3 beats completed)
+      const completedBeats = ['ph-beat-1', 'ph-beat-2', 'ph-beat-3'];
+      setCompletedJourneyNodes(completedBeats);
+
+      // Set mastery for completed beats
+      setNodeMasteryState({
+        'ph-beat-1': 'mastered',
+        'ph-beat-2': 'mastered',
+        'ph-beat-3': 'mastered',
+      });
+
+      // Set recent arcs
+      setRecentArcIds(['ww2']);
+
+      // Reset other state
+      setJourneyViewState(null);
+      setCompletedLessons(new Set());
+      setArcadePlayRecords({});
+      setViewedChapterIntros([]);
+
+      // Set selected guide (sergeant)
+      saveSelectedGuideId('sergeant');
+      setSelectedGuideIdState('sergeant');
+
+      // Set up some badge progress
+      setEarnedBadges([]);
+      setPerfectScoreCount(1);
+      setBossNodesDefeated(0);
+      setPlayedNodeTypes(['road-to-war', 'radar-blip', 'damage-done']);
+      setArcadeGamesPlayed(0);
+      setTotalQuizAttempts(3);
+      setTotalCorrectAnswers(12);
+      setTotalQuestions(15);
+
+      // Mark some tooltips as seen
+      setSeenTooltips(['journey-intro', 'xp-explanation']);
+      setStudyNotes([]);
+
+      // Set funnel state with intro viewed
+      setFunnelState({
+        ...defaultFunnelState,
+        ww2: {
+          ...defaultFunnelState.ww2,
+          hasViewedIntro: true,
+        },
+      });
+
+      // Go to home tab
+      setActiveTab('home');
+
+      // Skip onboarding for returning user
+      setOnboardingComplete();
+      setIsOnboarded(true);
     } else {
-      // Existing user - just update the user ID
+      // Real existing user - just update the user ID
       setUser(prev => ({
         ...prev,
         id: userId,
