@@ -415,8 +415,6 @@ export function DamageDoneBeat({ host, onComplete, onSkip, onBack, isPreview = f
 
   // Get available hotspots
   const availableHotspots = MAP_HOTSPOTS.filter(h => currentMinute >= h.unlocksAtMinute);
-  const allTimelineComplete = currentMinute >= TIMELINE_DURATION;
-  const minHotspotsViewed = viewedHotspots.size >= 4; // Require at least 4
 
   return (
     <div className="fixed inset-0 z-[60] pt-safe bg-gradient-to-b from-slate-900 via-slate-950 to-black flex flex-col">
@@ -706,20 +704,18 @@ export function DamageDoneBeat({ host, onComplete, onSkip, onBack, isPreview = f
                 )}
               </AnimatePresence>
 
-              {/* Continue button */}
+              {/* Continue button - allow progress after 75% scrub or any hotspot interaction */}
               <button
                 onClick={nextScreen}
-                disabled={!allTimelineComplete || !minHotspotsViewed}
+                disabled={currentMinute < TIMELINE_DURATION * 0.75 && viewedHotspots.size === 0}
                 className={`w-full py-4 font-bold rounded-xl transition-colors ${
-                  allTimelineComplete && minHotspotsViewed
+                  currentMinute >= TIMELINE_DURATION * 0.75 || viewedHotspots.size > 0
                     ? 'bg-amber-500 hover:bg-amber-400 text-black'
                     : 'bg-white/10 text-white/30'
                 }`}
               >
-                {!allTimelineComplete
-                  ? 'Scrub through the full timeline'
-                  : !minHotspotsViewed
-                  ? `Explore ${4 - viewedHotspots.size} more locations`
+                {currentMinute < TIMELINE_DURATION * 0.75 && viewedHotspots.size === 0
+                  ? 'Scrub through the timeline to continue'
                   : 'See the Full Cost'}
               </button>
             </motion.div>
