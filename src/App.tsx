@@ -34,6 +34,7 @@ const MapEditor = lazy(() => import('./components/admin/MapEditor'));
 const JourneyUIEditor = lazy(() => import('./components/admin/JourneyUIEditor'));
 const WW2ModuleEditor = lazy(() => import('./components/admin/WW2ModuleEditor'));
 const ExamVideoManager = lazy(() => import('./components/admin/ExamVideoManager'));
+const MidModuleTestVideoManager = lazy(() => import('./components/admin/MidModuleTestVideoManager'));
 const FeaturedSectionEditor = lazy(() => import('./components/admin/FeaturedSectionEditor'));
 const AppSettingsEditor = lazy(() => import('./components/admin/AppSettingsEditor').then(m => ({ default: m.AppSettingsEditor })));
 
@@ -93,6 +94,7 @@ const App = () => (
                 <Route path="journey-ui" element={<Suspense fallback={<AdminLoadingFallback />}><JourneyUIEditor /></Suspense>} />
                 <Route path="ww2-module" element={<Suspense fallback={<AdminLoadingFallback />}><WW2ModuleEditor /></Suspense>} />
                 <Route path="exam-videos" element={<Suspense fallback={<AdminLoadingFallback />}><ExamVideoManager /></Suspense>} />
+                <Route path="mid-test-videos" element={<Suspense fallback={<AdminLoadingFallback />}><MidModuleTestVideoManager /></Suspense>} />
                 <Route path="featured-section" element={<Suspense fallback={<AdminLoadingFallback />}><FeaturedSectionEditor /></Suspense>} />
                 <Route path="app-settings" element={<Suspense fallback={<AdminLoadingFallback />}><AppSettingsEditor /></Suspense>} />
               </Route>

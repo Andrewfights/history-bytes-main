@@ -236,10 +236,11 @@ export function BeatListView({ journey, onBack, onJourneyUpdate }: BeatListViewP
           className="space-y-3"
         >
           <AnimatePresence mode="popLayout">
-            {sortedBeats.map((beat) => (
+            {sortedBeats.map((beat, index) => (
               <BeatCard
                 key={beat.id}
                 beat={beat}
+                displayNumber={index + 1}
                 template={getTemplateById(beat.templateId)}
                 isMenuOpen={openMenuId === beat.id}
                 isReordering={isReordering}
@@ -286,6 +287,7 @@ export function BeatListView({ journey, onBack, onJourneyUpdate }: BeatListViewP
 // Beat Card Component
 interface BeatCardProps {
   beat: FirestoreJourneyBeat;
+  displayNumber: number;
   template?: { name: string; icon: string; category: string } | undefined;
   isMenuOpen: boolean;
   isReordering: boolean;
@@ -297,6 +299,7 @@ interface BeatCardProps {
 
 function BeatCard({
   beat,
+  displayNumber,
   template,
   isMenuOpen,
   isReordering,
@@ -316,9 +319,9 @@ function BeatCard({
           <GripVertical size={20} />
         </div>
 
-        {/* Beat Number */}
+        {/* Beat Number - shows position in list, not internal number */}
         <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold shrink-0">
-          {beat.number}
+          {displayNumber}
         </div>
 
         {/* Icon */}

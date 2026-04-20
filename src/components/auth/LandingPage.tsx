@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Mail, Lock, User, ArrowRight, Sparkles, History, CheckCircle, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, Sparkles, CheckCircle, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 
@@ -262,9 +262,13 @@ export function LandingPage({ onAuthSuccess }: LandingPageProps) {
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ type: 'spring', damping: 15 }}
-              className="w-24 h-24 mx-auto mb-6 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center"
+              className="w-32 h-32 mx-auto mb-6 rounded-2xl overflow-hidden"
             >
-              <History size={48} className="text-primary" />
+              <img
+                src="/assets/history-academy-logo.jpg"
+                alt="History Academy"
+                className="w-full h-full object-cover"
+              />
             </motion.div>
 
             <h1 className="font-editorial text-4xl font-bold text-foreground mb-3">

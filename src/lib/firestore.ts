@@ -1539,6 +1539,26 @@ export interface ExamQuestionVideo {
 // Map of hostId -> ExamQuestionVideo for a single question
 export type ExamQuestionHostVideos = Record<string, ExamQuestionVideo>;
 
+// Mid-module test question video (same structure as exam videos)
+export interface MidModuleTestQuestion {
+  id: string;
+  question: string;
+  options: string[];
+  correctIndex: number;
+  explanation: string;
+}
+
+export interface MidModuleTestVideo {
+  questionId: string;
+  hostId: string;  // 'sergeant' | 'journalist' | 'codebreaker'
+  videoUrl: string;
+  duration?: number;
+  trimStart?: number;
+  trimEnd?: number;
+}
+
+export type MidModuleTestHostVideos = Record<string, MidModuleTestVideo>;
+
 // Milestone videos played after Q5, Q10, and completion (Q15)
 export type ExamMilestoneType = 'after-q5' | 'after-q10' | 'completion';
 
@@ -1602,6 +1622,10 @@ export interface FirestoreWW2ModuleAssets {
   archivedBeats?: Record<string, { archivedAt: Timestamp }>;  // Key: beat ID -> archive info
   // Custom beat ordering (overrides default lesson order)
   beatOrder?: string[];  // Array of beat IDs in display order
+  // Mid-module test videos (after beat 5)
+  midModuleTestVideos?: Record<string, MidModuleTestHostVideos>;  // Key: question ID -> hostId -> video
+  // Mid-module test questions (editable)
+  midModuleTestQuestions?: MidModuleTestQuestion[];
   updatedAt?: Timestamp;
 }
 
@@ -1796,6 +1820,56 @@ export async function getExamMilestoneVideoForHost(
   const assets = await getWW2ModuleAssets();
   return assets?.examMilestoneVideos?.[milestoneType]?.[hostId] || null;
 }
+
+// ============ Mid-Module Test Video Operations ============
+
+export async function updateMidModuleTestVideo(
+  questionId: string,
+  hostId: string,
+  video: MidModuleTestVideo | null
+): Promise<boolean> {
+  const current = await getWW2ModuleAssets();
+  const midModuleTestVideos = current?.midModuleTestVideos || {};
+
+  if (!midModuleTestVideos[questionId]) {
+    midModuleTestVideos[questionId] = {};
+  }
+
+  if (video) {
+    midModuleTestVideos[questionId][hostId] = video;
+  } else {
+    delete midModuleTestVideos[questionId][hostId];
+    if (Object.keys(midModuleTestVideos[questionId]).length === 0) {
+      delete midModuleTestVideos[questionId];
+    }
+  }
+
+  return saveWW2ModuleAssets({ midModuleTestVideos });
+}
+
+export async function getMidModuleTestVideos(): Promise<Record<string, MidModuleTestHostVideos>> {
+  const assets = await getWW2ModuleAssets();
+  return assets?.midModuleTestVideos || {};
+}
+
+export async function getMidModuleTestVideoForHost(
+  questionId: string,
+  hostId: string
+): Promise<MidModuleTestVideo | null> {
+  const assets = await getWW2ModuleAssets();
+  return assets?.midModuleTestVideos?.[questionId]?.[hostId] || null;
+}
+
+export async function updateMidModuleTestQuestions(questions: MidModuleTestQuestion[]): Promise<boolean> {
+  return saveWW2ModuleAssets({ midModuleTestQuestions: questions });
+}
+
+export async function getMidModuleTestQuestions(): Promise<MidModuleTestQuestion[]> {
+  const assets = await getWW2ModuleAssets();
+  return assets?.midModuleTestQuestions || [];
+}
+
+// ============ Theater Media Operations ============
 
 export async function updateTheaterMedia(theaterId: string, config: TheaterMediaConfig | null): Promise<boolean> {
   const current = await getWW2ModuleAssets();

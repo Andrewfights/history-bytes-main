@@ -15,7 +15,8 @@ export { RadarBlipBeat } from './RadarBlipBeat';           // Beat 2
 export { DamageDoneBeat } from './DamageDoneBeat';         // Beat 3
 export { VoicesFromHarborBeat } from './VoicesFromHarborBeat'; // Beat 4
 export { BreakingNewsBeat } from './BreakingNewsBeat';     // Beat 5
-export { MidModuleTestBeat } from './MidModuleTestBeat';   // Beat 5.5 (Mid-Module Test)
+export { MidModuleTestBeat } from './MidModuleTestBeat';   // Beat 5.5 (Legacy - text only)
+export { MidModuleVideoTestBeat } from './MidModuleVideoTestBeat'; // Beat 5.5 (Video version)
 export { DayOfInfamyBeat } from './DayOfInfamyBeat';       // Beat 6
 export { ArsenalDemocracyBeat } from './ArsenalDemocracyBeat'; // Beat 7
 

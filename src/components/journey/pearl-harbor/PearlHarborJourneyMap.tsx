@@ -270,7 +270,7 @@ export function PearlHarborJourneyMap({
                             : state === 'unlocked' ? 'text-orange-400'
                             : 'text-amber-400'
                           }`}>
-                            LESSON {lesson.number}
+                            LESSON {index + 1}
                           </span>
                           {state === 'completed' && (
                             <CheckCircle2 size={14} className="text-green-500" />
