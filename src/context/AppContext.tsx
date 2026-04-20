@@ -31,6 +31,10 @@ import {
   AuthState,
   FunnelState,
   GhostArmyProgress,
+  // Firestore-syncing functions
+  saveUserProfile as saveUserProfileToFirestore,
+  saveJourneyProgress as saveJourneyProgressToFirestore,
+  saveCourseProgress as saveCourseProgressToFirestore,
 } from '@/lib/storage';
 import { initEraTileOverridesCache } from '@/data/historicalEras';
 import { initPantheonCache, subscribeToPantheonUpdates } from '@/data/pantheonSouvenirs';
@@ -531,37 +535,49 @@ export function AppProvider({ children }: { children: ReactNode }) {
     loadPersistedState();
   }, []);
 
-  // Persist user profile on changes
+  // Persist user profile on changes (syncs to Firestore if authenticated)
   useEffect(() => {
     if (!isHydrated) return;
-    saveToStorage<PersistedUserProfile>(STORAGE_KEYS.USER_PROFILE, {
+    const profile: PersistedUserProfile = {
       id: user.id,
       displayName: user.displayName,
       anonLeaderboard: user.anonLeaderboard,
       xp: user.xp,
       streak: user.streak,
       lastActiveDate: user.lastActiveDate,
-    });
+    };
+    // Use async function that syncs to both localStorage and Firestore
+    saveUserProfileToFirestore(profile).catch(err =>
+      console.error('Failed to sync user profile:', err)
+    );
   }, [user, isHydrated]);
 
-  // Persist journey progress on changes
+  // Persist journey progress on changes (syncs to Firestore if authenticated)
   useEffect(() => {
     if (!isHydrated) return;
-    saveToStorage<PersistedJourneyProgress>(STORAGE_KEYS.JOURNEY_PROGRESS, {
+    const progress: PersistedJourneyProgress = {
       completedNodes: completedJourneyNodes,
       nodeMastery: nodeMastery,
       recentArcIds: recentArcIds,
       journeyViewState: journeyViewState,
       viewedChapterIntros: viewedChapterIntros,
-    });
+    };
+    // Use async function that syncs to both localStorage and Firestore
+    saveJourneyProgressToFirestore(progress).catch(err =>
+      console.error('Failed to sync journey progress:', err)
+    );
   }, [completedJourneyNodes, nodeMastery, recentArcIds, journeyViewState, viewedChapterIntros, isHydrated]);
 
-  // Persist course progress on changes
+  // Persist course progress on changes (syncs to Firestore if authenticated)
   useEffect(() => {
     if (!isHydrated) return;
-    saveToStorage<PersistedCourseProgress>(STORAGE_KEYS.COURSE_PROGRESS, {
+    const progress: PersistedCourseProgress = {
       completedLessons: Array.from(completedLessons),
-    });
+    };
+    // Use async function that syncs to both localStorage and Firestore
+    saveCourseProgressToFirestore(progress).catch(err =>
+      console.error('Failed to sync course progress:', err)
+    );
   }, [completedLessons, isHydrated]);
 
   // Persist arcade records on changes

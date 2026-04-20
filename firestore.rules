@@ -2,57 +2,85 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Development mode: allow all reads and writes
-    // TODO: Restrict to authenticated users in production
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
 
-    // Users collection
+    // Helper function to check if user owns the document
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Users collection - users can only read/write their own data
     match /users/{userId} {
-      allow read, write: if true;
+      allow read, write: if isOwner(userId);
     }
 
-    // Journey progress
+    // Journey progress - users can only read/write their own progress
     match /journeyProgress/{userId} {
-      allow read, write: if true;
+      allow read, write: if isOwner(userId);
     }
 
-    // Course progress
+    // Course progress - users can only read/write their own progress
     match /courseProgress/{userId} {
-      allow read, write: if true;
+      allow read, write: if isOwner(userId);
     }
 
-    // User badges
+    // User badges - users can only read/write their own badges
+    // Document ID format: {userId}_{badgeId}
     match /userBadges/{docId} {
-      allow read, write: if true;
+      allow read: if isAuthenticated() && docId.split('_')[0] == request.auth.uid;
+      allow write: if isAuthenticated() && docId.split('_')[0] == request.auth.uid;
     }
 
-    // Arcade records
+    // Arcade records - users can only read/write their own records
+    // Document ID format: {userId}_{gameId}
     match /arcadeRecords/{docId} {
-      allow read, write: if true;
+      allow read: if isAuthenticated() && docId.split('_')[0] == request.auth.uid;
+      allow write: if isAuthenticated() && docId.split('_')[0] == request.auth.uid;
     }
 
-    // Spirit guides
+    // Spirit guides - public read, authenticated write
     match /spiritGuides/{guideId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isAuthenticated();
     }
 
-    // Courses
+    // WW2 Hosts - public read, authenticated write
+    match /ww2Hosts/{hostId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    // Courses - public read, authenticated write
     match /courses/{courseId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isAuthenticated();
     }
 
-    // Units
+    // Units - public read, authenticated write
     match /units/{unitId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isAuthenticated();
     }
 
-    // Lessons
+    // Lessons - public read, authenticated write
     match /lessons/{lessonId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isAuthenticated();
     }
 
-    // Lesson content
+    // Lesson content - public read, authenticated write
     match /lessonContent/{contentId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    // App settings (era order, onboarding, module assets, etc.)
+    match /appSettings/{settingId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
     }
   }
 }

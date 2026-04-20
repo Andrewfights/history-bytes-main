@@ -20,7 +20,7 @@ type Screen = 'pre-video' | 'intro' | 'production' | 'timed-challenge' | 'strate
 const SCREENS: Screen[] = ['pre-video', 'intro', 'production', 'timed-challenge', 'strategy', 'dark-side', 'post-video', 'completion'];
 
 const LESSON_DATA = {
-  id: 'ph-beat-9',
+  id: 'ph-beat-7',
   xpReward: 50,
 };
 

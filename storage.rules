@@ -2,23 +2,27 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    // Images folder - readable by all, writable by all (for development)
-    // TODO: Restrict writes to authenticated users in production
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Images folder - readable by all, writable by authenticated users
     match /images/{allPaths=**} {
       allow read: if true;
-      allow write: if true;
+      allow write: if isAuthenticated();
     }
 
-    // Videos folder - readable by all, writable by all (for development)
+    // Videos folder - readable by all, writable by authenticated users
     match /videos/{allPaths=**} {
       allow read: if true;
-      allow write: if true;
+      allow write: if isAuthenticated();
     }
 
-    // Audio folder - readable by all, writable by all (for development)
+    // Audio folder - readable by all, writable by authenticated users
     match /audio/{allPaths=**} {
       allow read: if true;
-      allow write: if true;
+      allow write: if isAuthenticated();
     }
   }
 }

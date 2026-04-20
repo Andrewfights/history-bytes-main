@@ -21,7 +21,7 @@ type Screen = 'pre-video' | 'intro' | 'quiz' | 'results' | 'post-video' | 'compl
 const SCREENS: Screen[] = ['pre-video', 'intro', 'quiz', 'results', 'post-video', 'completion'];
 
 const LESSON_DATA = {
-  id: 'ph-beat-10',
+  id: 'ph-beat-12',
   xpReward: 75, // Max XP for perfect score
 };
 

@@ -21,7 +21,7 @@ type Screen = 'pre-video' | 'intro' | 'timeline-map' | 'cost-summary' | 'post-vi
 const SCREENS: Screen[] = ['pre-video', 'intro', 'timeline-map', 'cost-summary', 'post-video', 'completion'];
 
 const LESSON_DATA = {
-  id: 'ph-beat-4',
+  id: 'ph-beat-3',
   xpReward: 55,
 };
 

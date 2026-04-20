@@ -26,7 +26,7 @@ type Screen = 'pre-video' | 'intro' | 'speech-evolution' | 'reconstruct' | 'vote
 const SCREENS: Screen[] = ['pre-video', 'intro', 'speech-evolution', 'reconstruct', 'vote', 'marshall', 'post-video', 'completion'];
 
 const LESSON_DATA = {
-  id: 'ph-beat-8',
+  id: 'ph-beat-6',
   xpReward: 50,
 };
 
