@@ -228,7 +228,7 @@ export function VoicesFromHarborBeat({ host, onComplete, onSkip, onBack, isPrevi
   useEffect(() => {
     if (hasLoadedConfig && screen === 'intro') {
       const checkpoint = getCheckpoint();
-      const shouldShowPreVideo = (isPreview || !checkpoint?.lessonId) &&
+      const shouldShowPreVideo = (isPreview || checkpoint?.lessonId !== LESSON_DATA.id) &&
         preModuleVideoConfig?.enabled &&
         preModuleVideoConfig?.videoUrl;
       if (shouldShowPreVideo) {

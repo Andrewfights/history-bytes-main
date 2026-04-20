@@ -149,8 +149,8 @@ export function RadarBlipBeat({ host, onComplete, onSkip, onBack, isPreview = fa
   useEffect(() => {
     if (hasLoadedConfig && screen === 'intro') {
       const checkpoint = getCheckpoint();
-      // Show pre-video if: (in preview mode OR no checkpoint) AND video is configured
-      const shouldShowPreVideo = (isPreview || !checkpoint?.lessonId) &&
+      // Show pre-video if: (in preview mode OR no checkpoint for THIS lesson) AND video is configured
+      const shouldShowPreVideo = (isPreview || checkpoint?.lessonId !== LESSON_DATA.id) &&
         preModuleVideoConfig?.enabled &&
         preModuleVideoConfig?.videoUrl;
       if (shouldShowPreVideo) {

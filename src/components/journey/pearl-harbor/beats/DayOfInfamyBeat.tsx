@@ -140,7 +140,7 @@ export function DayOfInfamyBeat({ host, onComplete, onSkip, onBack, isPreview = 
   useEffect(() => {
     if (hasLoadedConfig && screen === 'intro') {
       const checkpoint = getCheckpoint();
-      const shouldShowPreVideo = (isPreview || !checkpoint?.lessonId) &&
+      const shouldShowPreVideo = (isPreview || checkpoint?.lessonId !== LESSON_DATA.id) &&
         preModuleVideoConfig?.enabled &&
         preModuleVideoConfig?.videoUrl;
       if (shouldShowPreVideo) {

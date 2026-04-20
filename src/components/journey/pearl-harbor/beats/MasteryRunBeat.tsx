@@ -200,7 +200,7 @@ export function MasteryRunBeat({ host, onComplete, onSkip, onBack, isPreview = f
   useEffect(() => {
     if (hasLoadedConfig && screen === 'intro') {
       const checkpoint = getCheckpoint();
-      const shouldShowPreVideo = (isPreview || !checkpoint?.lessonId) &&
+      const shouldShowPreVideo = (isPreview || checkpoint?.lessonId !== LESSON_DATA.id) &&
         preModuleVideoConfig?.enabled &&
         preModuleVideoConfig?.videoUrl;
       if (shouldShowPreVideo) {

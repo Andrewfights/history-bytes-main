@@ -204,8 +204,8 @@ export function RoadToWarBeat({ host, onComplete, onSkip, onBack, isPreview = fa
   useEffect(() => {
     if (hasLoadedConfig && screen === 'intro') {
       const checkpoint = getCheckpoint();
-      // Only show pre-video if there's no checkpoint (or isPreview) and video is configured
-      const shouldShowPreVideo = (isPreview || !checkpoint?.lessonId) &&
+      // Only show pre-video if there's no checkpoint for THIS lesson (or isPreview) and video is configured
+      const shouldShowPreVideo = (isPreview || checkpoint?.lessonId !== LESSON_DATA.id) &&
         preModuleVideoConfig?.enabled &&
         preModuleVideoConfig?.videoUrl;
       if (shouldShowPreVideo) {
