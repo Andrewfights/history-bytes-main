@@ -1559,6 +1559,14 @@ export interface MidModuleTestVideo {
 
 export type MidModuleTestHostVideos = Record<string, MidModuleTestVideo>;
 
+// Breaking News radio station media (audio + video per station)
+export interface BreakingNewsStationMedia {
+  stationId: string;  // 'cbs' | 'nbc' | 'mutual'
+  audioUrl?: string;  // Radio broadcast audio clip
+  videoUrl?: string;  // Video to play after station is selected
+  hostId?: string;    // Which host (for per-host videos)
+}
+
 // Milestone videos played after Q5, Q10, and completion (Q15)
 export type ExamMilestoneType = 'after-q5' | 'after-q10' | 'completion';
 
@@ -1626,6 +1634,8 @@ export interface FirestoreWW2ModuleAssets {
   midModuleTestVideos?: Record<string, MidModuleTestHostVideos>;  // Key: question ID -> hostId -> video
   // Mid-module test questions (editable)
   midModuleTestQuestions?: MidModuleTestQuestion[];
+  // Breaking News radio station media (Beat 5)
+  breakingNewsStations?: Record<string, BreakingNewsStationMedia>;  // Key: stationId -> media config
   updatedAt?: Timestamp;
 }
 
@@ -1867,6 +1877,34 @@ export async function updateMidModuleTestQuestions(questions: MidModuleTestQuest
 export async function getMidModuleTestQuestions(): Promise<MidModuleTestQuestion[]> {
   const assets = await getWW2ModuleAssets();
   return assets?.midModuleTestQuestions || [];
+}
+
+// ============ Breaking News Station Media Operations ============
+
+export async function updateBreakingNewsStation(
+  stationId: string,
+  media: BreakingNewsStationMedia | null
+): Promise<boolean> {
+  const current = await getWW2ModuleAssets();
+  const breakingNewsStations = current?.breakingNewsStations || {};
+
+  if (media) {
+    breakingNewsStations[stationId] = media;
+  } else {
+    delete breakingNewsStations[stationId];
+  }
+
+  return saveWW2ModuleAssets({ breakingNewsStations });
+}
+
+export async function getBreakingNewsStations(): Promise<Record<string, BreakingNewsStationMedia>> {
+  const assets = await getWW2ModuleAssets();
+  return assets?.breakingNewsStations || {};
+}
+
+export async function getBreakingNewsStationMedia(stationId: string): Promise<BreakingNewsStationMedia | null> {
+  const assets = await getWW2ModuleAssets();
+  return assets?.breakingNewsStations?.[stationId] || null;
 }
 
 // ============ Theater Media Operations ============

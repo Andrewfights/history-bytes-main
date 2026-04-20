@@ -9,10 +9,10 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Sparkles, Radio, Newspaper, ArrowRight, Play, Pause } from 'lucide-react';
+import { ArrowLeft, Sparkles, Radio, Newspaper, ArrowRight, Play, Pause, Volume2 } from 'lucide-react';
 import { WW2Host } from '@/types';
 import { DragAndDropSorter, SortableItem, PreModuleVideoScreen, PostModuleVideoScreen } from '../shared';
-import { subscribeToWW2ModuleAssets, type PreModuleVideoConfig, type PostModuleVideoConfig } from '@/lib/firestore';
+import { subscribeToWW2ModuleAssets, type PreModuleVideoConfig, type PostModuleVideoConfig, type BreakingNewsStationMedia } from '@/lib/firestore';
 import { playXPSound } from '@/lib/xpAudioManager';
 import { usePearlHarborProgress } from '../hooks/usePearlHarborProgress';
 import { useWW2ModuleAssets } from '../hooks/useWW2ModuleAssets';
@@ -24,8 +24,8 @@ const MEDIA_KEYS = {
   nytFrontPage: 'new-york-times-front-page-facsimile',
 };
 
-type Screen = 'pre-video' | 'intro' | 'radio-dial' | 'newspaper' | 'opinion-shift' | 'tsukiyama' | 'post-video' | 'completion';
-const SCREENS: Screen[] = ['pre-video', 'intro', 'radio-dial', 'newspaper', 'opinion-shift', 'tsukiyama', 'post-video', 'completion'];
+type Screen = 'pre-video' | 'intro' | 'radio-stations' | 'station-video' | 'newspaper' | 'opinion-shift' | 'tsukiyama' | 'post-video' | 'completion';
+const SCREENS: Screen[] = ['pre-video', 'intro', 'radio-stations', 'station-video', 'newspaper', 'opinion-shift', 'tsukiyama', 'post-video', 'completion'];
 
 const LESSON_DATA = {
   id: 'ph-beat-5',
@@ -107,6 +107,9 @@ export function BreakingNewsBeat({ host, onComplete, onSkip, onBack, isPreview =
   const [preModuleVideoConfig, setPreModuleVideoConfig] = useState<PreModuleVideoConfig | null>(null);
   const [postModuleVideoConfig, setPostModuleVideoConfig] = useState<PostModuleVideoConfig | null>(null);
   const [hasLoadedConfig, setHasLoadedConfig] = useState(false);
+  const [stationMedia, setStationMedia] = useState<Record<string, BreakingNewsStationMedia>>({});
+  const [currentStationVideoUrl, setCurrentStationVideoUrl] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   const { saveCheckpoint, clearCheckpoint, getCheckpoint } = usePearlHarborProgress();
   const { getMediaUrl } = useWW2ModuleAssets();
@@ -181,7 +184,7 @@ export function BreakingNewsBeat({ host, onComplete, onSkip, onBack, isPreview =
     }
   }, [hasLoadedConfig, screen, stationsListened, saveCheckpoint]);
 
-  // Subscribe to Firestore for pre-module video config
+  // Subscribe to Firestore for pre-module video config and station media
   useEffect(() => {
     const unsubscribe = subscribeToWW2ModuleAssets((assets) => {
       const preModuleVideo = assets?.preModuleVideos?.[LESSON_DATA.id];
@@ -195,6 +198,10 @@ export function BreakingNewsBeat({ host, onComplete, onSkip, onBack, isPreview =
         setPostModuleVideoConfig(postModuleVideo);
       } else {
         setPostModuleVideoConfig(null);
+      }
+      // Get station media (audio + video per station)
+      if (assets?.breakingNewsStations) {
+        setStationMedia(assets.breakingNewsStations);
       }
       setHasLoadedConfig(true);
     });
@@ -213,6 +220,11 @@ export function BreakingNewsBeat({ host, onComplete, onSkip, onBack, isPreview =
       }
     }
   }, [hasLoadedConfig, preModuleVideoConfig, isPreview]);
+
+  // After pre-video ends, go directly to radio-stations
+  const handlePreVideoComplete = () => {
+    setScreen('radio-stations');
+  };
 
   const nextScreen = useCallback(() => {
     const currentIndex = SCREENS.indexOf(screen);
@@ -237,6 +249,28 @@ export function BreakingNewsBeat({ host, onComplete, onSkip, onBack, isPreview =
   const handleStationSelect = (station: RadioStation) => {
     setSelectedStation(station);
     setStationsListened((prev) => new Set([...prev, station.id]));
+
+    // Play audio if available from Firestore
+    const media = stationMedia[station.id];
+    if (media?.audioUrl) {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      audioRef.current = new Audio(media.audioUrl);
+      audioRef.current.onended = () => setIsPlaying(false);
+      audioRef.current.play().catch(console.error);
+      setIsPlaying(true);
+    }
+  };
+
+  const handlePlayStationVideo = () => {
+    if (selectedStation && stationMedia[selectedStation.id]?.videoUrl) {
+      setCurrentStationVideoUrl(stationMedia[selectedStation.id].videoUrl!);
+      setScreen('station-video');
+    } else {
+      // No video, skip to newspaper
+      setScreen('newspaper');
+    }
   };
 
   const handleSortingComplete = (score: number, total: number) => {
@@ -274,7 +308,7 @@ export function BreakingNewsBeat({ host, onComplete, onSkip, onBack, isPreview =
             <PreModuleVideoScreen
               config={preModuleVideoConfig}
               beatTitle="Breaking News"
-              onComplete={() => setScreen('intro')}
+              onComplete={handlePreVideoComplete}
             />
           )}
 
@@ -307,84 +341,134 @@ export function BreakingNewsBeat({ host, onComplete, onSkip, onBack, isPreview =
             </motion.div>
           )}
 
-          {/* RADIO DIAL */}
-          {screen === 'radio-dial' && (
-            <motion.div key="radio-dial" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full p-6">
+          {/* RADIO STATIONS - New simplified 3 station view */}
+          {screen === 'radio-stations' && (
+            <motion.div key="radio-stations" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full p-6">
               <div className="text-center mb-6">
-                <h3 className="text-lg font-bold text-white mb-2">Turn the Dial</h3>
-                <p className="text-white/60 text-sm">Select a station to hear how they broke the news</p>
+                <Radio size={32} className="text-amber-400 mx-auto mb-3" />
+                <h3 className="text-xl font-bold text-white mb-2">Tune In</h3>
+                <p className="text-white/60 text-sm">Select a radio station to hear the breaking news</p>
               </div>
 
-              {/* Vintage Radio */}
-              <div className="bg-gradient-to-b from-amber-900/40 to-amber-950/60 rounded-3xl p-6 border-2 border-amber-800/50 mb-6">
-                {/* Radio display */}
-                <div className="bg-black/50 rounded-xl p-4 mb-4 border border-amber-700/30">
-                  {selectedStation ? (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-amber-400 font-mono font-bold">{selectedStation.name}</span>
-                        <span className="text-amber-400/60 text-xs">{selectedStation.time}</span>
-                      </div>
-                      <p className="text-green-400/80 text-xs mb-2">Interrupted: {selectedStation.program}</p>
-                      <p className="text-amber-100 text-sm italic leading-relaxed">
-                        {selectedStation.announcement}
-                      </p>
-                      {/* Audio play button if uploaded */}
-                      {stationAudioUrls[selectedStation.id] && (
-                        <motion.button
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          onClick={handlePlayAudio}
-                          className="mt-3 flex items-center justify-center gap-2 w-full py-2 bg-amber-500/20 hover:bg-amber-500/30 rounded-lg border border-amber-500/30 transition-colors"
-                        >
-                          {isPlaying ? (
-                            <Pause size={16} className="text-amber-400" />
-                          ) : (
-                            <Play size={16} className="text-amber-400" />
-                          )}
-                          <span className="text-amber-400 text-sm font-medium">
-                            {isPlaying ? 'Pause Broadcast' : 'Play Actual Broadcast'}
-                          </span>
-                        </motion.button>
-                      )}
-                    </motion.div>
-                  ) : (
-                    <p className="text-amber-400/50 text-center text-sm">Select a station below...</p>
-                  )}
-                </div>
+              {/* Three station cards */}
+              <div className="flex-1 flex flex-col gap-4">
+                {RADIO_STATIONS.map((station) => {
+                  const media = stationMedia[station.id];
+                  const isSelected = selectedStation?.id === station.id;
+                  const hasListened = stationsListened.has(station.id);
 
-                {/* Station buttons */}
-                <div className="flex justify-center gap-4">
-                  {RADIO_STATIONS.map((station) => (
+                  return (
                     <motion.button
                       key={station.id}
                       onClick={() => handleStationSelect(station)}
-                      className={`w-16 h-16 rounded-full border-2 flex items-center justify-center font-bold transition-all ${
-                        selectedStation?.id === station.id
-                          ? 'bg-amber-500 border-amber-400 text-black'
-                          : stationsListened.has(station.id)
-                          ? 'bg-amber-500/20 border-amber-500/50 text-amber-400'
-                          : 'bg-black/30 border-amber-700/50 text-amber-400/60 hover:border-amber-500'
+                      className={`relative p-5 rounded-2xl border-2 text-left transition-all ${
+                        isSelected
+                          ? 'bg-amber-500/20 border-amber-500'
+                          : hasListened
+                          ? 'bg-green-500/10 border-green-500/50'
+                          : 'bg-white/5 border-white/20 hover:border-amber-500/50'
                       }`}
-                      whileTap={{ scale: 0.95 }}
+                      whileTap={{ scale: 0.98 }}
                     >
-                      {station.name}
+                      <div className="flex items-center gap-4">
+                        {/* Station badge */}
+                        <div className={`w-14 h-14 rounded-full flex items-center justify-center text-lg font-bold shrink-0 ${
+                          isSelected ? 'bg-amber-500 text-black' : 'bg-white/10 text-amber-400'
+                        }`}>
+                          {station.name}
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white font-semibold">{station.program}</p>
+                          <p className="text-white/50 text-sm">{station.time}</p>
+                        </div>
+
+                        {/* Playing indicator */}
+                        {isSelected && isPlaying && (
+                          <div className="flex items-center gap-1">
+                            <Volume2 size={18} className="text-amber-400 animate-pulse" />
+                          </div>
+                        )}
+
+                        {/* Listened checkmark */}
+                        {hasListened && !isSelected && (
+                          <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center">
+                            <span className="text-white text-xs">✓</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Show announcement when selected */}
+                      {isSelected && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          className="mt-4 pt-4 border-t border-white/10"
+                        >
+                          <p className="text-amber-100/80 text-sm italic leading-relaxed">
+                            {station.announcement}
+                          </p>
+                        </motion.div>
+                      )}
                     </motion.button>
-                  ))}
-                </div>
+                  );
+                })}
               </div>
 
-              <div className="text-center text-white/40 text-sm mb-4">
-                {stationsListened.size}/{RADIO_STATIONS.length} stations heard
-              </div>
-
+              {/* Continue button - enabled after listening to at least 1 station */}
               <button
-                onClick={nextScreen}
-                disabled={!allStationsListened}
-                className={`w-full py-4 font-bold rounded-xl transition-colors ${allStationsListened ? 'bg-amber-500 hover:bg-amber-400 text-black' : 'bg-white/10 text-white/30'}`}
+                onClick={handlePlayStationVideo}
+                disabled={stationsListened.size === 0}
+                className={`w-full py-4 font-bold rounded-xl transition-colors mt-4 ${
+                  stationsListened.size > 0
+                    ? 'bg-amber-500 hover:bg-amber-400 text-black'
+                    : 'bg-white/10 text-white/30'
+                }`}
               >
-                {allStationsListened ? 'See the Headlines' : 'Listen to more stations'}
+                {stationsListened.size > 0 ? 'Continue' : 'Select a station to listen'}
               </button>
+            </motion.div>
+          )}
+
+          {/* STATION VIDEO - Video that plays after selecting a station */}
+          {screen === 'station-video' && (
+            <motion.div
+              key="station-video"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex flex-col h-full bg-black"
+            >
+              {currentStationVideoUrl ? (
+                <div className="flex-1 flex flex-col">
+                  {/* Video player - full width */}
+                  <div className="flex-1 relative">
+                    <video
+                      ref={videoRef}
+                      src={currentStationVideoUrl}
+                      autoPlay
+                      playsInline
+                      className="w-full h-full object-contain"
+                      onEnded={() => setScreen('newspaper')}
+                    />
+                  </div>
+
+                  {/* Skip button */}
+                  <div className="p-4" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
+                    <button
+                      onClick={() => setScreen('newspaper')}
+                      className="w-full py-3 bg-white/10 hover:bg-white/20 text-white font-medium rounded-xl transition-colors"
+                    >
+                      Skip Video
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                // No video configured, auto-advance
+                <div className="flex-1 flex items-center justify-center">
+                  <p className="text-white/50">Loading...</p>
+                </div>
+              )}
             </motion.div>
           )}
 
