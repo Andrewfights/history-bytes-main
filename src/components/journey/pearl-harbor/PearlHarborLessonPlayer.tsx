@@ -35,13 +35,14 @@ import {
   NagumoDilemmaBeat,
   FactOrMythBeat,
   DayOfInfamyBeat,
+  EmptyWarChestBeat,
   ArsenalDemocracyBeat,
-  // New reusable beat types (Beats 11-14)
+  // Reusable beat types (Beats 9-12)
   MakeItDoBeat,
   LettersHomeBeat,
   ThingsCarriedBeat,
   CodeTalkersBeat,
-  // Assessment beats (Beats 15-16)
+  // Assessment beats (Beats 13-14)
   MasteryRunBeat,
   FinalExamBeat,
 } from './beats';
@@ -263,6 +264,16 @@ export function PearlHarborLessonPlayer({
     case 'day-of-infamy':
       return (
         <DayOfInfamyBeat
+          host={host}
+          onComplete={handleLessonComplete}
+          onSkip={handleLessonSkip}
+          onBack={onBack}
+        />
+      );
+
+    case 'empty-war-chest':
+      return (
+        <EmptyWarChestBeat
           host={host}
           onComplete={handleLessonComplete}
           onSkip={handleLessonSkip}

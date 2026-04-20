@@ -1,7 +1,7 @@
 /**
  * Pearl Harbor Lessons Data
- * 13-Beat Curriculum following Master Script v2
- * Total XP: 765 across 13 beats (615 core + 150 Final Exam)
+ * 14-Beat Curriculum following Master Script v2
+ * Total XP: 815 across 14 beats (665 core + 150 Final Exam)
  *
  * Includes 4 reusable beat types for future module creation:
  * - video-montage: Multiple short video scenes
@@ -23,6 +23,7 @@ export type BeatType =
   | 'breaking-news'
   | 'mid-module-test'
   | 'day-of-infamy'
+  | 'empty-war-chest'
   | 'arsenal-democracy'
   | 'mastery-run'
   | 'final-exam'
@@ -158,6 +159,20 @@ export const PEARL_HARBOR_LESSONS: PearlHarborLesson[] = [
   {
     id: 'ph-beat-7',
     number: 7,
+    title: 'An Empty War Chest',
+    subtitle: "America's Unpreparedness",
+    type: 'empty-war-chest',
+    icon: '📦',
+    xpReward: 50,
+    description: 'Discover how unprepared America was for war',
+    screens: 5,
+    formats: ['Interactive Comparison', 'Facts Grid'],
+    narrativeArc: 'Context / Challenge',
+    duration: '5-6 min',
+  },
+  {
+    id: 'ph-beat-8',
+    number: 8,
     title: 'Arsenal of Democracy',
     subtitle: 'America Transforms',
     type: 'arsenal-democracy',
@@ -170,8 +185,8 @@ export const PEARL_HARBOR_LESSONS: PearlHarborLesson[] = [
     duration: '4-5 min',
   },
   {
-    id: 'ph-beat-8',
-    number: 8,
+    id: 'ph-beat-9',
+    number: 9,
     title: 'Make It Do, Or Do Without',
     subtitle: 'The Home Front',
     type: 'video-montage',
@@ -184,8 +199,8 @@ export const PEARL_HARBOR_LESSONS: PearlHarborLesson[] = [
     duration: '4-5 min',
   },
   {
-    id: 'ph-beat-9',
-    number: 9,
+    id: 'ph-beat-10',
+    number: 10,
     title: 'Letters Home',
     subtitle: 'Voices from the Front',
     type: 'primary-source-audio',
@@ -198,12 +213,12 @@ export const PEARL_HARBOR_LESSONS: PearlHarborLesson[] = [
     duration: '5-6 min',
   },
   {
-    id: 'ph-beat-10',
-    number: 10,
+    id: 'ph-beat-11',
+    number: 11,
     title: 'The Things They Carried',
     subtitle: 'Artifacts of War',
     type: 'artifact-gallery',
-    icon: '📦',
+    icon: '🎒',
     xpReward: 45,
     description: 'Explore personal items that soldiers brought to war',
     screens: 6,
@@ -212,8 +227,8 @@ export const PEARL_HARBOR_LESSONS: PearlHarborLesson[] = [
     duration: '4-5 min',
   },
   {
-    id: 'ph-beat-11',
-    number: 11,
+    id: 'ph-beat-12',
+    number: 12,
     title: 'Code Talkers',
     subtitle: 'The Navajo Secret',
     type: 'audio-vocabulary',
@@ -226,8 +241,8 @@ export const PEARL_HARBOR_LESSONS: PearlHarborLesson[] = [
     duration: '6-7 min',
   },
   {
-    id: 'ph-beat-12',
-    number: 12,
+    id: 'ph-beat-13',
+    number: 13,
     title: 'Mastery Run',
     subtitle: 'Pearl Harbor Final Challenge',
     type: 'mastery-run',
@@ -240,8 +255,8 @@ export const PEARL_HARBOR_LESSONS: PearlHarborLesson[] = [
     duration: '6-8 min',
   },
   {
-    id: 'ph-beat-13',
-    number: 13,
+    id: 'ph-beat-14',
+    number: 14,
     title: 'Final Exam',
     subtitle: 'Pearl Harbor Chapter Assessment',
     type: 'final-exam',
@@ -256,7 +271,7 @@ export const PEARL_HARBOR_LESSONS: PearlHarborLesson[] = [
 ];
 
 export const TOTAL_XP = PEARL_HARBOR_LESSONS.reduce((sum, lesson) => sum + lesson.xpReward, 0);
-// Total: 765 XP (615 XP core curriculum + 150 XP Final Exam)
+// Total: 815 XP (665 XP core curriculum + 150 XP Final Exam)
 
 export function getLessonById(id: string): PearlHarborLesson | undefined {
   return PEARL_HARBOR_LESSONS.find(lesson => lesson.id === id);
@@ -274,7 +289,7 @@ export function getLessonByNumber(number: number): PearlHarborLesson | undefined
   return PEARL_HARBOR_LESSONS.find(lesson => lesson.number === number);
 }
 
-// XP Scoring tiers for Mastery Run (Beat 12)
+// XP Scoring tiers for Mastery Run (Beat 13)
 export const MASTERY_SCORING = {
   perfect: { minCorrect: 12, xp: 75, badge: 'Pearl Harbor Scholar' },
   excellent: { minCorrect: 10, xp: 60, badge: null },
@@ -282,7 +297,7 @@ export const MASTERY_SCORING = {
   needsWork: { minCorrect: 0, xp: 30, badge: null },
 };
 
-// XP Scoring tiers for Final Exam (Beat 13)
+// XP Scoring tiers for Final Exam (Beat 14)
 export const FINAL_EXAM_SCORING = {
   perfect: { minCorrect: 15, xp: 150, badge: 'pearl-harbor-scholar', tier: 'Perfect Score', goldStar: true },
   expert: { minCorrect: 12, xp: 120, badge: 'pearl-harbor-expert', tier: 'Expert' },

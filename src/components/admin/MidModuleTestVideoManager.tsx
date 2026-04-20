@@ -81,8 +81,15 @@ interface QuestionVideoState {
 
 export function MidModuleTestVideoManager() {
   const [questions, setQuestions] = useState<MidModuleTestQuestion[]>(DEFAULT_QUESTIONS);
-  const [questionVideos, setQuestionVideos] = useState<QuestionVideoState[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Initialize with defaults immediately so questions show while Firestore loads
+  const [questionVideos, setQuestionVideos] = useState<QuestionVideoState[]>(() =>
+    DEFAULT_QUESTIONS.map((q) => ({
+      question: q,
+      hostVideos: { sergeant: null, journalist: null, codebreaker: null },
+      hostStatuses: { sergeant: 'missing', journalist: 'missing', codebreaker: 'missing' },
+    }))
+  );
+  const [loading, setLoading] = useState(false);
   const [selectedQuestion, setSelectedQuestion] = useState<string | null>(null);
   const [selectedHost, setSelectedHost] = useState<HostId>('sergeant');
   const [activeHostTab, setActiveHostTab] = useState<HostId>('sergeant');
