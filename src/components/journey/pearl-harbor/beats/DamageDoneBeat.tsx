@@ -9,10 +9,9 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Sparkles, Clock, MapPin, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Sparkles, Clock, ChevronRight } from 'lucide-react';
 import { WW2Host } from '@/types';
 import { usePearlHarborProgress } from '../hooks/usePearlHarborProgress';
-import { useWW2ModuleAssets } from '../hooks/useWW2ModuleAssets';
 import { PreModuleVideoScreen, PostModuleVideoScreen } from '../shared';
 import { subscribeToWW2ModuleAssets, type PreModuleVideoConfig, type PostModuleVideoConfig } from '@/lib/firestore';
 import { playXPSound } from '@/lib/xpAudioManager';
@@ -25,188 +24,60 @@ const LESSON_DATA = {
   xpReward: 55,
 };
 
-// Timeline runs from 7:48 AM to 9:45 AM = 117 minutes total
-const TIMELINE_START_MINUTES = 7 * 60 + 48; // 468 minutes from midnight
-const TIMELINE_DURATION = 117; // 9:45 - 7:48 = 117 minutes
-
-interface TimelineEvent {
+// 12 beats for the timeline scrubber
+interface TimelineBeat {
   time: string;
-  minutes: number; // Minutes from 7:48 (0-117)
-  title: string;
-  description: string;
-  icon: string;
-  type: 'wave' | 'explosion' | 'damage' | 'signal';
-  coordinates: { x: number; y: number };
+  label: string;
+  wave: 'None' | 'First' | 'Second';
+  status: 'Peace' | 'Alert' | 'Active' | 'Lull' | 'Aftermath';
+  hit: number; // Ships hit at this point
+  waves: ('approach' | 'torpedo' | 'dive')[]; // Attack types active
 }
 
-const TIMELINE_EVENTS: TimelineEvent[] = [
-  {
-    time: '7:48 AM',
-    minutes: 0,
-    title: 'First Wave Arrives',
-    description: 'Commander Fuchida leads 183 aircraft over Kahuku Point. Complete surprise achieved.',
-    icon: '✈️',
-    type: 'wave',
-    coordinates: { x: 50, y: 10 },
-  },
-  {
-    time: '7:53 AM',
-    minutes: 5,
-    title: '"Tora! Tora! Tora!"',
-    description: 'Fuchida signals complete surprise. The code word is transmitted to the Japanese fleet.',
-    icon: '📻',
-    type: 'signal',
-    coordinates: { x: 45, y: 25 },
-  },
-  {
-    time: '7:55 AM',
-    minutes: 7,
-    title: 'Torpedo Planes Strike',
-    description: 'Kate torpedo bombers target Battleship Row. Multiple battleships hit.',
-    icon: '💥',
-    type: 'explosion',
-    coordinates: { x: 55, y: 50 },
-  },
-  {
-    time: '8:06 AM',
-    minutes: 18,
-    title: 'USS Oklahoma Capsizes',
-    description: 'Hit by 9 torpedoes, the Oklahoma rolls over in just 12 minutes. 429 men trapped inside.',
-    icon: '🚢',
-    type: 'damage',
-    coordinates: { x: 48, y: 52 },
-  },
-  {
-    time: '8:10 AM',
-    minutes: 22,
-    title: 'USS Arizona Explodes',
-    description: 'A 1,760-pound bomb penetrates the forward magazine. 1,177 sailors killed in seconds.',
-    icon: '🔥',
-    type: 'explosion',
-    coordinates: { x: 52, y: 55 },
-  },
-  {
-    time: '8:25 AM',
-    minutes: 37,
-    title: 'Wheeler Field Hit',
-    description: 'Aircraft parked wingtip-to-wingtip destroyed. Two-thirds of planes never get airborne.',
-    icon: '✈️',
-    type: 'damage',
-    coordinates: { x: 35, y: 35 },
-  },
-  {
-    time: '8:54 AM',
-    minutes: 66,
-    title: 'Second Wave Arrives',
-    description: '170 additional aircraft arrive. Focus shifts to airfields and remaining ships.',
-    icon: '✈️',
-    type: 'wave',
-    coordinates: { x: 50, y: 15 },
-  },
-  {
-    time: '9:30 AM',
-    minutes: 102,
-    title: 'USS Shaw Explodes',
-    description: "The destroyer's forward magazine detonates, creating one of the most photographed explosions.",
-    icon: '💥',
-    type: 'explosion',
-    coordinates: { x: 50, y: 60 },
-  },
-  {
-    time: '9:45 AM',
-    minutes: 117,
-    title: 'Attack Concludes',
-    description: 'Japanese aircraft withdraw. In 110 minutes, the Pacific Fleet has been devastated.',
-    icon: '🏁',
-    type: 'signal',
-    coordinates: { x: 50, y: 5 },
-  },
+const TIMELINE_BEATS: TimelineBeat[] = [
+  { time: "07:15", label: "Dawn patrol", wave: "None", status: "Peace", hit: 0, waves: [] },
+  { time: "07:33", label: "Radar contact · Opana", wave: "None", status: "Alert", hit: 0, waves: [] },
+  { time: "07:48", label: "First wave arrives", wave: "First", status: "Active", hit: 0, waves: ["approach"] },
+  { time: "07:55", label: "Torpedo runs begin", wave: "First", status: "Active", hit: 3, waves: ["torpedo"] },
+  { time: "08:00", label: "Dive bombers strike", wave: "First", status: "Active", hit: 5, waves: ["torpedo", "dive"] },
+  { time: "08:06", label: "Arizona explodes", wave: "First", status: "Active", hit: 6, waves: ["dive"] },
+  { time: "08:17", label: "Oklahoma capsizes", wave: "First", status: "Active", hit: 7, waves: ["dive"] },
+  { time: "08:40", label: "First wave retires", wave: "First", status: "Lull", hit: 7, waves: [] },
+  { time: "08:50", label: "Second wave arrives", wave: "Second", status: "Active", hit: 7, waves: ["approach"] },
+  { time: "09:00", label: "Nevada beached", wave: "Second", status: "Active", hit: 8, waves: ["dive"] },
+  { time: "09:30", label: "Second wave peaks", wave: "Second", status: "Active", hit: 8, waves: ["dive"] },
+  { time: "09:45", label: "Attack concludes", wave: "None", status: "Aftermath", hit: 8, waves: [] }
 ];
 
-interface MapHotspot {
-  id: string;
+// Ships on Battleship Row with their positions and hit timing
+interface Ship {
   name: string;
-  description: string;
-  casualties: number;
-  type: 'ship' | 'airfield' | 'base';
-  position: { x: number; y: number };
-  unlocksAtMinute: number; // When this hotspot becomes tappable
+  x: number;
+  y: number;
+  hitBeat: number; // Beat index when ship is hit
+  destroyed?: boolean; // Ships that were completely destroyed
 }
 
-const MAP_HOTSPOTS: MapHotspot[] = [
-  {
-    id: 'arizona',
-    name: 'USS Arizona',
-    description: 'Forward magazine explosion. Sank in 9 minutes.',
-    casualties: 1177,
-    type: 'ship',
-    position: { x: 52, y: 55 },
-    unlocksAtMinute: 22,
-  },
-  {
-    id: 'oklahoma',
-    name: 'USS Oklahoma',
-    description: 'Hit by 9 torpedoes. Capsized in 12 minutes.',
-    casualties: 429,
-    type: 'ship',
-    position: { x: 48, y: 52 },
-    unlocksAtMinute: 18,
-  },
-  {
-    id: 'west-virginia',
-    name: 'USS West Virginia',
-    description: '7 torpedoes, 2 bombs. Sank upright at moorings.',
-    casualties: 106,
-    type: 'ship',
-    position: { x: 54, y: 58 },
-    unlocksAtMinute: 7,
-  },
-  {
-    id: 'california',
-    name: 'USS California',
-    description: 'Two torpedo hits. Slowly flooded and sank.',
-    casualties: 98,
-    type: 'ship',
-    position: { x: 56, y: 62 },
-    unlocksAtMinute: 7,
-  },
-  {
-    id: 'nevada',
-    name: 'USS Nevada',
-    description: 'Only battleship to get underway during attack.',
-    casualties: 60,
-    type: 'ship',
-    position: { x: 58, y: 65 },
-    unlocksAtMinute: 66,
-  },
-  {
-    id: 'wheeler',
-    name: 'Wheeler Field',
-    description: 'Army Air Corps base. Aircraft destroyed on ground.',
-    casualties: 37,
-    type: 'airfield',
-    position: { x: 35, y: 35 },
-    unlocksAtMinute: 37,
-  },
-  {
-    id: 'hickam',
-    name: 'Hickam Field',
-    description: 'Army airfield. Heavy bombing during both waves.',
-    casualties: 121,
-    type: 'airfield',
-    position: { x: 58, y: 70 },
-    unlocksAtMinute: 7,
-  },
-  {
-    id: 'ford-island',
-    name: 'Ford Island',
-    description: 'Naval Air Station at the center of Pearl Harbor.',
-    casualties: 33,
-    type: 'base',
-    position: { x: 45, y: 45 },
-    unlocksAtMinute: 7,
-  },
+const SHIPS: Ship[] = [
+  { name: "Nevada", x: 208, y: 55, hitBeat: 9 },
+  { name: "Vestal", x: 209, y: 62, hitBeat: 5 },
+  { name: "Arizona", x: 210, y: 69, hitBeat: 5, destroyed: true },
+  { name: "W.Virginia", x: 211, y: 76, hitBeat: 3 },
+  { name: "Tennessee", x: 212, y: 83, hitBeat: 4 },
+  { name: "Oklahoma", x: 213, y: 90, hitBeat: 3, destroyed: true },
+  { name: "Maryland", x: 214, y: 97, hitBeat: 4 },
+  { name: "California", x: 215, y: 104, hitBeat: 4 }
 ];
+
+// Beat icons for the timeline (indices that have special icons)
+const BEAT_ICONS: Record<number, 'dot' | 'radar' | 'plane' | 'explosion'> = {
+  0: 'dot',      // Dawn patrol
+  1: 'radar',    // Radar contact
+  2: 'plane',    // First wave arrives
+  5: 'explosion', // Arizona explodes
+  8: 'plane',    // Second wave arrives
+  11: 'dot'      // Attack concludes
+};
 
 const COST_STATISTICS = {
   american: {
@@ -234,19 +105,18 @@ interface DamageDoneBeatProps {
 
 export function DamageDoneBeat({ host, onComplete, onSkip, onBack, isPreview = false }: DamageDoneBeatProps) {
   const [screen, setScreen] = useState<Screen>('intro');
-  const [currentMinute, setCurrentMinute] = useState(0);
-  const [viewedHotspots, setViewedHotspots] = useState<Set<string>>(new Set());
-  const [selectedHotspot, setSelectedHotspot] = useState<MapHotspot | null>(null);
+  const [currentBeat, setCurrentBeat] = useState(2); // Start at "First wave arrives"
   const [skipped, setSkipped] = useState(false);
   const [preModuleVideoConfig, setPreModuleVideoConfig] = useState<PreModuleVideoConfig | null>(null);
   const [postModuleVideoConfig, setPostModuleVideoConfig] = useState<PostModuleVideoConfig | null>(null);
   const [hasLoadedConfig, setHasLoadedConfig] = useState(false);
   const [isAutoPlaying, setIsAutoPlaying] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [hasInteracted, setHasInteracted] = useState(false);
 
   const scrubberRef = useRef<HTMLDivElement>(null);
+  const playTimerRef = useRef<NodeJS.Timeout | null>(null);
   const { saveCheckpoint, clearCheckpoint, getCheckpoint } = usePearlHarborProgress();
-  const { getMediaUrl } = useWW2ModuleAssets();
 
   // Subscribe to Firestore for pre/post-module video configs
   useEffect(() => {
@@ -283,9 +153,6 @@ export function DamageDoneBeat({ host, onComplete, onSkip, onBack, isPreview = f
     }
   }, [hasLoadedConfig, preModuleVideoConfig, isPreview]);
 
-  // Get uploaded media URLs
-  const aerialMapUrl = getMediaUrl('ph-beat-4', 'pearl-harbor-aerial-map');
-
   // Load checkpoint on mount
   useEffect(() => {
     const checkpoint = getCheckpoint();
@@ -293,11 +160,8 @@ export function DamageDoneBeat({ host, onComplete, onSkip, onBack, isPreview = f
       const savedScreen = checkpoint.screen as Screen;
       if (SCREENS.includes(savedScreen) && savedScreen !== 'completion') {
         setScreen(savedScreen);
-        if (checkpoint.state?.viewedHotspots) {
-          setViewedHotspots(new Set(checkpoint.state.viewedHotspots));
-        }
-        if (checkpoint.state?.currentMinute !== undefined) {
-          setCurrentMinute(checkpoint.state.currentMinute);
+        if (checkpoint.state?.currentBeat !== undefined) {
+          setCurrentBeat(checkpoint.state.currentBeat);
         }
       }
     }
@@ -312,24 +176,25 @@ export function DamageDoneBeat({ host, onComplete, onSkip, onBack, isPreview = f
         screenIndex: SCREENS.indexOf(screen),
         timestamp: Date.now(),
         state: {
-          viewedHotspots: Array.from(viewedHotspots),
-          currentMinute,
+          currentBeat,
         },
       });
     }
-  }, [hasLoadedConfig, screen, viewedHotspots, currentMinute, saveCheckpoint]);
+  }, [hasLoadedConfig, screen, currentBeat, saveCheckpoint]);
 
   // Auto-play timeline
   useEffect(() => {
-    if (isAutoPlaying && currentMinute < TIMELINE_DURATION) {
-      const timer = setTimeout(() => {
-        setCurrentMinute(prev => Math.min(prev + 1, TIMELINE_DURATION));
-      }, 100); // Faster playback
-      return () => clearTimeout(timer);
-    } else if (currentMinute >= TIMELINE_DURATION) {
+    if (isAutoPlaying && currentBeat < TIMELINE_BEATS.length - 1) {
+      playTimerRef.current = setTimeout(() => {
+        setCurrentBeat(prev => Math.min(prev + 1, TIMELINE_BEATS.length - 1));
+      }, 900); // Advance every 900ms
+      return () => {
+        if (playTimerRef.current) clearTimeout(playTimerRef.current);
+      };
+    } else if (currentBeat >= TIMELINE_BEATS.length - 1) {
       setIsAutoPlaying(false);
     }
-  }, [isAutoPlaying, currentMinute]);
+  }, [isAutoPlaying, currentBeat]);
 
   const nextScreen = useCallback(() => {
     const currentIndex = SCREENS.indexOf(screen);
@@ -351,70 +216,90 @@ export function DamageDoneBeat({ host, onComplete, onSkip, onBack, isPreview = f
     }
   }, [screen, skipped, clearCheckpoint, onComplete, postModuleVideoConfig]);
 
-  const handleHotspotClick = (hotspot: MapHotspot) => {
-    if (currentMinute >= hotspot.unlocksAtMinute) {
-      setSelectedHotspot(hotspot);
-      setViewedHotspots((prev) => new Set([...prev, hotspot.id]));
-    }
-  };
-
-  // Timeline scrubber handlers
-  const handleScrub = useCallback((e: React.MouseEvent | React.TouchEvent | MouseEvent | TouchEvent) => {
-    if (!scrubberRef.current) return;
+  // Convert scrubber position to beat index
+  const posToBeat = useCallback((clientX: number) => {
+    if (!scrubberRef.current) return currentBeat;
     const rect = scrubberRef.current.getBoundingClientRect();
-    const clientX = 'touches' in e ? (e as TouchEvent).touches[0].clientX : (e as MouseEvent).clientX;
-    const percent = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-    setCurrentMinute(Math.round(percent * TIMELINE_DURATION));
-    setIsAutoPlaying(false);
-  }, []);
+    const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    return Math.round(pct * (TIMELINE_BEATS.length - 1));
+  }, [currentBeat]);
+
+  const fadeHint = useCallback(() => {
+    if (!hasInteracted) setHasInteracted(true);
+  }, [hasInteracted]);
 
   const handleScrubStart = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     setIsDragging(true);
-    handleScrub(e);
-  }, [handleScrub]);
+    fadeHint();
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    setCurrentBeat(posToBeat(clientX));
+    setIsAutoPlaying(false);
+  }, [posToBeat, fadeHint]);
+
+  const handleScrubMove = useCallback((e: MouseEvent | TouchEvent) => {
+    if (!isDragging) return;
+    const clientX = 'touches' in e ? (e as TouchEvent).touches[0].clientX : (e as MouseEvent).clientX;
+    setCurrentBeat(posToBeat(clientX));
+  }, [isDragging, posToBeat]);
+
+  const handleScrubEnd = useCallback(() => {
+    setIsDragging(false);
+  }, []);
 
   // Drag event listeners for smooth scrubbing
   useEffect(() => {
     if (!isDragging) return;
 
-    const handleMove = (e: MouseEvent | TouchEvent) => {
-      handleScrub(e);
-    };
-    const handleEnd = () => setIsDragging(false);
-
-    window.addEventListener('mousemove', handleMove);
-    window.addEventListener('mouseup', handleEnd);
-    window.addEventListener('touchmove', handleMove);
-    window.addEventListener('touchend', handleEnd);
+    window.addEventListener('mousemove', handleScrubMove);
+    window.addEventListener('mouseup', handleScrubEnd);
+    window.addEventListener('touchmove', handleScrubMove, { passive: false });
+    window.addEventListener('touchend', handleScrubEnd);
 
     return () => {
-      window.removeEventListener('mousemove', handleMove);
-      window.removeEventListener('mouseup', handleEnd);
-      window.removeEventListener('touchmove', handleMove);
-      window.removeEventListener('touchend', handleEnd);
+      window.removeEventListener('mousemove', handleScrubMove);
+      window.removeEventListener('mouseup', handleScrubEnd);
+      window.removeEventListener('touchmove', handleScrubMove);
+      window.removeEventListener('touchend', handleScrubEnd);
     };
-  }, [isDragging, handleScrub]);
+  }, [isDragging, handleScrubMove, handleScrubEnd]);
 
-  // Format time from minutes
-  const formatTime = (minutes: number) => {
-    const totalMinutes = TIMELINE_START_MINUTES + minutes;
-    const hours = Math.floor(totalMinutes / 60);
-    const mins = totalMinutes % 60;
-    const period = hours >= 12 ? 'PM' : 'AM';
-    const displayHour = hours > 12 ? hours - 12 : hours;
-    return `${displayHour}:${mins.toString().padStart(2, '0')} ${period}`;
-  };
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (screen !== 'timeline-map') return;
+      if (e.key === 'ArrowLeft') {
+        fadeHint();
+        setCurrentBeat(prev => Math.max(0, prev - 1));
+      }
+      if (e.key === 'ArrowRight') {
+        fadeHint();
+        setCurrentBeat(prev => Math.min(TIMELINE_BEATS.length - 1, prev + 1));
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [screen, fadeHint]);
 
-  // Get current active events
-  const activeEvents = TIMELINE_EVENTS.filter(event => currentMinute >= event.minutes);
-  const currentEvent = TIMELINE_EVENTS.find(event =>
-    currentMinute >= event.minutes &&
-    (TIMELINE_EVENTS.indexOf(event) === TIMELINE_EVENTS.length - 1 ||
-     currentMinute < TIMELINE_EVENTS[TIMELINE_EVENTS.indexOf(event) + 1]?.minutes)
-  );
+  // Handle auto-play toggle
+  const toggleAutoPlay = useCallback(() => {
+    fadeHint();
+    setIsAutoPlaying(prev => {
+      if (!prev && currentBeat >= TIMELINE_BEATS.length - 1) {
+        setCurrentBeat(0);
+      }
+      return !prev;
+    });
+  }, [fadeHint, currentBeat]);
 
-  // Get available hotspots
-  const availableHotspots = MAP_HOTSPOTS.filter(h => currentMinute >= h.unlocksAtMinute);
+  // Handle reset
+  const handleReset = useCallback(() => {
+    setIsAutoPlaying(false);
+    if (playTimerRef.current) clearTimeout(playTimerRef.current);
+    setCurrentBeat(0);
+  }, []);
+
+  // Get current beat data
+  const beat = TIMELINE_BEATS[currentBeat];
 
   return (
     <div className="fixed inset-0 z-[60] pt-safe bg-gradient-to-b from-slate-900 via-slate-950 to-black flex flex-col">
@@ -479,245 +364,308 @@ export function DamageDoneBeat({ host, onComplete, onSkip, onBack, isPreview = f
             </motion.div>
           )}
 
-          {/* TIMELINE-MAP */}
+          {/* TIMELINE-MAP - New scrubber design */}
           {screen === 'timeline-map' && (
-            <motion.div key="timeline-map" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full p-4">
-              {/* Current time display */}
-              <div className="text-center mb-3">
-                <motion.div
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/20 border border-amber-500/30"
-                  animate={{ scale: isAutoPlaying ? [1, 1.02, 1] : 1 }}
-                  transition={{ duration: 0.5, repeat: Infinity }}
-                >
-                  <Clock size={16} className="text-amber-400" />
-                  <span className="text-amber-400 font-mono font-bold text-lg">{formatTime(currentMinute)}</span>
-                </motion.div>
+            <motion.div key="timeline-map" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full">
+              {/* Header with beat counter and time */}
+              <div className="px-4 py-3 text-center border-b border-white/10">
+                <div className="text-[11px] tracking-[0.28em] text-slate-400 uppercase font-serif">
+                  Damage done · <span>Beat {currentBeat + 1} of 12</span>
+                </div>
+                <div className="text-[28px] font-medium text-amber-50 mt-0.5 leading-none tracking-tight font-serif">
+                  {beat.time}
+                </div>
+                <div className="text-xs text-amber-500 mt-1.5 tracking-[0.08em] uppercase">
+                  {beat.label}
+                </div>
               </div>
 
-              {/* Current event card */}
-              <AnimatePresence mode="wait">
-                {currentEvent && (
-                  <motion.div
-                    key={currentEvent.time}
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 10 }}
-                    className="bg-white/5 rounded-xl p-3 mb-3 border border-white/10"
-                  >
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xl">{currentEvent.icon}</span>
-                      <span className="text-amber-400 font-mono text-sm">{currentEvent.time}</span>
-                      <span className="text-white font-bold">{currentEvent.title}</span>
-                    </div>
-                    <p className="text-white/60 text-sm">{currentEvent.description}</p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              {/* SVG Harbor Map */}
+              <div className="mx-3.5 my-1.5 bg-slate-950/80 rounded-xl border border-white/5 p-2">
+                <svg viewBox="0 0 320 160" className="w-full block" role="img">
+                  <title>Battleship Row during the attack</title>
 
-              {/* Map with hotspots and event markers */}
-              <div className="relative flex-1 bg-blue-900/30 rounded-2xl border border-white/10 overflow-hidden mb-3">
-                {aerialMapUrl ? (
-                  <img
-                    src={aerialMapUrl}
-                    alt="Pearl Harbor aerial map"
-                    className="absolute inset-0 w-full h-full object-cover"
-                  />
-                ) : (
-                  <>
-                    <div className="absolute inset-0 bg-gradient-to-b from-blue-800/20 to-blue-900/40" />
-                    <div className="absolute top-[40%] left-[40%] w-[25%] h-[30%] bg-green-800/50 rounded-full transform -rotate-12" />
-                    <div className="absolute top-[35%] left-[42%] text-white/60 text-xs">Ford Island</div>
-                    <div className="absolute top-[50%] left-[52%] text-amber-400 text-xs font-bold">Battleship Row</div>
-                  </>
-                )}
+                  {/* Ocean background */}
+                  <rect width="320" height="160" fill="#0F1F3A"/>
 
-                {/* Event markers on map */}
-                {activeEvents.map((event, index) => (
-                  <motion.div
-                    key={event.time}
-                    initial={{ scale: 0, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    className="absolute -translate-x-1/2 -translate-y-1/2"
-                    style={{ left: `${event.coordinates.x}%`, top: `${event.coordinates.y}%` }}
-                  >
-                    {event.type === 'explosion' && (
-                      <motion.div
-                        className="w-6 h-6 rounded-full bg-red-500/50 flex items-center justify-center"
-                        animate={{ scale: [1, 1.3, 1], opacity: [1, 0.5, 1] }}
-                        transition={{ duration: 1.5, repeat: Infinity }}
-                      >
-                        <span className="text-xs">💥</span>
-                      </motion.div>
-                    )}
-                    {event.type === 'wave' && (
-                      <motion.div
-                        className="text-lg"
-                        animate={{ y: [0, -3, 0] }}
-                        transition={{ duration: 2, repeat: Infinity }}
-                      >
-                        ✈️
-                      </motion.div>
-                    )}
-                    {event.type === 'damage' && (
-                      <motion.div
-                        className="w-4 h-4 rounded-full bg-orange-500/70"
-                        animate={{ opacity: [0.5, 1, 0.5] }}
-                        transition={{ duration: 1, repeat: Infinity }}
-                      />
-                    )}
-                  </motion.div>
-                ))}
+                  {/* Land masses */}
+                  <path d="M 0,100 L 50,95 L 75,70 L 110,78 L 120,95 L 100,115 L 60,130 L 20,135 L 0,130 Z" fill="#2a3a2a" opacity="0.5"/>
+                  <path d="M 260,20 L 240,30 L 230,55 L 245,85 L 280,95 L 320,90 L 320,20 Z" fill="#2a3a2a" opacity="0.5"/>
+                  <path d="M 150,125 L 200,130 L 250,135 L 320,140 L 320,160 L 120,160 L 135,145 Z" fill="#2a3a2a" opacity="0.5"/>
 
-                {/* Hotspots */}
-                {MAP_HOTSPOTS.map((hotspot) => {
-                  const isAvailable = currentMinute >= hotspot.unlocksAtMinute;
-                  const isViewed = viewedHotspots.has(hotspot.id);
+                  {/* Ford Island */}
+                  <ellipse cx="165" cy="80" rx="40" ry="14" fill="#3d5a3d" stroke="#5a7a5a" strokeWidth="0.5"/>
+                  <text x="165" y="83" textAnchor="middle" fontFamily="Georgia, serif" fontSize="9" fill="#a8c0a8" fontStyle="italic">Ford Island</text>
 
-                  if (!isAvailable) return null;
+                  {/* Ships on Battleship Row */}
+                  {SHIPS.map((ship) => {
+                    const isHit = currentBeat >= ship.hitBeat;
+                    const isSunk = ship.destroyed && currentBeat >= ship.hitBeat + 2;
+                    const fill = isSunk ? '#3a2020' : isHit ? '#C03030' : '#8a9cb0';
+                    const opacity = isSunk ? 0.5 : 1;
 
-                  return (
-                    <motion.button
-                      key={hotspot.id}
-                      onClick={() => handleHotspotClick(hotspot)}
-                      className="absolute -translate-x-1/2 -translate-y-1/2"
-                      style={{ left: `${hotspot.position.x}%`, top: `${hotspot.position.y}%` }}
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                    >
-                      {!isViewed && (
-                        <motion.div
-                          className="absolute inset-[-6px] rounded-full border-2 border-amber-400"
-                          animate={{ scale: [1, 1.4, 1], opacity: [0.6, 0, 0.6] }}
-                          transition={{ duration: 2, repeat: Infinity }}
+                    return (
+                      <g key={ship.name}>
+                        <rect
+                          x={ship.x}
+                          y={ship.y}
+                          width="11"
+                          height="4"
+                          rx="1"
+                          fill={fill}
+                          opacity={opacity}
+                          transform={`rotate(-8 ${ship.x + 5} ${ship.y + 2})`}
                         />
-                      )}
-                      <div
-                        className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold shadow-lg ${
-                          isViewed ? 'bg-green-500' : 'bg-amber-500'
-                        }`}
-                      >
-                        {isViewed ? '✓' : <MapPin size={12} />}
-                      </div>
-                    </motion.button>
-                  );
-                })}
+                        {isHit && !isSunk && (
+                          <circle cx={ship.x + 8} cy={ship.y + 2} r="3.5" fill="#F4B740" opacity="0.5">
+                            <animate attributeName="opacity" values="0.3;0.7;0.3" dur="1.2s" repeatCount="indefinite"/>
+                          </circle>
+                        )}
+                      </g>
+                    );
+                  })}
+
+                  {/* Smoke from hit ships */}
+                  {SHIPS.filter(s => currentBeat >= s.hitBeat).map((ship) => {
+                    const age = currentBeat - ship.hitBeat;
+                    const plumeSize = Math.min(2 + age * 0.8, 5);
+                    return (
+                      <g key={`smoke-${ship.name}`}>
+                        <circle cx={ship.x + 6} cy={ship.y - 3 - age} r={plumeSize} fill="#4a4a4a" opacity="0.4"/>
+                        <circle cx={ship.x + 8} cy={ship.y - 7 - age * 1.5} r={plumeSize * 0.8} fill="#3a3a3a" opacity="0.3"/>
+                      </g>
+                    );
+                  })}
+
+                  {/* Attack wave animations */}
+                  {beat.waves.includes('approach') && (
+                    <g stroke="#F4B740" strokeWidth="1" fill="none" strokeDasharray="3,3" opacity="0.7">
+                      <path d="M 305 10 Q 260 40 220 70">
+                        <animate attributeName="stroke-dashoffset" from="0" to="-12" dur="0.8s" repeatCount="indefinite"/>
+                      </path>
+                    </g>
+                  )}
+                  {beat.waves.includes('torpedo') && (
+                    <g stroke="#F4B740" strokeWidth="1.2" fill="none" opacity="0.8">
+                      <path d="M 260 70 L 225 78" strokeDasharray="2,2">
+                        <animate attributeName="stroke-dashoffset" from="0" to="-8" dur="0.5s" repeatCount="indefinite"/>
+                      </path>
+                      <path d="M 260 85 L 225 92" strokeDasharray="2,2">
+                        <animate attributeName="stroke-dashoffset" from="0" to="-8" dur="0.6s" repeatCount="indefinite"/>
+                      </path>
+                    </g>
+                  )}
+                  {beat.waves.includes('dive') && (
+                    <g stroke="#C03030" strokeWidth="1" fill="none" opacity="0.7">
+                      <path d="M 220 20 L 215 65" strokeDasharray="3,2"/>
+                      <path d="M 235 25 L 220 75" strokeDasharray="3,2"/>
+                    </g>
+                  )}
+
+                  {/* Compass */}
+                  <g transform="translate(15, 140)">
+                    <text x="0" y="0" fontFamily="system-ui, sans-serif" fontSize="8" fill="#7a8ca5" letterSpacing="0.1em">N</text>
+                    <path d="M 3 -3 L 3 -12 M 0 -9 L 3 -13 L 6 -9" stroke="#7a8ca5" strokeWidth="0.8" fill="none"/>
+                  </g>
+                </svg>
               </div>
 
-              {/* Timeline scrubber - Redesigned for better UX */}
-              <div className="mb-4">
-                {/* Scrubber track with large touch area */}
+              {/* Stats Section */}
+              <div className="px-4 py-3 grid grid-cols-3 gap-2.5">
+                <div>
+                  <div className="text-xl font-medium text-amber-50 leading-none font-serif">
+                    <span>{beat.hit}</span> <span className="text-[11px] text-slate-500">/ 8</span>
+                  </div>
+                  <div className="text-[11px] text-slate-400 tracking-[0.08em] uppercase mt-1">Ships hit</div>
+                </div>
+                <div>
+                  <div className="text-xl font-medium text-amber-50 leading-none font-serif">{beat.wave}</div>
+                  <div className="text-[11px] text-slate-400 tracking-[0.08em] uppercase mt-1">Wave</div>
+                </div>
+                <div>
+                  <div className={`text-xl font-medium leading-none font-serif ${
+                    beat.status === 'Active' ? 'text-red-500' :
+                    beat.status === 'Lull' ? 'text-amber-500' :
+                    beat.status === 'Aftermath' ? 'text-slate-400' : 'text-amber-50'
+                  }`}>{beat.status}</div>
+                  <div className="text-[11px] text-slate-400 tracking-[0.08em] uppercase mt-1">Status</div>
+                </div>
+              </div>
+
+              {/* Scrubber Section */}
+              <div className="px-5 pt-3.5 pb-1.5 border-t border-white/10 relative">
+                {/* Preview bubble */}
+                <motion.div
+                  className="absolute top-0 px-2.5 py-1.5 bg-amber-500 text-slate-900 rounded-md text-[11px] font-medium whitespace-nowrap pointer-events-none z-10"
+                  style={{
+                    left: `${(currentBeat / (TIMELINE_BEATS.length - 1)) * 100}%`,
+                    transform: 'translateX(-50%)'
+                  }}
+                >
+                  {beat.time} · {beat.label}
+                  <div className="absolute bottom-[-4px] left-1/2 -translate-x-1/2 rotate-45 w-2 h-2 bg-amber-500" />
+                </motion.div>
+
+                <div className="h-5" /> {/* Spacer for bubble */}
+
+                {/* Beat icons row */}
+                <div className="relative h-6 flex justify-between items-center mb-1 px-0.5">
+                  {TIMELINE_BEATS.map((_, i) => {
+                    const iconType = BEAT_ICONS[i];
+                    return (
+                      <div key={i} className="w-3.5 h-3.5 flex items-center justify-center">
+                        {iconType === 'dot' && (
+                          <div className="w-1 h-1 rounded-full bg-slate-500" />
+                        )}
+                        {iconType === 'radar' && (
+                          <svg width="11" height="11" viewBox="0 0 16 16">
+                            <circle cx="8" cy="8" r="5" fill="none" stroke="#7a8ca5" strokeWidth="1"/>
+                            <circle cx="8" cy="8" r="2" fill="#7a8ca5"/>
+                          </svg>
+                        )}
+                        {iconType === 'plane' && (
+                          <svg width="12" height="12" viewBox="0 0 24 24">
+                            <path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" fill="#F4B740"/>
+                          </svg>
+                        )}
+                        {iconType === 'explosion' && (
+                          <svg width="12" height="12" viewBox="0 0 24 24">
+                            <path d="M12 2 l2 6 l6 0 l-5 4 l2 6 l-5 -4 l-5 4 l2 -6 l-5 -4 l6 0 z" fill="#C03030"/>
+                          </svg>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Scrubber rail */}
                 <div
                   ref={scrubberRef}
-                  onClick={handleScrub}
                   onMouseDown={handleScrubStart}
                   onTouchStart={handleScrubStart}
-                  className="relative h-12 flex items-center cursor-pointer select-none"
+                  className="relative h-9 cursor-grab select-none touch-none"
+                  style={{ userSelect: 'none' }}
                 >
-                  {/* Track background */}
-                  <div className="absolute inset-x-0 h-2 bg-white/10 rounded-full" />
+                  {/* Track background with gradient showing attack intensity */}
+                  <div
+                    className="absolute top-3.5 left-0 right-0 h-2 rounded-full opacity-40"
+                    style={{ background: 'linear-gradient(to right, #2a3a55 0%, #2a3a55 18%, #8a6a1a 28%, #C03030 45%, #C03030 60%, #8a6a1a 75%, #2a3a55 92%, #2a3a55 100%)' }}
+                  />
 
-                  {/* Progress fill with glow */}
+                  {/* Played portion */}
                   <motion.div
-                    className="absolute left-0 h-2 bg-gradient-to-r from-amber-500 to-red-500 rounded-full"
+                    className="absolute top-3.5 left-0 h-2 rounded-full"
                     style={{
-                      width: `${(currentMinute / TIMELINE_DURATION) * 100}%`,
-                      boxShadow: '0 0 12px rgba(245, 158, 11, 0.4)'
+                      width: `${(currentBeat / (TIMELINE_BEATS.length - 1)) * 100}%`,
+                      background: 'linear-gradient(to right, #F4B740 0%, #F4B740 75%, #ff9a3c 100%)',
+                      boxShadow: '0 0 12px rgba(244,183,64,0.4)'
                     }}
                   />
 
-                  {/* Event markers - larger and more visible */}
-                  {TIMELINE_EVENTS.map((event) => (
-                    <div
-                      key={event.time}
-                      className={`absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full border-2 transition-all duration-200 ${
-                        currentMinute >= event.minutes
-                          ? 'bg-white border-white scale-100'
-                          : 'bg-transparent border-white/40 scale-75'
-                      }`}
-                      style={{ left: `${(event.minutes / TIMELINE_DURATION) * 100}%`, transform: 'translate(-50%, -50%)' }}
-                    />
-                  ))}
+                  {/* Beat notches */}
+                  <div className="absolute top-3.5 left-0 right-0 h-2 flex justify-between px-0.5">
+                    {TIMELINE_BEATS.map((_, i) => (
+                      <div
+                        key={i}
+                        className={`w-px h-2 ${i <= currentBeat ? 'bg-white/45' : 'bg-white/20'}`}
+                      />
+                    ))}
+                  </div>
 
-                  {/* Draggable thumb with pulse animation */}
+                  {/* Draggable thumb */}
                   <motion.div
-                    className="absolute top-1/2 w-6 h-6 bg-white rounded-full shadow-lg border-2 border-amber-500 z-10 pointer-events-none"
+                    className={`absolute top-0.5 w-8 h-8 rounded-full bg-amber-50 border-2 border-amber-500 flex items-center justify-center shadow-lg ${isDragging ? 'cursor-grabbing scale-110' : 'cursor-grab'}`}
                     style={{
-                      left: `${(currentMinute / TIMELINE_DURATION) * 100}%`,
-                      transform: 'translate(-50%, -50%)'
+                      left: `calc(${(currentBeat / (TIMELINE_BEATS.length - 1)) * 100}% - 16px)`,
+                      boxShadow: isDragging
+                        ? '0 4px 16px rgba(0,0,0,0.6), 0 0 0 6px rgba(244,183,64,0.2)'
+                        : '0 2px 8px rgba(0,0,0,0.4)'
                     }}
-                    animate={!isDragging ? { scale: [1, 1.15, 1] } : { scale: 1.1 }}
-                    transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-                  />
+                    animate={!isDragging && !hasInteracted ? {
+                      boxShadow: [
+                        '0 2px 8px rgba(0,0,0,0.4), 0 0 0 0 rgba(244,183,64,0.5)',
+                        '0 2px 8px rgba(0,0,0,0.4), 0 0 0 8px rgba(244,183,64,0)',
+                        '0 2px 8px rgba(0,0,0,0.4), 0 0 0 0 rgba(244,183,64,0.5)'
+                      ]
+                    } : {}}
+                    transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
+                  >
+                    <div className="flex gap-0.5">
+                      <div className="w-0.5 h-3 bg-slate-900 rounded-sm" />
+                      <div className="w-0.5 h-3 bg-slate-900 rounded-sm" />
+                      <div className="w-0.5 h-3 bg-slate-900 rounded-sm" />
+                    </div>
+                  </motion.div>
                 </div>
 
-                {/* Time labels - larger and clearer */}
-                <div className="flex justify-between text-white/50 text-xs font-medium px-1 mt-1">
-                  <span>7:48 AM</span>
-                  <span>8:15</span>
-                  <span>8:45</span>
-                  <span>9:15</span>
-                  <span>9:45 AM</span>
+                {/* Time labels */}
+                <div className="flex justify-between mt-1 px-0.5 font-mono text-[11px] text-slate-400">
+                  <span>7:15</span>
+                  <span className="pl-[28%]">7:55</span>
+                  <span>8:17</span>
+                  <span>9:00</span>
+                  <span>9:45</span>
+                </div>
+
+                {/* Hint row */}
+                <div
+                  className={`flex justify-between items-center mt-2.5 text-[11px] text-slate-400 transition-opacity duration-500 ${hasInteracted ? 'opacity-35' : 'opacity-100'}`}
+                >
+                  <span className="flex items-center gap-1.5">
+                    <motion.span
+                      animate={!hasInteracted ? { x: [0, 8, 0] } : {}}
+                      transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+                    >
+                      👆
+                    </motion.span>
+                    <span>Drag to scrub through the attack</span>
+                  </span>
+                  <span className="font-mono text-[10px] opacity-70">← → keys</span>
                 </div>
               </div>
 
-              {/* Auto-play / Progress */}
-              <div className="flex items-center justify-between mb-3">
+              {/* Control buttons */}
+              <div className="px-4 py-2 flex gap-2">
                 <button
-                  onClick={() => setIsAutoPlaying(!isAutoPlaying)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    isAutoPlaying
-                      ? 'bg-red-500/20 text-red-400 border border-red-500/30'
-                      : 'bg-white/10 text-white/70 border border-white/20'
+                  onClick={toggleAutoPlay}
+                  className="flex items-center gap-2 px-3.5 py-2.5 rounded-full text-xs bg-amber-500/15 border border-amber-500/30 text-amber-500 transition-colors hover:bg-amber-500/25"
+                >
+                  {isAutoPlaying ? (
+                    <>
+                      <span className="w-2 h-2.5 border-l-[3px] border-r-[3px] border-amber-500" />
+                      <span>Pause</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="w-0 h-0 border-l-[7px] border-l-amber-500 border-y-[5px] border-y-transparent" />
+                      <span>Auto-play</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={handleReset}
+                  className="px-3.5 py-2.5 rounded-full text-xs bg-white/5 border border-white/10 text-slate-300 transition-colors hover:bg-white/10"
+                >
+                  ↺ Reset
+                </button>
+              </div>
+
+              {/* Continue button */}
+              <div className="px-4 pb-4 mt-auto" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
+                <button
+                  onClick={nextScreen}
+                  disabled={currentBeat < 8}
+                  className={`w-full py-4 font-bold rounded-xl transition-colors flex items-center justify-center gap-2 ${
+                    currentBeat >= 8
+                      ? 'bg-amber-500 hover:bg-amber-400 text-black'
+                      : 'bg-white/10 text-white/30'
                   }`}
                 >
-                  {isAutoPlaying ? 'Pause' : 'Auto-Play'}
+                  {currentBeat < 8 ? 'Scrub through the attack to continue' : (
+                    <>See the Full Cost <ChevronRight size={18} /></>
+                  )}
                 </button>
-                <div className="text-white/40 text-sm">
-                  {viewedHotspots.size}/{MAP_HOTSPOTS.length} locations explored
-                </div>
               </div>
-
-              {/* Hotspot detail modal */}
-              <AnimatePresence>
-                {selectedHotspot && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 50 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 50 }}
-                    className="absolute bottom-24 left-4 right-4 bg-gradient-to-b from-slate-800 to-slate-900 rounded-2xl p-5 border border-white/20 shadow-2xl z-20"
-                  >
-                    <button
-                      onClick={() => setSelectedHotspot(null)}
-                      className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/60 hover:text-white"
-                    >
-                      ✕
-                    </button>
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-lg">
-                        {selectedHotspot.type === 'ship' ? '🚢' : selectedHotspot.type === 'airfield' ? '✈️' : '🏛️'}
-                      </span>
-                      <h4 className="text-white font-bold text-lg">{selectedHotspot.name}</h4>
-                    </div>
-                    <p className="text-white/70 text-sm mb-3">{selectedHotspot.description}</p>
-                    <p className="text-red-400 font-bold text-xl">{selectedHotspot.casualties.toLocaleString()} killed</p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Continue button - allow progress after 75% scrub or any hotspot interaction */}
-              <button
-                onClick={nextScreen}
-                disabled={currentMinute < TIMELINE_DURATION * 0.75 && viewedHotspots.size === 0}
-                className={`w-full py-4 font-bold rounded-xl transition-colors ${
-                  currentMinute >= TIMELINE_DURATION * 0.75 || viewedHotspots.size > 0
-                    ? 'bg-amber-500 hover:bg-amber-400 text-black'
-                    : 'bg-white/10 text-white/30'
-                }`}
-              >
-                {currentMinute < TIMELINE_DURATION * 0.75 && viewedHotspots.size === 0
-                  ? 'Scrub through the timeline to continue'
-                  : 'See the Full Cost'}
-              </button>
             </motion.div>
           )}
 
