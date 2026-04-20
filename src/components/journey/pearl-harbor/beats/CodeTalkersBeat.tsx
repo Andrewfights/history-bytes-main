@@ -194,9 +194,9 @@ export function CodeTalkersBeat({ host, onComplete, onSkip, onBack, isPreview = 
     }
   }, []);
 
-  // Save checkpoint on screen change
+  // Save checkpoint on screen change - only after config is loaded
   useEffect(() => {
-    if (screen !== 'completion') {
+    if (hasLoadedConfig && screen !== 'completion') {
       saveCheckpoint({
         lessonId: LESSON_DATA.id,
         screen,
@@ -205,7 +205,7 @@ export function CodeTalkersBeat({ host, onComplete, onSkip, onBack, isPreview = 
         state: { wordsLearned: Array.from(wordsLearned), currentWordIndex },
       });
     }
-  }, [screen, saveCheckpoint, wordsLearned, currentWordIndex]);
+  }, [hasLoadedConfig, screen, saveCheckpoint, wordsLearned, currentWordIndex]);
 
   // Subscribe to Firestore for assets
   useEffect(() => {

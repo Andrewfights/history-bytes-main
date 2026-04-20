@@ -133,9 +133,9 @@ export function MidModuleTestBeat({ host, onComplete, onSkip, onBack, isPreview 
     }
   }, []);
 
-  // Save checkpoint on screen change
+  // Save checkpoint on screen change - only after config is loaded to avoid race condition
   useEffect(() => {
-    if (screen !== 'completion') {
+    if (hasLoadedConfig && screen !== 'completion') {
       saveCheckpoint({
         lessonId: LESSON_DATA.id,
         screen,
@@ -147,7 +147,7 @@ export function MidModuleTestBeat({ host, onComplete, onSkip, onBack, isPreview 
         },
       });
     }
-  }, [screen, currentQuestion, score, saveCheckpoint]);
+  }, [hasLoadedConfig, screen, currentQuestion, score, saveCheckpoint]);
 
   // Subscribe to Firestore for pre/post-module video configs
   useEffect(() => {

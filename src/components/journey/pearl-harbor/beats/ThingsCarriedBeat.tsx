@@ -186,9 +186,9 @@ export function ThingsCarriedBeat({ host, onComplete, onSkip, onBack, isPreview 
     }
   }, []);
 
-  // Save checkpoint on screen change
+  // Save checkpoint on screen change - only after config is loaded
   useEffect(() => {
-    if (screen !== 'completion') {
+    if (hasLoadedConfig && screen !== 'completion') {
       saveCheckpoint({
         lessonId: LESSON_DATA.id,
         screen,
@@ -197,7 +197,7 @@ export function ThingsCarriedBeat({ host, onComplete, onSkip, onBack, isPreview 
         state: { viewedArtifacts: Array.from(viewedArtifacts), currentArtifactIndex },
       });
     }
-  }, [screen, saveCheckpoint, viewedArtifacts, currentArtifactIndex]);
+  }, [hasLoadedConfig, screen, saveCheckpoint, viewedArtifacts, currentArtifactIndex]);
 
   // Subscribe to Firestore for assets
   useEffect(() => {

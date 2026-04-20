@@ -303,9 +303,9 @@ export function DamageDoneBeat({ host, onComplete, onSkip, onBack, isPreview = f
     }
   }, []);
 
-  // Save checkpoint on screen/state change
+  // Save checkpoint on screen/state change - only after config is loaded to avoid race condition
   useEffect(() => {
-    if (screen !== 'completion') {
+    if (hasLoadedConfig && screen !== 'completion') {
       saveCheckpoint({
         lessonId: LESSON_DATA.id,
         screen,
@@ -317,7 +317,7 @@ export function DamageDoneBeat({ host, onComplete, onSkip, onBack, isPreview = f
         },
       });
     }
-  }, [screen, viewedHotspots, currentMinute, saveCheckpoint]);
+  }, [hasLoadedConfig, screen, viewedHotspots, currentMinute, saveCheckpoint]);
 
   // Auto-play timeline
   useEffect(() => {

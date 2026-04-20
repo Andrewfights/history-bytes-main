@@ -239,9 +239,9 @@ export function RoadToWarBeat({ host, onComplete, onSkip, onBack, isPreview = fa
     }
   }, []);
 
-  // Save checkpoint on screen change
+  // Save checkpoint on screen change - only after config is loaded to avoid race condition
   useEffect(() => {
-    if (screen !== 'completion') {
+    if (hasLoadedConfig && screen !== 'completion') {
       saveCheckpoint({
         lessonId: LESSON_DATA.id,
         screen,

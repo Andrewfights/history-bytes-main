@@ -230,7 +230,7 @@ export function ToraToraToraBeat({ host, onComplete, onSkip, onBack, isPreview =
   }, []);
 
   useEffect(() => {
-    if (screen !== 'completion') {
+    if (hasLoadedConfig && screen !== 'completion') {
       saveCheckpoint({
         lessonId: LESSON_DATA.id,
         screen,
@@ -242,7 +242,7 @@ export function ToraToraToraBeat({ host, onComplete, onSkip, onBack, isPreview =
         },
       });
     }
-  }, [screen, viewedHotspots, currentEventIndex, saveCheckpoint]);
+  }, [hasLoadedConfig, screen, viewedHotspots, currentEventIndex, saveCheckpoint]);
 
   const nextScreen = useCallback(() => {
     const currentIndex = SCREENS.indexOf(screen);

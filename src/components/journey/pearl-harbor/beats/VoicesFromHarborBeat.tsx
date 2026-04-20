@@ -192,8 +192,9 @@ export function VoicesFromHarborBeat({ host, onComplete, onSkip, onBack, isPrevi
     }
   }, []);
 
+  // Save checkpoint - only after config is loaded to avoid race condition
   useEffect(() => {
-    if (screen !== 'completion') {
+    if (hasLoadedConfig && screen !== 'completion') {
       saveCheckpoint({
         lessonId: LESSON_DATA.id,
         screen,
@@ -202,7 +203,7 @@ export function VoicesFromHarborBeat({ host, onComplete, onSkip, onBack, isPrevi
         state: { quizAnswers },
       });
     }
-  }, [screen, quizAnswers, saveCheckpoint]);
+  }, [hasLoadedConfig, screen, quizAnswers, saveCheckpoint]);
 
   // Subscribe to Firestore for pre-module video config
   useEffect(() => {

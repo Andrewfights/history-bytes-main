@@ -105,7 +105,7 @@ export function DayOfInfamyBeat({ host, onComplete, onSkip, onBack, isPreview = 
   }, []);
 
   useEffect(() => {
-    if (screen !== 'completion') {
+    if (hasLoadedConfig && screen !== 'completion') {
       saveCheckpoint({
         lessonId: LESSON_DATA.id,
         screen,
@@ -114,7 +114,7 @@ export function DayOfInfamyBeat({ host, onComplete, onSkip, onBack, isPreview = 
         state: {},
       });
     }
-  }, [screen, saveCheckpoint]);
+  }, [hasLoadedConfig, screen, saveCheckpoint]);
 
   // Subscribe to Firestore for pre-module video config
   useEffect(() => {

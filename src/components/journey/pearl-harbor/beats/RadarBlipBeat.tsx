@@ -183,9 +183,9 @@ export function RadarBlipBeat({ host, onComplete, onSkip, onBack, isPreview = fa
     }
   }, []);
 
-  // Save checkpoint
+  // Save checkpoint - only after config is loaded to avoid race condition
   useEffect(() => {
-    if (screen !== 'completion') {
+    if (hasLoadedConfig && screen !== 'completion') {
       saveCheckpoint({
         lessonId: LESSON_DATA.id,
         screen,
@@ -194,7 +194,7 @@ export function RadarBlipBeat({ host, onComplete, onSkip, onBack, isPreview = fa
         state: { selectedDecision },
       });
     }
-  }, [screen, selectedDecision, saveCheckpoint]);
+  }, [hasLoadedConfig, screen, selectedDecision, saveCheckpoint]);
 
   const nextScreen = useCallback(() => {
     const currentIndex = SCREENS.indexOf(screen);

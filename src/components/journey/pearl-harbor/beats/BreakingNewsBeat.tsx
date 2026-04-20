@@ -166,8 +166,9 @@ export function BreakingNewsBeat({ host, onComplete, onSkip, onBack, isPreview =
     }
   }, []);
 
+  // Save checkpoint - only after config is loaded to avoid race condition
   useEffect(() => {
-    if (screen !== 'completion') {
+    if (hasLoadedConfig && screen !== 'completion') {
       saveCheckpoint({
         lessonId: LESSON_DATA.id,
         screen,
@@ -178,7 +179,7 @@ export function BreakingNewsBeat({ host, onComplete, onSkip, onBack, isPreview =
         },
       });
     }
-  }, [screen, stationsListened, saveCheckpoint]);
+  }, [hasLoadedConfig, screen, stationsListened, saveCheckpoint]);
 
   // Subscribe to Firestore for pre-module video config
   useEffect(() => {

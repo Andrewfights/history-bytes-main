@@ -134,7 +134,7 @@ export function NagumoDilemmaBeat({ host, onComplete, onSkip, onBack, isPreview 
   }, []);
 
   useEffect(() => {
-    if (screen !== 'completion') {
+    if (hasLoadedConfig && screen !== 'completion') {
       saveCheckpoint({
         lessonId: LESSON_DATA.id,
         screen,
@@ -143,7 +143,7 @@ export function NagumoDilemmaBeat({ host, onComplete, onSkip, onBack, isPreview 
         state: { selectedDecision },
       });
     }
-  }, [screen, selectedDecision, saveCheckpoint]);
+  }, [hasLoadedConfig, screen, selectedDecision, saveCheckpoint]);
 
   // Subscribe to Firestore for pre-module and post-module video config
   useEffect(() => {

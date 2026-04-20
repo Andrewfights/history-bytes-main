@@ -113,7 +113,7 @@ export function ArsenalDemocracyBeat({ host, onComplete, onSkip, onBack, isPrevi
   }, []);
 
   useEffect(() => {
-    if (screen !== 'completion') {
+    if (hasLoadedConfig && screen !== 'completion') {
       saveCheckpoint({
         lessonId: LESSON_DATA.id,
         screen,
@@ -122,7 +122,7 @@ export function ArsenalDemocracyBeat({ host, onComplete, onSkip, onBack, isPrevi
         state: {},
       });
     }
-  }, [screen, saveCheckpoint]);
+  }, [hasLoadedConfig, screen, saveCheckpoint]);
 
   // Subscribe to Firestore for pre/post-module video configs
   useEffect(() => {

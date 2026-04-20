@@ -124,9 +124,9 @@ export function FactOrMythBeat({ host, onComplete, onSkip, onBack, isPreview = f
     }
   }, []);
 
-  // Save checkpoint on screen change
+  // Save checkpoint on screen change - only after config is loaded
   useEffect(() => {
-    if (screen !== 'completion') {
+    if (hasLoadedConfig && screen !== 'completion') {
       saveCheckpoint({
         lessonId: LESSON_DATA.id,
         screen,
@@ -137,7 +137,7 @@ export function FactOrMythBeat({ host, onComplete, onSkip, onBack, isPreview = f
         },
       });
     }
-  }, [screen, finalScore, saveCheckpoint]);
+  }, [hasLoadedConfig, screen, finalScore, saveCheckpoint]);
 
   // Subscribe to Firestore for pre/post-module video configs
   useEffect(() => {

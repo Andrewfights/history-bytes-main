@@ -196,9 +196,9 @@ export function LettersHomeBeat({ host, onComplete, onSkip, onBack, isPreview = 
     }
   }, []);
 
-  // Save checkpoint on screen change
+  // Save checkpoint on screen change - only after config is loaded
   useEffect(() => {
-    if (screen !== 'completion') {
+    if (hasLoadedConfig && screen !== 'completion') {
       saveCheckpoint({
         lessonId: LESSON_DATA.id,
         screen,
@@ -207,7 +207,7 @@ export function LettersHomeBeat({ host, onComplete, onSkip, onBack, isPreview = 
         state: { lettersRead: Array.from(lettersRead) },
       });
     }
-  }, [screen, saveCheckpoint, lettersRead]);
+  }, [hasLoadedConfig, screen, saveCheckpoint, lettersRead]);
 
   // Subscribe to Firestore for assets
   useEffect(() => {

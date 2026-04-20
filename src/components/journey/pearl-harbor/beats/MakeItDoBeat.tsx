@@ -138,9 +138,9 @@ export function MakeItDoBeat({ host, onComplete, onSkip, onBack, isPreview = fal
     }
   }, []);
 
-  // Save checkpoint on screen change
+  // Save checkpoint on screen change - only after config is loaded
   useEffect(() => {
-    if (screen !== 'completion') {
+    if (hasLoadedConfig && screen !== 'completion') {
       saveCheckpoint({
         lessonId: LESSON_DATA.id,
         screen,
@@ -149,7 +149,7 @@ export function MakeItDoBeat({ host, onComplete, onSkip, onBack, isPreview = fal
         state: {},
       });
     }
-  }, [screen, saveCheckpoint]);
+  }, [hasLoadedConfig, screen, saveCheckpoint]);
 
   // Subscribe to Firestore for video configs
   useEffect(() => {

@@ -165,7 +165,7 @@ export function MasteryRunBeat({ host, onComplete, onSkip, onBack, isPreview = f
   }, []);
 
   useEffect(() => {
-    if (screen !== 'completion') {
+    if (hasLoadedConfig && screen !== 'completion') {
       saveCheckpoint({
         lessonId: LESSON_DATA.id,
         screen,
@@ -174,7 +174,7 @@ export function MasteryRunBeat({ host, onComplete, onSkip, onBack, isPreview = f
         state: { score },
       });
     }
-  }, [screen, score, saveCheckpoint]);
+  }, [hasLoadedConfig, screen, score, saveCheckpoint]);
 
   // Subscribe to Firestore for pre-module and post-module video config
   useEffect(() => {
