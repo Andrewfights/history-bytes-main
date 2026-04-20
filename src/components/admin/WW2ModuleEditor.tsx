@@ -82,9 +82,11 @@ import {
   DamageDoneBeat,
   VoicesFromHarborBeat,
   BreakingNewsBeat,
+  MidModuleVideoTestBeat,
   NagumoDilemmaBeat,
   FactOrMythBeat,
   DayOfInfamyBeat,
+  EmptyWarChestBeat,
   ArsenalDemocracyBeat,
   MakeItDoBeat,
   LettersHomeBeat,
@@ -436,12 +438,16 @@ function PreviewModal({ beatType, host, onClose }: PreviewModalProps) {
         return <VoicesFromHarborBeat host={host} onComplete={handleComplete} onSkip={handleSkip} onBack={handleBack} isPreview />;
       case 'breaking-news':
         return <BreakingNewsBeat host={host} onComplete={handleComplete} onSkip={handleSkip} onBack={handleBack} isPreview />;
+      case 'mid-module-test':
+        return <MidModuleVideoTestBeat host={host} onComplete={handleComplete} onSkip={handleSkip} onBack={handleBack} isPreview />;
       case 'nagumo-dilemma':
         return <NagumoDilemmaBeat host={host} onComplete={handleComplete} onSkip={handleSkip} onBack={handleBack} isPreview />;
       case 'fact-or-myth':
         return <FactOrMythBeat host={host} onComplete={handleComplete} onSkip={handleSkip} onBack={handleBack} isPreview />;
       case 'day-of-infamy':
         return <DayOfInfamyBeat host={host} onComplete={handleComplete} onSkip={handleSkip} onBack={handleBack} isPreview />;
+      case 'empty-war-chest':
+        return <EmptyWarChestBeat host={host} onComplete={handleComplete} onSkip={handleSkip} onBack={handleBack} isPreview />;
       case 'arsenal-democracy':
         return <ArsenalDemocracyBeat host={host} onComplete={handleComplete} onSkip={handleSkip} onBack={handleBack} isPreview />;
       case 'video-montage':
