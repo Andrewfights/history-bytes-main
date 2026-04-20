@@ -23,7 +23,7 @@ import { RadioHeadlineLesson } from './lessons/RadioHeadlineLesson';
 import { BattleshipRowLesson } from './lessons/BattleshipRowLesson';
 import { MemorialTourLesson } from './lessons/MemorialTourLesson';
 import { MasteryQuiz } from './lessons/MasteryQuiz';
-// New 10-beat curriculum components
+// Full 16-beat curriculum components
 import {
   RoadToWarBeat,
   RadarBlipBeat,
@@ -35,6 +35,12 @@ import {
   FactOrMythBeat,
   DayOfInfamyBeat,
   ArsenalDemocracyBeat,
+  // New reusable beat types (Beats 11-14)
+  MakeItDoBeat,
+  LettersHomeBeat,
+  ThingsCarriedBeat,
+  CodeTalkersBeat,
+  // Assessment beats (Beats 15-16)
   MasteryRunBeat,
   FinalExamBeat,
 } from './beats';
@@ -256,6 +262,47 @@ export function PearlHarborLessonPlayer({
     case 'arsenal-democracy':
       return (
         <ArsenalDemocracyBeat
+          host={host}
+          onComplete={handleLessonComplete}
+          onSkip={handleLessonSkip}
+          onBack={onBack}
+        />
+      );
+
+    // Reusable beat types (Beats 11-14)
+    case 'video-montage':
+      return (
+        <MakeItDoBeat
+          host={host}
+          onComplete={handleLessonComplete}
+          onSkip={handleLessonSkip}
+          onBack={onBack}
+        />
+      );
+
+    case 'primary-source-audio':
+      return (
+        <LettersHomeBeat
+          host={host}
+          onComplete={handleLessonComplete}
+          onSkip={handleLessonSkip}
+          onBack={onBack}
+        />
+      );
+
+    case 'artifact-gallery':
+      return (
+        <ThingsCarriedBeat
+          host={host}
+          onComplete={handleLessonComplete}
+          onSkip={handleLessonSkip}
+          onBack={onBack}
+        />
+      );
+
+    case 'audio-vocabulary':
+      return (
+        <CodeTalkersBeat
           host={host}
           onComplete={handleLessonComplete}
           onSkip={handleLessonSkip}

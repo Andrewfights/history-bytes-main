@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { AppProvider, useApp } from '@/context/AppContext';
 import { Header } from '@/components/layout/Header';
@@ -12,6 +12,7 @@ import { WatchTab } from '@/components/tabs/WatchTab';
 import { SessionFlow } from '@/components/session/SessionFlow';
 import { OnboardingFlow } from '@/components/onboarding/OnboardingFlow';
 import { LandingPage } from '@/components/auth/LandingPage';
+import { subscribeToOnboardingSettings, type FirestoreOnboardingSettings } from '@/lib/firestore';
 
 function AppContent() {
   const {
@@ -26,6 +27,17 @@ function AppContent() {
   } = useApp();
   const [isSessionActive, setIsSessionActive] = useState(false);
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
+  const [onboardingSettings, setOnboardingSettings] = useState<FirestoreOnboardingSettings>({ showWelcomeScreen: true });
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
+
+  // Subscribe to onboarding settings from CMS
+  useEffect(() => {
+    const unsubscribe = subscribeToOnboardingSettings((settings) => {
+      setOnboardingSettings(settings);
+      setSettingsLoaded(true);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const handleStartSession = () => setIsSessionActive(true);
   const handleCloseSession = () => setIsSessionActive(false);
@@ -64,7 +76,15 @@ function AppContent() {
   }
 
   // Show onboarding for first-time users (after authentication)
+  // Skip if welcome screen is disabled in CMS (demo mode)
   if (!isOnboarded) {
+    // If settings loaded and welcome screen disabled, auto-complete onboarding
+    if (settingsLoaded && !onboardingSettings.showWelcomeScreen) {
+      // Auto-complete onboarding without showing the screen
+      completeOnboarding();
+      return null; // Will re-render with isOnboarded = true
+    }
+    // Show onboarding flow (default behavior)
     return <OnboardingFlow onComplete={handleOnboardingComplete} />;
   }
 

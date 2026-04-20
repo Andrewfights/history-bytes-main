@@ -832,6 +832,55 @@ export function subscribeToEraOrder(callback: (order: string[] | null) => void):
   );
 }
 
+// ============ Onboarding Settings Operations ============
+
+export interface FirestoreOnboardingSettings {
+  showWelcomeScreen: boolean;
+  updatedAt?: ReturnType<typeof serverTimestamp>;
+}
+
+const DEFAULT_ONBOARDING_SETTINGS: FirestoreOnboardingSettings = {
+  showWelcomeScreen: true, // Default to showing welcome screen
+};
+
+export async function getOnboardingSettings(): Promise<FirestoreOnboardingSettings> {
+  const doc = await getDocument<FirestoreOnboardingSettings>('appSettings', 'onboarding');
+  return doc || DEFAULT_ONBOARDING_SETTINGS;
+}
+
+export async function saveOnboardingSettings(settings: Partial<FirestoreOnboardingSettings>): Promise<boolean> {
+  const current = await getOnboardingSettings();
+  return setDocument('appSettings', 'onboarding', {
+    ...current,
+    ...settings,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export function subscribeToOnboardingSettings(callback: (settings: FirestoreOnboardingSettings) => void): Unsubscribe {
+  if (!isFirebaseConfigured()) {
+    // Return default settings if Firebase not configured
+    callback(DEFAULT_ONBOARDING_SETTINGS);
+    return () => {};
+  }
+
+  return onSnapshot(
+    doc(db, 'appSettings', 'onboarding'),
+    (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data() as FirestoreOnboardingSettings;
+        callback(data);
+      } else {
+        callback(DEFAULT_ONBOARDING_SETTINGS);
+      }
+    },
+    (error) => {
+      console.error('[Firestore] Onboarding settings subscription error:', error);
+      callback(DEFAULT_ONBOARDING_SETTINGS);
+    }
+  );
+}
+
 // ============ Game Thumbnail Operations ============
 
 export async function getGameThumbnails(): Promise<FirestoreGameThumbnail[]> {

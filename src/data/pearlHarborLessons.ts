@@ -1,22 +1,41 @@
 /**
  * Pearl Harbor Lessons Data
- * 12-Beat Curriculum following PRD specification
- * Total XP: 725 across 12 beats (575 core + 150 Final Exam)
+ * 13-Beat Curriculum following Master Script v2
+ * Total XP: 765 across 13 beats (615 core + 150 Final Exam)
+ *
+ * Includes 4 reusable beat types for future module creation:
+ * - video-montage: Multiple short video scenes
+ * - primary-source-audio: Historical documents with audio
+ * - artifact-gallery: Swipeable item showcase
+ * - audio-vocabulary: Interactive pronunciation learning
+ *
+ * ARCHIVED BEATS (components kept for potential future use):
+ * - tora-tora-tora: ToraToraToraBeat.tsx
+ * - nagumo-dilemma: NagumoDilemmaBeat.tsx
+ * - fact-or-myth: FactOrMythBeat.tsx
  */
 
 export type BeatType =
   | 'road-to-war'
   | 'radar-blip'
-  | 'tora-tora-tora'
   | 'damage-done'
   | 'voices-harbor'
   | 'breaking-news'
-  | 'nagumo-dilemma'
-  | 'fact-or-myth'
   | 'day-of-infamy'
   | 'arsenal-democracy'
   | 'mastery-run'
-  | 'final-exam';
+  | 'final-exam'
+  // Reusable beat types for module creation
+  | 'video-montage'      // Multiple short video scenes with recurring theme
+  | 'primary-source-audio' // Historical documents with audio narration
+  | 'artifact-gallery'   // Swipeable showcase of historical items
+  | 'audio-vocabulary';  // Interactive pronunciation/language learning
+
+// Archived beat types (kept for reference, not in active curriculum)
+export type ArchivedBeatType =
+  | 'tora-tora-tora'
+  | 'nagumo-dilemma'
+  | 'fact-or-myth';
 
 export interface PearlHarborLesson {
   id: string;
@@ -62,23 +81,10 @@ export const PEARL_HARBOR_LESSONS: PearlHarborLesson[] = [
     narrativeArc: 'Immersion / Warning',
     duration: '5-6 min',
   },
+  // ARCHIVED: Tora! Tora! Tora! (was beat 3) - see ToraToraToraBeat.tsx
   {
     id: 'ph-beat-3',
     number: 3,
-    title: 'Tora! Tora! Tora!',
-    subtitle: 'The Attack Begins',
-    type: 'tora-tora-tora',
-    icon: '✈️',
-    xpReward: 50,
-    description: 'Experience the attack minute by minute',
-    screens: 6,
-    formats: ['Interactive Map', 'Audio Experience'],
-    narrativeArc: 'Reveal / Escalation',
-    duration: '5-6 min',
-  },
-  {
-    id: 'ph-beat-4',
-    number: 4,
     title: 'Damage Done',
     subtitle: 'The Full Impact',
     type: 'damage-done',
@@ -91,8 +97,8 @@ export const PEARL_HARBOR_LESSONS: PearlHarborLesson[] = [
     duration: '5-7 min',
   },
   {
-    id: 'ph-beat-5',
-    number: 5,
+    id: 'ph-beat-4',
+    number: 4,
     title: 'Voices from the Harbor',
     subtitle: 'Stories of December 7',
     type: 'voices-harbor',
@@ -105,8 +111,8 @@ export const PEARL_HARBOR_LESSONS: PearlHarborLesson[] = [
     duration: '5-6 min',
   },
   {
-    id: 'ph-beat-6',
-    number: 6,
+    id: 'ph-beat-5',
+    number: 5,
     title: 'Breaking News',
     subtitle: 'America Learns',
     type: 'breaking-news',
@@ -118,37 +124,11 @@ export const PEARL_HARBOR_LESSONS: PearlHarborLesson[] = [
     narrativeArc: 'Context / Transformation',
     duration: '4-5 min',
   },
+  // ARCHIVED: Nagumo's Dilemma (was beat 7) - see NagumoDilemmaBeat.tsx
+  // ARCHIVED: Fact or Myth? (was beat 8) - see FactOrMythBeat.tsx
   {
-    id: 'ph-beat-7',
-    number: 7,
-    title: "Nagumo's Dilemma",
-    subtitle: 'The Third Wave',
-    type: 'nagumo-dilemma',
-    icon: '⚓',
-    xpReward: 55,
-    description: 'What if Japan had launched a third wave?',
-    screens: 7,
-    formats: ['Branching Decision'],
-    narrativeArc: 'Decision / What If',
-    duration: '6-7 min',
-  },
-  {
-    id: 'ph-beat-8',
-    number: 8,
-    title: 'Fact or Myth?',
-    subtitle: 'Pearl Harbor Legends',
-    type: 'fact-or-myth',
-    icon: '❓',
-    xpReward: 50,
-    description: 'Challenge common misconceptions',
-    screens: 3,
-    formats: ['Fact or Myth Quiz'],
-    narrativeArc: 'Critical Thinking / Understanding',
-    duration: '4-5 min',
-  },
-  {
-    id: 'ph-beat-9',
-    number: 9,
+    id: 'ph-beat-6',
+    number: 6,
     title: 'Day of Infamy',
     subtitle: "FDR's Response",
     type: 'day-of-infamy',
@@ -161,8 +141,8 @@ export const PEARL_HARBOR_LESSONS: PearlHarborLesson[] = [
     duration: '5-6 min',
   },
   {
-    id: 'ph-beat-10',
-    number: 10,
+    id: 'ph-beat-7',
+    number: 7,
     title: 'Arsenal of Democracy',
     subtitle: 'America Transforms',
     type: 'arsenal-democracy',
@@ -175,8 +155,64 @@ export const PEARL_HARBOR_LESSONS: PearlHarborLesson[] = [
     duration: '4-5 min',
   },
   {
+    id: 'ph-beat-8',
+    number: 8,
+    title: 'Make It Do, Or Do Without',
+    subtitle: 'The Home Front',
+    type: 'video-montage',
+    icon: '🏠',
+    xpReward: 45,
+    description: 'See how everyday Americans sacrificed for the war effort',
+    screens: 6,
+    formats: ['Video Montage', 'Quiz'],
+    narrativeArc: 'Human Scale / Sacrifice',
+    duration: '4-5 min',
+  },
+  {
+    id: 'ph-beat-9',
+    number: 9,
+    title: 'Letters Home',
+    subtitle: 'Voices from the Front',
+    type: 'primary-source-audio',
+    icon: '✉️',
+    xpReward: 50,
+    description: 'Hear the words of soldiers in their own voices',
+    screens: 6,
+    formats: ['Primary Source Audio', 'Reflection'],
+    narrativeArc: 'Human Connection',
+    duration: '5-6 min',
+  },
+  {
+    id: 'ph-beat-10',
+    number: 10,
+    title: 'The Things They Carried',
+    subtitle: 'Artifacts of War',
+    type: 'artifact-gallery',
+    icon: '📦',
+    xpReward: 45,
+    description: 'Explore personal items that soldiers brought to war',
+    screens: 6,
+    formats: ['Artifact Gallery', 'Interactive Demo'],
+    narrativeArc: 'Human Scale / Artifacts',
+    duration: '4-5 min',
+  },
+  {
     id: 'ph-beat-11',
     number: 11,
+    title: 'Code Talkers',
+    subtitle: 'The Navajo Secret',
+    type: 'audio-vocabulary',
+    icon: '🦅',
+    xpReward: 55,
+    description: 'Learn about the unbreakable code and try speaking it',
+    screens: 8,
+    formats: ['Audio Vocabulary', 'Pronunciation Game'],
+    narrativeArc: 'Legacy / Innovation',
+    duration: '6-7 min',
+  },
+  {
+    id: 'ph-beat-12',
+    number: 12,
     title: 'Mastery Run',
     subtitle: 'Pearl Harbor Final Challenge',
     type: 'mastery-run',
@@ -189,8 +225,8 @@ export const PEARL_HARBOR_LESSONS: PearlHarborLesson[] = [
     duration: '6-8 min',
   },
   {
-    id: 'ph-beat-12',
-    number: 12,
+    id: 'ph-beat-13',
+    number: 13,
     title: 'Final Exam',
     subtitle: 'Pearl Harbor Chapter Assessment',
     type: 'final-exam',
@@ -205,7 +241,7 @@ export const PEARL_HARBOR_LESSONS: PearlHarborLesson[] = [
 ];
 
 export const TOTAL_XP = PEARL_HARBOR_LESSONS.reduce((sum, lesson) => sum + lesson.xpReward, 0);
-// Total: 725 XP (575 XP core curriculum + 150 XP Final Exam)
+// Total: 765 XP (615 XP core curriculum + 150 XP Final Exam)
 
 export function getLessonById(id: string): PearlHarborLesson | undefined {
   return PEARL_HARBOR_LESSONS.find(lesson => lesson.id === id);
@@ -223,7 +259,7 @@ export function getLessonByNumber(number: number): PearlHarborLesson | undefined
   return PEARL_HARBOR_LESSONS.find(lesson => lesson.number === number);
 }
 
-// XP Scoring tiers for Mastery Run (Beat 11)
+// XP Scoring tiers for Mastery Run (Beat 12)
 export const MASTERY_SCORING = {
   perfect: { minCorrect: 12, xp: 75, badge: 'Pearl Harbor Scholar' },
   excellent: { minCorrect: 10, xp: 60, badge: null },
@@ -231,7 +267,7 @@ export const MASTERY_SCORING = {
   needsWork: { minCorrect: 0, xp: 30, badge: null },
 };
 
-// XP Scoring tiers for Final Exam (Beat 12)
+// XP Scoring tiers for Final Exam (Beat 13)
 export const FINAL_EXAM_SCORING = {
   perfect: { minCorrect: 15, xp: 150, badge: 'pearl-harbor-scholar', tier: 'Perfect Score', goldStar: true },
   expert: { minCorrect: 12, xp: 120, badge: 'pearl-harbor-expert', tier: 'Expert' },

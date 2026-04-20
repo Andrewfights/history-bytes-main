@@ -79,12 +79,17 @@ import {
   RoadToWarBeat,
   RadarBlipBeat,
   ToraToraToraBeat,
+  DamageDoneBeat,
   VoicesFromHarborBeat,
   BreakingNewsBeat,
   NagumoDilemmaBeat,
   FactOrMythBeat,
   DayOfInfamyBeat,
   ArsenalDemocracyBeat,
+  MakeItDoBeat,
+  LettersHomeBeat,
+  ThingsCarriedBeat,
+  CodeTalkersBeat,
   MasteryRunBeat,
   FinalExamBeat,
 } from '@/components/journey/pearl-harbor/beats';
@@ -425,6 +430,8 @@ function PreviewModal({ beatType, host, onClose }: PreviewModalProps) {
         return <RadarBlipBeat host={host} onComplete={handleComplete} onSkip={handleSkip} onBack={handleBack} isPreview />;
       case 'tora-tora-tora':
         return <ToraToraToraBeat host={host} onComplete={handleComplete} onSkip={handleSkip} onBack={handleBack} isPreview />;
+      case 'damage-done':
+        return <DamageDoneBeat host={host} onComplete={handleComplete} onSkip={handleSkip} onBack={handleBack} isPreview />;
       case 'voices-harbor':
         return <VoicesFromHarborBeat host={host} onComplete={handleComplete} onSkip={handleSkip} onBack={handleBack} isPreview />;
       case 'breaking-news':
@@ -437,6 +444,14 @@ function PreviewModal({ beatType, host, onClose }: PreviewModalProps) {
         return <DayOfInfamyBeat host={host} onComplete={handleComplete} onSkip={handleSkip} onBack={handleBack} isPreview />;
       case 'arsenal-democracy':
         return <ArsenalDemocracyBeat host={host} onComplete={handleComplete} onSkip={handleSkip} onBack={handleBack} isPreview />;
+      case 'video-montage':
+        return <MakeItDoBeat host={host} onComplete={handleComplete} onSkip={handleSkip} onBack={handleBack} isPreview />;
+      case 'primary-source-audio':
+        return <LettersHomeBeat host={host} onComplete={handleComplete} onSkip={handleSkip} onBack={handleBack} isPreview />;
+      case 'artifact-gallery':
+        return <ThingsCarriedBeat host={host} onComplete={handleComplete} onSkip={handleSkip} onBack={handleBack} isPreview />;
+      case 'audio-vocabulary':
+        return <CodeTalkersBeat host={host} onComplete={handleComplete} onSkip={handleSkip} onBack={handleBack} isPreview />;
       case 'mastery-run':
         return <MasteryRunBeat host={host} onComplete={handleComplete} onSkip={handleSkip} onBack={handleBack} isPreview />;
       case 'final-exam':

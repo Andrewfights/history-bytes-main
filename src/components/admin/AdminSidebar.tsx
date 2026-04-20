@@ -1,9 +1,10 @@
 import { NavLink } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, Map, BookOpen, Gamepad2, ArrowLeft, Image, Mic, Wand2, Users, HelpCircle, Compass, Shield, Trophy, Grid3X3, MousePointer2, X, Palette, Target, Tv, Star } from 'lucide-react';
+import { LayoutDashboard, Map, BookOpen, Gamepad2, ArrowLeft, Image, Mic, Wand2, Users, HelpCircle, Compass, Shield, Trophy, Grid3X3, MousePointer2, X, Palette, Target, Tv, Star, Settings } from 'lucide-react';
 
 const navItems = [
   { path: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
+  { path: '/admin/app-settings', label: 'App Settings', icon: Settings, end: false },
   { path: '/admin/featured-section', label: 'Featured Section', icon: Star, end: false },
   { path: '/admin/ww2-module', label: 'WW2 Module', icon: Target, end: false },
   { path: '/admin/exam-videos', label: 'Exam Videos', icon: Tv, end: false },
