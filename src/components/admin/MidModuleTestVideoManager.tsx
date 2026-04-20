@@ -82,14 +82,19 @@ interface QuestionVideoState {
 export function MidModuleTestVideoManager() {
   const [questions, setQuestions] = useState<MidModuleTestQuestion[]>(DEFAULT_QUESTIONS);
   // Initialize with defaults immediately so questions show while Firestore loads
-  const [questionVideos, setQuestionVideos] = useState<QuestionVideoState[]>(() =>
-    DEFAULT_QUESTIONS.map((q) => ({
+  const [questionVideos, setQuestionVideos] = useState<QuestionVideoState[]>(() => {
+    const initialState = DEFAULT_QUESTIONS.map((q) => ({
       question: q,
-      hostVideos: { sergeant: null, journalist: null, codebreaker: null },
-      hostStatuses: { sergeant: 'missing', journalist: 'missing', codebreaker: 'missing' },
-    }))
-  );
+      hostVideos: { sergeant: null, journalist: null, codebreaker: null } as Record<HostId, MidModuleTestVideo | null>,
+      hostStatuses: { sergeant: 'missing', journalist: 'missing', codebreaker: 'missing' } as Record<HostId, VideoStatus>,
+    }));
+    console.log('[MidModuleTestVideoManager] Initial questionVideos:', initialState.length, 'items');
+    return initialState;
+  });
   const [loading, setLoading] = useState(false);
+
+  // Debug log on render
+  console.log('[MidModuleTestVideoManager] Render - questionVideos:', questionVideos.length, 'loading:', loading);
   const [selectedQuestion, setSelectedQuestion] = useState<string | null>(null);
   const [selectedHost, setSelectedHost] = useState<HostId>('sergeant');
   const [activeHostTab, setActiveHostTab] = useState<HostId>('sergeant');
@@ -285,10 +290,30 @@ export function MidModuleTestVideoManager() {
   const totalProgress = getTotalProgress();
   const activeHostProgress = getHostProgress(activeHostTab);
 
+  // Debug: log state before render
+  console.log('[MidModuleTestVideoManager] Pre-render check:', {
+    questionsCount: questions.length,
+    questionVideosCount: questionVideos.length,
+    loading,
+    activeHostTab,
+  });
+
   if (loading) {
     return (
       <div className="p-6 flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
+
+  // Safety check: if somehow questionVideos is empty, show a message
+  if (questionVideos.length === 0) {
+    return (
+      <div className="p-6">
+        <div className="text-center py-12">
+          <p className="text-red-400 mb-4">No questions loaded. Check console for errors.</p>
+          <p className="text-muted-foreground text-sm">Questions count: {questions.length}</p>
+        </div>
       </div>
     );
   }
