@@ -179,7 +179,7 @@ export function GameShowQuestionWrapper({
   }, [trimStart, trimEnd]);
 
   return (
-    <div className="flex flex-col h-full" style={{ paddingBottom: 'max(1rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}>
+    <div className="flex flex-col h-full">
       {/* Video Section - Constrained to ~30% of viewport, maintains aspect ratio */}
       <div className="shrink-0 bg-black relative overflow-hidden flex items-center justify-center" style={{ maxHeight: '30vh' }}>
         <div className="w-full h-full max-h-[30vh] aspect-video relative">
@@ -267,7 +267,7 @@ export function GameShowQuestionWrapper({
         </motion.div>
 
         {/* Question content (answer options rendered by child) - scrollable if content overflows */}
-        <div className="flex-1 overflow-y-auto min-h-0">
+        <div className="flex-1 overflow-y-auto min-h-0 pb-2">
           <AnimatePresence mode="wait">
             <motion.div
               key={question.id}
@@ -275,7 +275,6 @@ export function GameShowQuestionWrapper({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -5 }}
               transition={{ duration: 0.15 }}
-              className="h-full"
             >
               {children({
                 onSelectionChange: handleSelectionChange,
@@ -286,30 +285,30 @@ export function GameShowQuestionWrapper({
             </motion.div>
           </AnimatePresence>
         </div>
+      </div>
 
-        {/* Lock-in button - Always visible at bottom */}
-        <div className="shrink-0 pt-2 pb-1">
-          <AnimatePresence>
-            {isTimedOut ? (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="flex justify-center"
-              >
-                <div className="px-4 py-2 bg-red-500/20 border border-red-500/50 rounded-lg">
-                  <span className="text-red-400 font-bold text-sm">Time's Up!</span>
-                </div>
-              </motion.div>
-            ) : (
-              <LockInButton
-                hasSelection={hasSelection}
-                isLockedIn={isLockedIn}
-                onLockIn={handleLockIn}
-                disabled={isTimedOut}
-              />
-            )}
-          </AnimatePresence>
-        </div>
+      {/* Lock-in button - Fixed at absolute bottom of screen */}
+      <div className="shrink-0 px-3 sm:px-4 pt-2 bg-gradient-to-t from-slate-950 via-slate-950/95 to-transparent" style={{ paddingBottom: 'max(1rem, calc(env(safe-area-inset-bottom) + 0.5rem))' }}>
+        <AnimatePresence>
+          {isTimedOut ? (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="flex justify-center"
+            >
+              <div className="px-4 py-2 bg-red-500/20 border border-red-500/50 rounded-lg">
+                <span className="text-red-400 font-bold text-sm">Time's Up!</span>
+              </div>
+            </motion.div>
+          ) : (
+            <LockInButton
+              hasSelection={hasSelection}
+              isLockedIn={isLockedIn}
+              onLockIn={handleLockIn}
+              disabled={isTimedOut}
+            />
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
