@@ -236,7 +236,7 @@ export function FactOrMythBeat({ host, onComplete, onSkip, onBack, isPreview = f
         </div>
         <div className="w-10 h-10 rounded-full overflow-hidden bg-amber-500/20">
           <img
-            src={host.avatarUrl || '/assets/hosts/default.png'}
+            src={host.imageUrl || '/assets/hosts/default.png'}
             alt={host.name}
             className="w-full h-full object-cover"
           />

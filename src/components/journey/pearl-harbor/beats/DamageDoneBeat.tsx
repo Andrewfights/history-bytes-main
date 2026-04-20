@@ -7,7 +7,7 @@
  * timeline scrubber, then see the full cost in casualties and damage.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Sparkles, Clock, MapPin, ChevronRight } from 'lucide-react';
 import { WW2Host } from '@/types';
@@ -242,7 +242,9 @@ export function DamageDoneBeat({ host, onComplete, onSkip, onBack, isPreview = f
   const [postModuleVideoConfig, setPostModuleVideoConfig] = useState<PostModuleVideoConfig | null>(null);
   const [hasLoadedConfig, setHasLoadedConfig] = useState(false);
   const [isAutoPlaying, setIsAutoPlaying] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
+  const scrubberRef = useRef<HTMLDivElement>(null);
   const { saveCheckpoint, clearCheckpoint, getCheckpoint } = usePearlHarborProgress();
   const { getMediaUrl } = useWW2ModuleAssets();
 
@@ -356,6 +358,43 @@ export function DamageDoneBeat({ host, onComplete, onSkip, onBack, isPreview = f
     }
   };
 
+  // Timeline scrubber handlers
+  const handleScrub = useCallback((e: React.MouseEvent | React.TouchEvent | MouseEvent | TouchEvent) => {
+    if (!scrubberRef.current) return;
+    const rect = scrubberRef.current.getBoundingClientRect();
+    const clientX = 'touches' in e ? (e as TouchEvent).touches[0].clientX : (e as MouseEvent).clientX;
+    const percent = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    setCurrentMinute(Math.round(percent * TIMELINE_DURATION));
+    setIsAutoPlaying(false);
+  }, []);
+
+  const handleScrubStart = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    setIsDragging(true);
+    handleScrub(e);
+  }, [handleScrub]);
+
+  // Drag event listeners for smooth scrubbing
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMove = (e: MouseEvent | TouchEvent) => {
+      handleScrub(e);
+    };
+    const handleEnd = () => setIsDragging(false);
+
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('mouseup', handleEnd);
+    window.addEventListener('touchmove', handleMove);
+    window.addEventListener('touchend', handleEnd);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMove);
+      window.removeEventListener('mouseup', handleEnd);
+      window.removeEventListener('touchmove', handleMove);
+      window.removeEventListener('touchend', handleEnd);
+    };
+  }, [isDragging, handleScrub]);
+
   // Format time from minutes
   const formatTime = (minutes: number) => {
     const totalMinutes = TIMELINE_START_MINUTES + minutes;
@@ -391,7 +430,7 @@ export function DamageDoneBeat({ host, onComplete, onSkip, onBack, isPreview = f
           <p className="text-white/50 text-xs">Beat 4 of 12</p>
         </div>
         <div className="w-10 h-10 rounded-full overflow-hidden bg-amber-500/20">
-          <img src={host.avatarUrl || '/assets/hosts/default.png'} alt={host.name} className="w-full h-full object-cover" />
+          <img src={host.imageUrl || '/assets/hosts/default.png'} alt={host.name} className="w-full h-full object-cover" />
         </div>
       </div>
 
@@ -566,39 +605,59 @@ export function DamageDoneBeat({ host, onComplete, onSkip, onBack, isPreview = f
                 })}
               </div>
 
-              {/* Timeline scrubber */}
-              <div className="mb-3">
-                <div className="relative h-2 bg-white/10 rounded-full overflow-hidden">
+              {/* Timeline scrubber - Redesigned for better UX */}
+              <div className="mb-4">
+                {/* Scrubber track with large touch area */}
+                <div
+                  ref={scrubberRef}
+                  onClick={handleScrub}
+                  onMouseDown={handleScrubStart}
+                  onTouchStart={handleScrubStart}
+                  className="relative h-12 flex items-center cursor-pointer select-none"
+                >
+                  {/* Track background */}
+                  <div className="absolute inset-x-0 h-2 bg-white/10 rounded-full" />
+
+                  {/* Progress fill with glow */}
                   <motion.div
-                    className="absolute h-full bg-gradient-to-r from-amber-500 to-red-500 rounded-full"
-                    style={{ width: `${(currentMinute / TIMELINE_DURATION) * 100}%` }}
+                    className="absolute left-0 h-2 bg-gradient-to-r from-amber-500 to-red-500 rounded-full"
+                    style={{
+                      width: `${(currentMinute / TIMELINE_DURATION) * 100}%`,
+                      boxShadow: '0 0 12px rgba(245, 158, 11, 0.4)'
+                    }}
                   />
-                  {/* Event markers on track */}
+
+                  {/* Event markers - larger and more visible */}
                   {TIMELINE_EVENTS.map((event) => (
                     <div
                       key={event.time}
-                      className={`absolute top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full ${
-                        currentMinute >= event.minutes ? 'bg-white' : 'bg-white/30'
+                      className={`absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full border-2 transition-all duration-200 ${
+                        currentMinute >= event.minutes
+                          ? 'bg-white border-white scale-100'
+                          : 'bg-transparent border-white/40 scale-75'
                       }`}
-                      style={{ left: `${(event.minutes / TIMELINE_DURATION) * 100}%` }}
+                      style={{ left: `${(event.minutes / TIMELINE_DURATION) * 100}%`, transform: 'translate(-50%, -50%)' }}
                     />
                   ))}
+
+                  {/* Draggable thumb with pulse animation */}
+                  <motion.div
+                    className="absolute top-1/2 w-6 h-6 bg-white rounded-full shadow-lg border-2 border-amber-500 z-10 pointer-events-none"
+                    style={{
+                      left: `${(currentMinute / TIMELINE_DURATION) * 100}%`,
+                      transform: 'translate(-50%, -50%)'
+                    }}
+                    animate={!isDragging ? { scale: [1, 1.15, 1] } : { scale: 1.1 }}
+                    transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+                  />
                 </div>
-                <input
-                  type="range"
-                  min={0}
-                  max={TIMELINE_DURATION}
-                  value={currentMinute}
-                  onChange={(e) => {
-                    setIsAutoPlaying(false);
-                    setCurrentMinute(parseInt(e.target.value));
-                  }}
-                  className="w-full -mt-2 relative z-10 opacity-0 cursor-pointer h-6"
-                />
-                <div className="flex justify-between text-white/40 text-[10px] px-1 -mt-1">
+
+                {/* Time labels - larger and clearer */}
+                <div className="flex justify-between text-white/50 text-xs font-medium px-1 mt-1">
                   <span>7:48 AM</span>
-                  <span>8:30 AM</span>
-                  <span>9:00 AM</span>
+                  <span>8:15</span>
+                  <span>8:45</span>
+                  <span>9:15</span>
                   <span>9:45 AM</span>
                 </div>
               </div>

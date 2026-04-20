@@ -235,7 +235,7 @@ export function MakeItDoBeat({ host, onComplete, onSkip, onBack, isPreview = fal
           <p className="text-white/50 text-xs">Beat 8 of 13</p>
         </div>
         <div className="w-10 h-10 rounded-full overflow-hidden bg-amber-500/20">
-          <img src={host.avatarUrl || '/assets/hosts/default.png'} alt={host.name} className="w-full h-full object-cover" />
+          <img src={host.imageUrl || '/assets/hosts/default.png'} alt={host.name} className="w-full h-full object-cover" />
         </div>
       </div>
 
