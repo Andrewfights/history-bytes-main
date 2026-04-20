@@ -262,12 +262,12 @@ export function LandingPage({ onAuthSuccess }: LandingPageProps) {
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ type: 'spring', damping: 15 }}
-              className="w-32 h-32 mx-auto mb-6 rounded-2xl overflow-hidden"
+              className="w-full max-w-sm mx-auto mb-6 rounded-2xl overflow-hidden"
             >
               <img
                 src="/assets/history-academy-logo.jpg"
                 alt="History Academy"
-                className="w-full h-full object-cover"
+                className="w-full h-auto object-contain"
               />
             </motion.div>
 
