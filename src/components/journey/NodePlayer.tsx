@@ -112,7 +112,7 @@ export function NodePlayer({ arcId, chapterId, nodeId, onBack, onComplete }: Nod
 
   if (!node || !arc) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="fixed inset-0 z-[60] pt-safe flex items-center justify-center">
         <p className="text-muted-foreground">Node not found</p>
       </div>
     );
@@ -257,7 +257,7 @@ export function NodePlayer({ arcId, chapterId, nodeId, onBack, onComplete }: Nod
   };
 
   return (
-    <div className="min-h-dvh bg-background">
+    <div className="fixed inset-0 z-[60] pt-safe bg-background overflow-y-auto">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b border-border/50">
         <div className="flex items-center justify-between px-4 py-3">

@@ -31,7 +31,7 @@ export function FunnelCompletion({ xpEarned, stats, onExploreMore }: FunnelCompl
   }, []);
 
   return (
-    <div className="min-h-screen bg-background px-4 py-8 pb-32">
+    <div className="fixed inset-0 z-[60] pt-safe bg-background px-4 py-8 pb-32 overflow-y-auto">
       {/* Celebration Header */}
       <motion.div
         initial={{ scale: 0 }}

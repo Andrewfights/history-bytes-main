@@ -180,7 +180,7 @@ export function PearlHarborArena({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 bg-gradient-to-b from-slate-900 via-slate-950 to-black overflow-hidden"
+      className="fixed inset-0 z-[60] pt-safe bg-gradient-to-b from-slate-900 via-slate-950 to-black overflow-hidden"
     >
       {/* Film grain overlay */}
       <div

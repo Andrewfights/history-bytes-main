@@ -115,14 +115,14 @@ export function GhostArmyStoryPlayer({ onComplete, onExit }: GhostArmyStoryPlaye
 
   if (!currentNode) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="fixed inset-0 z-[60] pt-safe bg-background flex items-center justify-center">
         <p className="text-muted-foreground">Loading story...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="fixed inset-0 z-[60] pt-safe bg-background overflow-y-auto">
       {/* Header */}
       <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b border-border">
         <div className="flex items-center justify-between px-4 py-3">

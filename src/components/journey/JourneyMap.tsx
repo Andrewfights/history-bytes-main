@@ -88,7 +88,7 @@ export function JourneyMap({
   }, [currentChapterIndex, states]);
 
   return (
-    <div className="min-h-dvh bg-black flex flex-col">
+    <div className="fixed inset-0 z-[60] pt-safe bg-black flex flex-col">
       {/* Chapter Intro Video */}
       <ChapterIntroVideo
         chapter={chapter}

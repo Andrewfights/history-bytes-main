@@ -68,7 +68,7 @@ export function PearlHarborLessonPlayer({
 
   if (!lesson) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="fixed inset-0 z-[60] bg-black flex items-center justify-center">
         <p className="text-white/60">Lesson not found</p>
       </div>
     );
@@ -89,7 +89,7 @@ export function PearlHarborLessonPlayer({
   // Show resume prompt if there's a checkpoint for this lesson
   if (showResumePrompt && checkpoint?.lessonId === lessonId) {
     return (
-      <div className="min-h-dvh bg-gradient-to-b from-slate-900 via-slate-950 to-black flex flex-col">
+      <div className="fixed inset-0 z-[60] pt-safe bg-gradient-to-b from-slate-900 via-slate-950 to-black flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
           <button onClick={onBack} className="p-2 -ml-2 text-white/60 hover:text-white">
@@ -427,7 +427,7 @@ interface ComingSoonLessonProps {
 
 function ComingSoonLesson({ lesson, host, onComplete, onSkip, onBack }: ComingSoonLessonProps) {
   return (
-    <div className="min-h-dvh bg-gradient-to-b from-slate-900 via-slate-950 to-black flex flex-col">
+    <div className="fixed inset-0 z-[60] pt-safe bg-gradient-to-b from-slate-900 via-slate-950 to-black flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
         <button onClick={onBack} className="p-2 -ml-2 text-white/60 hover:text-white">

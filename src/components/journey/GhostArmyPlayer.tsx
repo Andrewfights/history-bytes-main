@@ -158,7 +158,7 @@ export function GhostArmyPlayer({ onComplete, onExit }: GhostArmyPlayerProps) {
   const progress = (currentTime / ghostArmyContent.duration) * 100;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="fixed inset-0 z-[60] pt-safe bg-background overflow-y-auto">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b border-border">
         <div className="flex items-center justify-between px-4 py-3">
