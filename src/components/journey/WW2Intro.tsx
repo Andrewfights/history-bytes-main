@@ -29,7 +29,7 @@ export function WW2Intro({ onBegin }: WW2IntroProps) {
       className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black overflow-hidden"
     >
       {/* Background video placeholder - grainy B&W effect */}
-      <div className="absolute inset-0 bg-gradient-to-b from-obsidian-900 via-obsidian-950 to-black">
+      <div className="absolute inset-0 bg-gradient-to-b from-slate-900 via-slate-950 to-black">
         {/* Film grain overlay */}
         <div
           className="absolute inset-0 opacity-20"

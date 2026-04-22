@@ -753,24 +753,26 @@ export function JourneyTab() {
               >
                 <button
                   onClick={handleResumePearlHarborLesson}
-                  className="w-full p-3 sm:p-4 rounded-xl bg-gradient-to-r from-green-900/40 to-emerald-900/30 border border-green-500/30 hover:border-green-500/50 transition-all group text-left"
+                  className="w-full relative p-3 sm:p-4 rounded-xl bg-ink-lift border border-success/30 hover:border-success/50 transition-all group text-left overflow-hidden"
                 >
+                  {/* Left accent bar */}
+                  <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-success rounded-l-xl" />
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-green-500/20 flex items-center justify-center">
-                      <Play size={20} className="text-green-400 sm:w-6 sm:h-6" />
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-success/20 border border-success/30 flex items-center justify-center">
+                      <Play size={20} className="text-success sm:w-6 sm:h-6" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[10px] sm:text-xs uppercase tracking-wider text-green-400 font-medium mb-0.5">
+                      <p className="font-mono text-[10px] sm:text-xs uppercase tracking-wider text-success font-medium mb-0.5">
                         Continue Where You Left Off
                       </p>
-                      <h3 className="font-bold text-sm sm:text-base text-white truncate">
+                      <h3 className="font-serif font-bold text-sm sm:text-base text-off-white truncate">
                         {getLessonById(pearlHarborCheckpoint.lessonId)?.title || 'Pearl Harbor Lesson'}
                       </h3>
-                      <p className="text-[10px] sm:text-xs text-white/60">
+                      <p className="font-mono text-[10px] sm:text-xs text-off-white/50">
                         In progress
                       </p>
                     </div>
-                    <ArrowRight size={18} className="text-green-400 group-hover:translate-x-1 transition-transform sm:w-5 sm:h-5" />
+                    <ArrowRight size={18} className="text-success group-hover:translate-x-1 transition-transform sm:w-5 sm:h-5" />
                   </div>
                 </button>
               </motion.div>
@@ -796,7 +798,7 @@ export function JourneyTab() {
                     setShowWW2HostSelection(true);
                   }
                 }}
-                className="w-full relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-900/80 via-red-900/60 to-slate-900 border border-amber-500/30 p-4 sm:p-5 text-left group"
+                className="w-full relative overflow-hidden rounded-2xl bg-ink-lift border border-gold-2/30 p-4 sm:p-5 text-left group"
               >
                 {/* Background image - Firebase upload or default battle artwork */}
                 <div className="absolute inset-0">
@@ -805,38 +807,39 @@ export function JourneyTab() {
                     alt=""
                     className="w-full h-full object-cover opacity-50"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/60 to-slate-900/30" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-void via-void/70 to-void/40" />
                 </div>
                 {/* Background glow effect */}
-                <div className="absolute inset-0 bg-gradient-to-r from-amber-500/10 to-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="absolute inset-0 bg-gradient-to-r from-gold-2/10 to-ha-red/10 opacity-0 group-hover:opacity-100 transition-opacity" />
 
                 <div className="relative z-10">
-                  <div className="flex items-center gap-2 mb-2">
+                  {/* Featured badge */}
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 mb-3 rounded bg-void/60 backdrop-blur-sm border border-gold-2/30">
                     {journeyUIAssets?.featuredJourneyIcon ? (
-                      <img src={journeyUIAssets.featuredJourneyIcon} alt="" className="w-7 h-7 sm:w-8 sm:h-8 object-contain" />
+                      <img src={journeyUIAssets.featuredJourneyIcon} alt="" className="w-5 h-5 object-contain" />
                     ) : (
-                      <span className="text-2xl sm:text-3xl">🪖</span>
+                      <span className="text-gold-2 text-[10px]">◆</span>
                     )}
-                    <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-amber-400">Featured Campaign</span>
+                    <span className="font-mono text-gold-2 text-[10px] sm:text-xs font-medium uppercase tracking-wider">Featured</span>
                   </div>
 
-                  <h2 className="font-editorial text-xl sm:text-2xl font-bold text-white mb-1">
+                  <h2 className="font-serif text-xl sm:text-2xl font-bold text-off-white mb-1">
                     Pearl Harbor
                   </h2>
-                  <p className="text-white/70 text-xs sm:text-sm mb-3 sm:mb-4">
+                  <p className="text-off-white/70 text-xs sm:text-sm mb-3 sm:mb-4">
                     December 7, 1941 — Experience the day that changed history
                   </p>
 
                   {/* Progress bar - show if user has started */}
                   {getPearlHarborProgress() > 0 && (
                     <div className="mb-3">
-                      <div className="flex items-center justify-between text-[10px] sm:text-xs text-white/60 mb-1">
-                        <span>{pearlHarborProgress.completedActivities.filter(id => id.startsWith('ph-beat-')).length} of {PEARL_HARBOR_LESSONS.length} lessons completed</span>
-                        <span className="text-amber-400">{getPearlHarborProgress()}%</span>
+                      <div className="flex items-center justify-between font-mono text-[10px] sm:text-xs text-off-white/50 mb-1">
+                        <span>{pearlHarborProgress.completedActivities.filter(id => id.startsWith('ph-beat-')).length} of {PEARL_HARBOR_LESSONS.length} lessons</span>
+                        <span className="text-gold-2">{getPearlHarborProgress()}%</span>
                       </div>
-                      <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                      <div className="h-[2px] bg-void/50 rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-gradient-to-r from-amber-500 to-amber-400 rounded-full transition-all duration-500"
+                          className="h-full bg-gold-2 rounded-full transition-all duration-500"
                           style={{ width: `${getPearlHarborProgress()}%` }}
                         />
                       </div>
@@ -844,15 +847,15 @@ export function JourneyTab() {
                   )}
 
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-xs text-white/60">
+                    <div className="flex items-center gap-2 sm:gap-3 font-mono text-[10px] sm:text-xs text-off-white/50 uppercase tracking-wide">
                       <span>7 Lessons</span>
                       <span>•</span>
                       <span>~45 min</span>
                       <span>•</span>
-                      <span className="text-amber-400">+280 XP</span>
+                      <span className="text-gold-2">+280 XP</span>
                     </div>
-                    <div className="flex items-center gap-1 text-amber-400 font-bold text-xs sm:text-sm group-hover:translate-x-1 transition-transform">
-                      {getPearlHarborProgress() > 0 ? 'Continue' : 'Start Campaign'}
+                    <div className="flex items-center gap-1 text-gold-2 font-mono text-xs sm:text-sm font-medium uppercase tracking-wide group-hover:translate-x-1 transition-transform">
+                      {getPearlHarborProgress() > 0 ? 'Continue' : 'Begin'}
                       <ArrowRight size={14} className="sm:w-4 sm:h-4" />
                     </div>
                   </div>
@@ -876,18 +879,18 @@ export function JourneyTab() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               onClick={() => setView('pantheon')}
-              className="w-full mb-4 p-3 sm:p-4 rounded-xl bg-gradient-to-r from-slate-800/80 to-slate-900/60 border border-white/10 hover:border-amber-500/30 transition-all group relative overflow-hidden"
+              className="w-full mb-4 p-3 sm:p-4 rounded-xl bg-ink-lift border border-off-white/[0.06] hover:border-gold-2/30 transition-all group relative overflow-hidden"
             >
               {/* Custom background image */}
               {journeyUIAssets?.pantheonImage && (
                 <div className="absolute inset-0">
                   <img src={journeyUIAssets.pantheonImage} alt="" className="w-full h-full object-cover opacity-20" />
-                  <div className="absolute inset-0 bg-gradient-to-r from-slate-900/90 to-slate-900/70" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-void/90 to-void/70" />
                 </div>
               )}
               <div className="flex items-center justify-between relative z-10">
                 <div className="flex items-center gap-2 sm:gap-3">
-                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-amber-500/20 to-slate-700/50 flex items-center justify-center text-xl sm:text-2xl overflow-hidden">
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gold-2/10 border border-gold-2/20 flex items-center justify-center text-xl sm:text-2xl overflow-hidden">
                     {journeyUIAssets?.pantheonIcon ? (
                       <img src={journeyUIAssets.pantheonIcon} alt="" className="w-full h-full object-cover" />
                     ) : (
@@ -895,11 +898,11 @@ export function JourneyTab() {
                     )}
                   </div>
                   <div className="text-left">
-                    <h3 className="font-bold text-sm sm:text-base text-white">The Pantheon</h3>
-                    <p className="text-[10px] sm:text-xs text-white/60">Your souvenir collection</p>
+                    <h3 className="font-serif font-bold text-sm sm:text-base text-off-white">The Pantheon</h3>
+                    <p className="font-mono text-[10px] sm:text-xs text-off-white/50 uppercase tracking-wide">Your souvenir collection</p>
                   </div>
                 </div>
-                <ChevronRight size={18} className="text-white/40 group-hover:text-amber-400 group-hover:translate-x-1 transition-all sm:w-5 sm:h-5" />
+                <ChevronRight size={18} className="text-off-white/40 group-hover:text-gold-2 group-hover:translate-x-1 transition-all sm:w-5 sm:h-5" />
               </div>
             </motion.button>
 
@@ -972,11 +975,11 @@ export function JourneyTab() {
                 className="mb-6"
               >
                 <div className="mb-4">
-                  <h2 className="flex items-center gap-2 text-xs font-bold uppercase text-muted-foreground tracking-wider">
-                    <Clock size={12} />
-                    Recently Played
-                  </h2>
-                  <div className="mt-2 w-12 h-[3px] bg-hc-red rounded-full" />
+                  <div className="flex items-center gap-2">
+                    <Clock size={14} className="text-gold-2" />
+                    <h2 className="font-serif text-lg text-off-white">Recently Played</h2>
+                  </div>
+                  <div className="mt-1.5 w-12 h-0.5 bg-ha-red" />
                 </div>
                 <div className="space-y-3">
                   {recentArcIds.map((arcId, index) => {
@@ -1005,10 +1008,8 @@ export function JourneyTab() {
             {/* All Eras */}
             <div>
               <div className="mb-4">
-                <h2 className="text-xs font-bold uppercase text-muted-foreground tracking-wider">
-                  All Eras
-                </h2>
-                <div className="mt-2 w-12 h-[3px] bg-hc-red rounded-full" />
+                <h2 className="font-serif text-lg text-off-white">All Eras</h2>
+                <div className="mt-1.5 w-12 h-0.5 bg-ha-red" />
               </div>
               <div className="space-y-3">
                 {arcs
@@ -1224,22 +1225,22 @@ function ArcCard({ arc, onSelect, isContinue, isRecent, isHighlighted, thumbnail
       disabled={isLocked}
       className={`w-full text-left p-4 rounded-xl border transition-all ${
         isLocked
-          ? 'bg-slate-900/50 border-slate-700/50 cursor-not-allowed opacity-60'
+          ? 'bg-ink-lift/50 border-off-white/[0.03] cursor-not-allowed opacity-60'
           : isHighlighted
-          ? 'bg-gold-primary/10 border-gold-primary/40 hover:bg-gold-primary/20 hover:border-gold-primary/60 shadow-lg shadow-gold-primary/20'
+          ? 'bg-gold-2/10 border-gold-2/30 hover:bg-gold-2/15 hover:border-gold-2/50'
           : isRecent
-          ? 'bg-gold-primary/5 border-gold-primary/20 hover:bg-gold-primary/10 hover:border-gold-primary/40'
+          ? 'bg-gold-2/5 border-gold-2/15 hover:bg-gold-2/10 hover:border-gold-2/30'
           : isContinue
-          ? 'bg-primary/10 border-primary/30 hover:bg-primary/20'
-          : 'bg-card border-border hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10'
+          ? 'bg-gold-2/10 border-gold-2/20 hover:bg-gold-2/15'
+          : 'bg-ink-lift border-off-white/[0.06] hover:border-gold-2/30'
       }`}
       whileHover={isLocked ? {} : { scale: 1.01 }}
       whileTap={isLocked ? {} : { scale: 0.99 }}
     >
       <div className="flex items-center gap-4">
         {/* Era Image */}
-        <div className={`w-14 h-14 rounded-xl flex items-center justify-center overflow-hidden ${
-          isLocked ? 'bg-slate-800/50' : isHighlighted ? 'bg-gold-primary/30' : 'bg-primary/20'
+        <div className={`w-14 h-14 rounded-xl flex items-center justify-center overflow-hidden border ${
+          isLocked ? 'bg-ink-lift border-off-white/[0.03]' : isHighlighted ? 'bg-gold-2/20 border-gold-2/30' : 'bg-gold-2/10 border-gold-2/20'
         }`}>
           {hasValidThumbnail ? (
             <img
@@ -1249,15 +1250,15 @@ function ArcCard({ arc, onSelect, isContinue, isRecent, isHighlighted, thumbnail
               onError={() => setImageError(true)}
             />
           ) : (
-            <Map size={28} className={isLocked ? 'text-slate-600' : 'text-primary/50'} />
+            <Map size={28} className={isLocked ? 'text-off-white/20' : 'text-gold-2/50'} />
           )}
         </div>
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          <h3 className={`font-editorial font-bold text-lg truncate ${isLocked ? 'text-slate-500' : ''}`}>{arc.title}</h3>
-          <p className={`text-sm line-clamp-1 ${isLocked ? 'text-slate-600' : 'text-muted-foreground'}`}>{arc.description}</p>
-          <div className={`flex items-center gap-3 mt-1 text-xs ${isLocked ? 'text-slate-600' : 'text-muted-foreground'}`}>
+          <h3 className={`font-serif font-bold text-lg truncate ${isLocked ? 'text-off-white/40' : 'text-off-white'}`}>{arc.title}</h3>
+          <p className={`text-sm line-clamp-1 ${isLocked ? 'text-off-white/30' : 'text-off-white/60'}`}>{arc.description}</p>
+          <div className={`flex items-center gap-3 mt-1 font-mono text-[10px] uppercase tracking-wide ${isLocked ? 'text-off-white/30' : 'text-off-white/50'}`}>
             {host && (
               <span className="flex items-center gap-1">
                 <span className={isLocked ? 'grayscale' : ''}>{host.avatar}</span>
@@ -1265,7 +1266,7 @@ function ArcCard({ arc, onSelect, isContinue, isRecent, isHighlighted, thumbnail
               </span>
             )}
             {isLocked ? (
-              <span className="flex items-center gap-1 text-slate-500">
+              <span className="flex items-center gap-1 text-gold-2/50">
                 <span>🔒</span>
                 <span>Coming Soon</span>
               </span>
@@ -1279,17 +1280,17 @@ function ArcCard({ arc, onSelect, isContinue, isRecent, isHighlighted, thumbnail
 
         {/* Arrow or Lock */}
         {isLocked ? (
-          <span className="text-slate-600 text-lg">🔒</span>
+          <span className="text-off-white/30 text-lg">🔒</span>
         ) : (
-          <ChevronRight size={20} className={`shrink-0 ${isHighlighted ? 'text-gold-primary' : 'text-muted-foreground'}`} />
+          <ChevronRight size={20} className={`shrink-0 ${isHighlighted ? 'text-gold-2' : 'text-off-white/40'}`} />
         )}
       </div>
 
       {/* Progress bar for recent/continue */}
       {(isContinue || isRecent) && hasContent && (
-        <div className="mt-3 h-1.5 bg-muted rounded-full overflow-hidden">
+        <div className="mt-3 h-[2px] bg-void/50 rounded-full overflow-hidden">
           <motion.div
-            className={`h-full rounded-full ${isRecent ? 'bg-gradient-to-r from-gold-primary to-gold-highlight' : 'bg-primary'}`}
+            className="h-full rounded-full bg-gold-2"
             initial={{ width: 0 }}
             animate={{ width: '33%' }}
             transition={{ delay: 0.2, duration: 0.5 }}
@@ -1356,17 +1357,20 @@ function ProgressOverview({
       {/* Header */}
       <div className="flex items-center justify-between mb-3 sm:mb-4">
         <div>
-          <h1 className="font-editorial text-xl sm:text-2xl font-bold">Your Campaign</h1>
-          <div className="mt-1 w-12 sm:w-16 h-[3px] bg-hc-red rounded-full" />
+          <h1 className="font-serif text-xl sm:text-2xl font-bold text-off-white">Your Campaign</h1>
+          <div className="mt-1.5 w-12 sm:w-16 h-0.5 bg-ha-red" />
         </div>
-        <div className="flex items-center gap-1.5 sm:gap-2 text-orange-500">
-          <Flame size={16} className="fill-orange-500 sm:w-[18px] sm:h-[18px]" />
-          <span className="font-bold text-sm sm:text-base">{user.streak}</span>
+        <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 rounded-full bg-gold-2/10 border border-gold-2/20">
+          <Flame size={14} className="text-gold-2 sm:w-4 sm:h-4" />
+          <span className="font-mono text-sm sm:text-base font-bold text-gold-2">{user.streak}</span>
         </div>
       </div>
 
       {/* Rank Card */}
-      <div className="p-3 sm:p-4 rounded-2xl bg-card border border-border mb-4">
+      <div className="relative p-3 sm:p-4 rounded-xl bg-ink-lift border border-gold-2/15 mb-4 overflow-hidden">
+        {/* Left gold accent bar */}
+        <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-gold-2 rounded-l-xl" />
+
         <div className="flex items-center gap-3 sm:gap-4 mb-3">
           {/* Rank Badge */}
           <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-xl bg-gradient-to-br ${tierColors[rankInfo.tier]} flex items-center justify-center overflow-hidden`}>
@@ -1379,24 +1383,24 @@ function ProgressOverview({
 
           {/* Rank Info */}
           <div className="flex-1">
-            <p className="text-[10px] sm:text-xs uppercase tracking-wider text-muted-foreground mb-0.5">
+            <p className="font-mono text-[10px] sm:text-xs uppercase tracking-[0.2em] text-off-white/50 mb-0.5">
               Current Rank
             </p>
-            <h2 className="font-editorial text-lg sm:text-xl font-bold">{rankInfo.rank}</h2>
-            <p className="text-xs sm:text-sm text-muted-foreground">{user.xp.toLocaleString()} XP</p>
+            <h2 className="font-serif text-lg sm:text-xl font-bold text-gold-2">{rankInfo.rank}</h2>
+            <p className="font-mono text-xs sm:text-sm text-off-white/50">{user.xp.toLocaleString()} XP</p>
           </div>
         </div>
 
         {/* XP Progress Bar */}
         {nextRank.next && (
           <div>
-            <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+            <div className="flex items-center justify-between font-mono text-[10px] text-off-white/50 mb-1">
               <span>Progress to {nextRank.next}</span>
               <span>{xpToNext.toLocaleString()} XP to go</span>
             </div>
-            <div className="h-2 bg-muted rounded-full overflow-hidden">
+            <div className="h-[2px] bg-void/50 rounded-full overflow-hidden">
               <motion.div
-                className={`h-full bg-gradient-to-r ${tierColors[rankInfo.tier]} rounded-full`}
+                className="h-full bg-gold-2 rounded-full"
                 initial={{ width: 0 }}
                 animate={{ width: `${progressToNext}%` }}
                 transition={{ duration: 0.5, delay: 0.2 }}
@@ -1406,38 +1410,38 @@ function ProgressOverview({
         )}
         {!nextRank.next && (
           <div className="text-center py-2">
-            <span className="text-sm text-primary font-medium">Max Rank Achieved!</span>
+            <span className="font-mono text-sm text-gold-2 font-medium uppercase tracking-wide">Max Rank Achieved!</span>
           </div>
         )}
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-4 gap-2">
-        <StatCard icon={<Trophy size={16} className="text-amber-500" />} value={arcsWithContent} label="Eras" />
-        <StatCard icon={<TrendingUp size={16} className="text-green-500" />} value={completedNodesCount} label="Nodes" />
-        <StatCard icon={<Target size={16} className="text-blue-500" />} value={totalQuestions > 0 ? `${quizAccuracy}%` : '—'} label="Accuracy" />
-        <StatCard icon={<Flame size={16} className="text-orange-500" />} value={user.streak} label="Streak" />
+        <StatCard icon={<Trophy size={16} className="text-gold-2" />} value={arcsWithContent} label="Eras" />
+        <StatCard icon={<TrendingUp size={16} className="text-success" />} value={completedNodesCount} label="Nodes" />
+        <StatCard icon={<Target size={16} className="text-gold-2" />} value={totalQuestions > 0 ? `${quizAccuracy}%` : '—'} label="Accuracy" />
+        <StatCard icon={<Flame size={16} className="text-gold-2" />} value={user.streak} label="Streak" />
       </div>
 
       {/* Quiz Performance Card - Only show if user has answered questions */}
       {totalQuestions > 0 && (
-        <div className="mt-4 p-3 sm:p-4 rounded-xl bg-card border border-border">
+        <div className="mt-4 p-3 sm:p-4 rounded-xl bg-ink-lift border border-off-white/[0.06]">
           <div className="flex items-center gap-2 mb-3">
-            <Target size={16} className="text-blue-500" />
-            <h3 className="font-bold text-sm">Quiz Performance</h3>
+            <Target size={16} className="text-gold-2" />
+            <h3 className="font-serif font-bold text-sm text-off-white">Quiz Performance</h3>
           </div>
           <div className="grid grid-cols-3 gap-3 text-center">
             <div>
-              <div className="text-lg sm:text-xl font-bold text-blue-500">{quizAccuracy}%</div>
-              <div className="text-[10px] sm:text-xs text-muted-foreground">Accuracy</div>
+              <div className="font-serif text-lg sm:text-xl font-bold text-gold-2">{quizAccuracy}%</div>
+              <div className="font-mono text-[8px] sm:text-[10px] text-off-white/50 uppercase tracking-[0.2em]">Accuracy</div>
             </div>
             <div>
-              <div className="text-lg sm:text-xl font-bold">{totalCorrectAnswers}/{totalQuestions}</div>
-              <div className="text-[10px] sm:text-xs text-muted-foreground">Correct</div>
+              <div className="font-serif text-lg sm:text-xl font-bold text-off-white">{totalCorrectAnswers}/{totalQuestions}</div>
+              <div className="font-mono text-[8px] sm:text-[10px] text-off-white/50 uppercase tracking-[0.2em]">Correct</div>
             </div>
             <div>
-              <div className="text-lg sm:text-xl font-bold text-amber-500">{totalQuizAttempts}</div>
-              <div className="text-[10px] sm:text-xs text-muted-foreground">Quizzes</div>
+              <div className="font-serif text-lg sm:text-xl font-bold text-gold-2">{totalQuizAttempts}</div>
+              <div className="font-mono text-[8px] sm:text-[10px] text-off-white/50 uppercase tracking-[0.2em]">Quizzes</div>
             </div>
           </div>
         </div>
@@ -1448,10 +1452,10 @@ function ProgressOverview({
 
 function StatCard({ icon, value, label }: { icon: React.ReactNode; value: string | number; label: string }) {
   return (
-    <div className="p-3 rounded-xl bg-card border border-border text-center">
+    <div className="p-3 rounded-xl bg-ink-lift border border-off-white/[0.06] text-center">
       <div className="flex justify-center mb-1">{icon}</div>
-      <div className="font-bold text-lg">{value}</div>
-      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className="font-serif font-bold text-lg text-off-white">{value}</div>
+      <div className="font-mono text-[8px] text-off-white/50 uppercase tracking-[0.2em]">{label}</div>
     </div>
   );
 }

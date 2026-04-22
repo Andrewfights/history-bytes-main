@@ -38,18 +38,18 @@ export function GuideSection({
     return null;
   }
 
-  // History Channel colors: gold (amber), red, black, white - no blue
+  // History Academy colors: gold, red, off-white
   const colorMap: Record<string, { bg: string; border: string; text: string; glow: string; gradient: string }> = {
-    gold: { bg: 'bg-amber-500/10', border: 'border-amber-500/30', text: 'text-amber-400', glow: 'shadow-amber-500/20', gradient: 'from-amber-500/20 to-amber-900/40' },
-    amber: { bg: 'bg-amber-500/10', border: 'border-amber-500/30', text: 'text-amber-400', glow: 'shadow-amber-500/20', gradient: 'from-amber-500/20 to-amber-900/40' },
-    red: { bg: 'bg-red-500/10', border: 'border-red-500/30', text: 'text-red-400', glow: 'shadow-red-500/20', gradient: 'from-red-500/20 to-red-900/40' },
-    slate: { bg: 'bg-slate-500/10', border: 'border-slate-400/30', text: 'text-slate-300', glow: 'shadow-slate-400/20', gradient: 'from-slate-500/20 to-slate-900/40' },
-    emerald: { bg: 'bg-emerald-500/10', border: 'border-emerald-500/30', text: 'text-emerald-400', glow: 'shadow-emerald-500/20', gradient: 'from-emerald-500/20 to-emerald-900/40' },
-    purple: { bg: 'bg-purple-500/10', border: 'border-purple-500/30', text: 'text-purple-400', glow: 'shadow-purple-500/20', gradient: 'from-purple-500/20 to-purple-900/40' },
-    rose: { bg: 'bg-rose-500/10', border: 'border-rose-500/30', text: 'text-rose-400', glow: 'shadow-rose-500/20', gradient: 'from-rose-500/20 to-rose-900/40' },
+    gold: { bg: 'bg-gold-2/10', border: 'border-gold-2/30', text: 'text-gold-2', glow: 'shadow-gold-2/20', gradient: 'from-gold-2/15 to-ink-lift' },
+    amber: { bg: 'bg-gold-2/10', border: 'border-gold-2/30', text: 'text-gold-2', glow: 'shadow-gold-2/20', gradient: 'from-gold-2/15 to-ink-lift' },
+    red: { bg: 'bg-ha-red/10', border: 'border-ha-red/30', text: 'text-ha-red', glow: 'shadow-ha-red/20', gradient: 'from-ha-red/15 to-ink-lift' },
+    slate: { bg: 'bg-off-white/5', border: 'border-off-white/20', text: 'text-off-white/70', glow: 'shadow-off-white/10', gradient: 'from-off-white/10 to-ink-lift' },
+    emerald: { bg: 'bg-success/10', border: 'border-success/30', text: 'text-success', glow: 'shadow-success/20', gradient: 'from-success/15 to-ink-lift' },
+    purple: { bg: 'bg-purple-500/10', border: 'border-purple-500/30', text: 'text-purple-400', glow: 'shadow-purple-500/20', gradient: 'from-purple-500/15 to-ink-lift' },
+    rose: { bg: 'bg-rose-500/10', border: 'border-rose-500/30', text: 'text-rose-400', glow: 'shadow-rose-500/20', gradient: 'from-rose-500/15 to-ink-lift' },
   };
 
-  const colors = colorMap[guide.primaryColor] || colorMap.amber;
+  const colors = colorMap[guide.primaryColor] || colorMap.gold;
   const hasVideo = !!guide.introVideoUrl;
   const currentQuote = guide.catchphrases?.[currentQuoteIndex] || guide.introQuote;
 
@@ -79,8 +79,11 @@ export function GuideSection({
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`relative overflow-hidden rounded-2xl border ${colors.border} bg-gradient-to-br ${colors.gradient} p-3 sm:p-4 shadow-lg ${colors.glow}`}
+      className={`relative overflow-hidden rounded-xl border ${colors.border} bg-ink-lift p-3 sm:p-4`}
     >
+      {/* Left accent bar */}
+      <div className={`absolute left-0 top-0 bottom-0 w-[3px] ${guide.primaryColor === 'red' ? 'bg-ha-red' : 'bg-gold-2'} rounded-l-xl`} />
+
       {/* Background sparkles */}
       <div className="absolute top-2 right-4 pointer-events-none">
         <Sparkles className={`${colors.text} opacity-30`} size={16} />
@@ -145,10 +148,10 @@ export function GuideSection({
         {/* Guide Info */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 sm:gap-2 mb-1">
-            <h3 className="font-semibold text-sm sm:text-base text-foreground truncate">{guide.name}</h3>
+            <h3 className="font-display font-semibold text-sm sm:text-base text-off-white uppercase tracking-wide truncate">{guide.name}</h3>
             <span className="text-base sm:text-lg">{guide.avatar}</span>
           </div>
-          <p className={`text-[10px] sm:text-xs ${colors.text} mb-1.5 sm:mb-2`}>{guide.title}</p>
+          <p className={`font-serif italic text-[10px] sm:text-xs ${colors.text} mb-1.5 sm:mb-2`}>{guide.title}</p>
 
           {/* Animated Quote */}
           <AnimatePresence mode="wait">
@@ -158,7 +161,7 @@ export function GuideSection({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.3 }}
-              className="text-xs sm:text-sm text-muted-foreground italic line-clamp-2"
+              className="font-serif text-xs sm:text-sm text-off-white/60 italic line-clamp-2"
             >
               "{currentQuote}"
             </motion.p>
@@ -173,7 +176,7 @@ export function GuideSection({
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={onOpenChat}
-          className="flex-1 flex items-center justify-center gap-2 py-2.5 sm:py-3 rounded-xl bg-primary text-primary-foreground font-medium text-xs sm:text-sm"
+          className="flex-1 flex items-center justify-center gap-2 py-2.5 sm:py-3 rounded-xl bg-ha-red text-off-white font-mono text-xs sm:text-sm uppercase tracking-wide"
         >
           <MessageCircle size={14} className="sm:w-4 sm:h-4" />
           Talk to {guide.name.split(' ')[0]}
@@ -186,7 +189,7 @@ export function GuideSection({
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => setShowQuickActions(!showQuickActions)}
-              className={`w-full sm:w-auto flex items-center justify-center gap-1 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl border ${colors.border} ${colors.bg} font-medium text-xs sm:text-sm`}
+              className={`w-full sm:w-auto flex items-center justify-center gap-1 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl border ${colors.border} ${colors.bg} font-mono text-xs sm:text-sm text-off-white/80`}
             >
               Quick Actions
               <ChevronRight
@@ -202,7 +205,7 @@ export function GuideSection({
                   initial={{ opacity: 0, y: -10, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                  className="absolute left-0 right-0 sm:left-auto sm:right-0 top-full mt-2 sm:w-48 bg-card border border-border rounded-xl shadow-lg overflow-hidden z-20"
+                  className="absolute left-0 right-0 sm:left-auto sm:right-0 top-full mt-2 sm:w-48 bg-ink-lift border border-off-white/[0.06] rounded-xl shadow-lg overflow-hidden z-20"
                 >
                   {quickActions.map((action, i) => (
                     <button
@@ -211,7 +214,7 @@ export function GuideSection({
                         action.action?.();
                         setShowQuickActions(false);
                       }}
-                      className="w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 hover:bg-muted transition-colors text-xs sm:text-sm text-left"
+                      className="w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 hover:bg-off-white/[0.04] transition-colors text-xs sm:text-sm text-left text-off-white/80"
                     >
                       <action.icon size={14} className={`${colors.text} sm:w-4 sm:h-4`} />
                       {action.label}

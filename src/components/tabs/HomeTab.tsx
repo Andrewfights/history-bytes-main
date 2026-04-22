@@ -152,23 +152,31 @@ export function HomeTab({ onStartSession, onPlayDaily, onSelectTopic }: HomeTabP
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.15, duration: 0.4 }}
-        className="space-y-2.5"
+        className="space-y-3"
       >
-        <h2 className="section-plaque">Daily Challenge</h2>
+        {/* Section header with red underline */}
+        <div>
+          <h2 className="font-serif text-xl text-off-white">Daily Challenge</h2>
+          <div className="w-12 h-0.5 bg-ha-red mt-1.5" />
+        </div>
+
         <button
           onClick={onPlayDaily}
-          className="w-full archival-card relative card-hover flex items-center gap-4 text-left active:scale-[0.99] transition-transform touch-target"
+          className="w-full relative flex items-center gap-4 text-left p-4 rounded-xl bg-ink-lift border border-off-white/[0.06] hover:border-gold-2/20 active:scale-[0.99] transition-all touch-target"
         >
-          <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20">
-            <Calendar size={22} className="text-primary" />
+          {/* Left gold accent bar */}
+          <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-gold-2 rounded-l-xl" />
+
+          <div className="w-12 h-12 rounded-lg bg-gold-2/10 flex items-center justify-center border border-gold-2/20">
+            <Calendar size={22} className="text-gold-2" />
           </div>
           <div className="flex-1">
-            <h3 className="font-semibold text-sm">Today's Challenge</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              <span className="text-primary/70 italic">Issued at Dawn</span> · 15 AI-generated questions · Medium
+            <h3 className="font-serif font-semibold text-sm text-off-white">Today's Challenge</h3>
+            <p className="font-mono text-[10px] tracking-wide text-off-white/50 mt-0.5 uppercase">
+              <span className="text-gold-2/70 normal-case italic">Issued at Dawn</span> · 15 Questions · Medium
             </p>
           </div>
-          <ArrowRight size={16} className="text-muted-foreground" />
+          <ArrowRight size={16} className="text-off-white/40" />
         </button>
 
         {/* I'm Feeling Lucky Card */}
@@ -196,9 +204,13 @@ export function HomeTab({ onStartSession, onPlayDaily, onSelectTopic }: HomeTabP
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2, duration: 0.5 }}
-        className="space-y-2.5"
+        className="space-y-3"
       >
-        <h2 className="section-plaque">This Day in History</h2>
+        {/* Section header with red underline */}
+        <div>
+          <h2 className="font-serif text-xl text-off-white">This Day in History</h2>
+          <div className="w-12 h-0.5 bg-ha-red mt-1.5" />
+        </div>
         <ThisDayCard />
       </motion.div>
 
@@ -234,14 +246,14 @@ function ComingSoonModal({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70"
+      className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-void/80 backdrop-blur-sm"
       onClick={onClose}
     >
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
-        className="relative w-[calc(100%-2rem)] sm:w-full sm:max-w-sm mx-auto bg-gradient-to-b from-slate-800 to-slate-900 rounded-2xl overflow-hidden border border-white/10"
+        className="relative w-[calc(100%-2rem)] sm:w-full sm:max-w-sm mx-auto bg-ink-lift rounded-2xl overflow-hidden border border-off-white/[0.06]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Era Image/Gradient Background */}
@@ -251,12 +263,12 @@ function ComingSoonModal({
             background: `linear-gradient(135deg, ${era.accentColor}60 0%, ${era.accentColor}20 100%)`,
           }}
         >
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-800 via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-ink-lift via-transparent to-transparent" />
 
           {/* Close Button */}
           <button
             onClick={onClose}
-            className="absolute top-2 sm:top-3 right-2 sm:right-3 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-black/50 flex items-center justify-center text-white/70 hover:text-white transition-colors"
+            className="absolute top-2 sm:top-3 right-2 sm:right-3 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-void/50 flex items-center justify-center text-off-white/70 hover:text-off-white transition-colors"
           >
             <X size={16} className="sm:w-[18px] sm:h-[18px]" />
           </button>
@@ -264,20 +276,20 @@ function ComingSoonModal({
 
         {/* Content */}
         <div className="p-4 sm:p-5 text-center">
-          <h3 className="text-lg sm:text-xl font-bold text-white mb-1">{era.name}</h3>
-          <p className="text-white/50 text-xs sm:text-sm mb-3 sm:mb-4">{era.dateRange}</p>
+          <h3 className="font-serif text-lg sm:text-xl font-bold text-off-white mb-1">{era.name}</h3>
+          <p className="font-mono text-off-white/50 text-[10px] sm:text-xs uppercase tracking-wider mb-3 sm:mb-4">{era.dateRange}</p>
 
-          <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-amber-500/20 rounded-lg mb-3 sm:mb-4">
-            <span className="text-amber-400 text-xs sm:text-sm font-medium">
+          <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-gold-2/15 rounded-lg mb-3 sm:mb-4 border border-gold-2/20">
+            <span className="font-mono text-gold-2 text-xs sm:text-sm font-medium uppercase tracking-wider">
               Coming Soon
             </span>
           </div>
 
-          <p className="text-white/60 text-xs sm:text-sm mb-3 sm:mb-4">{era.subtitle}</p>
+          <p className="text-off-white/60 text-xs sm:text-sm mb-3 sm:mb-4">{era.subtitle}</p>
 
           <button
             onClick={onClose}
-            className="mt-4 sm:mt-5 w-full py-2.5 sm:py-3 bg-white/10 hover:bg-white/20 rounded-xl text-white text-sm sm:text-base font-medium transition-colors"
+            className="mt-4 sm:mt-5 w-full py-2.5 sm:py-3 bg-off-white/10 hover:bg-off-white/15 rounded-xl text-off-white text-sm sm:text-base font-medium transition-colors border border-off-white/[0.06]"
           >
             Got it
           </button>

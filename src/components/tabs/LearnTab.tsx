@@ -84,8 +84,9 @@ export function LearnTab({ initialTopicId, onSelectChapter }: LearnTabProps) {
         >
           <div className="pt-6">
             <div className="px-4 mb-6">
-              <h1 className="font-editorial text-2xl font-bold mb-1">Learn</h1>
-              <p className="text-muted-foreground text-sm">Discover courses from history's greatest moments</p>
+              <h1 className="font-serif text-2xl font-bold text-off-white mb-1">Learn</h1>
+              <div className="w-12 h-0.5 bg-ha-red mb-2" />
+              <p className="text-off-white/60 text-sm">Discover courses from history's greatest moments</p>
             </div>
             <CourseCatalog
               courseProgress={courseProgress}

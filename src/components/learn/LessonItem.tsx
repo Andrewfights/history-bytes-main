@@ -69,7 +69,7 @@ export function LessonItem({
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <Clock size={12} />
           <span>{lesson.durationMinutes} min</span>
-          <span className="text-gold-primary">+{lesson.xpReward} XP</span>
+          <span className="text-primary">+{lesson.xpReward} XP</span>
         </div>
       </div>
 

@@ -1,24 +1,23 @@
-import { Flame, User, Home, Compass, BookOpen, Gamepad2, Play, Sun, Moon } from 'lucide-react';
+import { Flame, User, Home, Compass, BookOpen, Gamepad2 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { motion } from 'framer-motion';
 import { TabType } from '@/types';
-import { useTheme } from 'next-themes';
 import { HistoryLogo } from '@/components/brand';
 
+// Match BottomNav order: Home | Campaign | Profile | Learn | Arcade
 const navItems: { id: TabType; label: string; icon: React.ElementType }[] = [
   { id: 'home', label: 'Home', icon: Home },
   { id: 'journey', label: 'Campaign', icon: Compass },
+  { id: 'profile', label: 'Profile', icon: User },
   { id: 'learn', label: 'Learn', icon: BookOpen },
   { id: 'arcade', label: 'Arcade', icon: Gamepad2 },
-  { id: 'watch', label: 'Watch', icon: Play },
 ];
 
 export function Header() {
   const { user, activeTab, setActiveTab } = useApp();
-  const { theme, setTheme } = useTheme();
 
   return (
-    <header className="sticky top-0 z-40 bg-obsidian-900/78 backdrop-blur-[12px] border-b border-white/[0.06]">
+    <header className="sticky top-0 z-40 bg-ink/85 backdrop-blur-xl border-b border-off-white/[0.06]">
       <div className="flex items-center justify-between px-4 h-14 max-w-5xl mx-auto">
         {/* Logo */}
         <HistoryLogo variant="full" size="md" withUnderline={true} className="shrink-0" />
@@ -31,18 +30,18 @@ export function Header() {
               <button
                 key={id}
                 onClick={() => setActiveTab(id)}
-                className={`relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                className={`relative flex items-center gap-2 px-4 py-2 rounded-lg font-mono text-xs tracking-wider uppercase transition-all duration-200 ${
                   isActive
-                    ? 'text-gold-highlight bg-gold-primary/10'
-                    : 'text-ivory/54 hover:text-ivory hover:bg-white/[0.04]'
+                    ? 'text-gold-2 bg-gold-2/10'
+                    : 'text-off-white/50 hover:text-off-white hover:bg-white/[0.04]'
                 }`}
               >
-                <Icon size={16} strokeWidth={isActive ? 2.5 : 2} className="transition-all duration-200" />
+                <Icon size={16} strokeWidth={1.5} className="transition-all duration-200" />
                 <span>{label}</span>
                 {isActive && (
                   <motion.div
                     layoutId="desktop-nav-indicator"
-                    className="absolute bottom-0 left-2 right-2 h-[3px] bg-hc-red rounded-full shadow-red-glow"
+                    className="absolute bottom-0 left-2 right-2 h-[2px] bg-gold-2 rounded-full"
                     transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                   />
                 )}
@@ -51,38 +50,26 @@ export function Header() {
           })}
         </nav>
 
-        {/* Right side */}
+        {/* Right side - Streak badge + Profile */}
         <div className="flex items-center gap-3 shrink-0">
+          {/* Streak badge */}
           <motion.div
-            className="streak-badge"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gold-2/10 border border-gold-2/20"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            <Flame size={14} className="text-gold-highlight" />
-            <span>{user.streak}</span>
+            <Flame size={14} className="text-gold-2" />
+            <span className="font-mono text-xs font-semibold text-gold-2">{user.streak}</span>
           </motion.div>
 
-          <motion.button
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className="w-8 h-8 rounded-full bg-white/[0.04] border border-white/[0.06] flex items-center justify-center hover:border-gold-primary/30 hover:bg-white/[0.06] transition-all duration-200"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            aria-label="Toggle theme"
-          >
-            {theme === 'dark' ? (
-              <Sun size={16} className="text-gold-highlight" />
-            ) : (
-              <Moon size={16} className="text-gold-highlight" />
-            )}
-          </motion.button>
-
+          {/* Profile button */}
           <motion.button
             onClick={() => setActiveTab('profile')}
-            className="w-8 h-8 rounded-full bg-white/[0.04] border border-white/[0.06] flex items-center justify-center hover:border-gold-primary/30 hover:bg-white/[0.06] transition-all duration-200"
+            className="w-8 h-8 rounded-full bg-ink-lift border border-off-white/10 flex items-center justify-center hover:border-gold-2/30 hover:bg-ink-lift/80 transition-all duration-200"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            <User size={16} className="text-ivory/60" />
+            <User size={16} className="text-off-white/60" />
           </motion.button>
         </div>
       </div>

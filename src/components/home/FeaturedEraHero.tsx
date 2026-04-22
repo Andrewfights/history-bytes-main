@@ -5,9 +5,8 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Play, ArrowRight, Sparkles, CheckCircle } from 'lucide-react';
+import { Play, Sparkles, CheckCircle } from 'lucide-react';
 import { HistoricalEra, getEraImageUrl } from '@/data/historicalEras';
-import { Progress } from '@/components/ui/progress';
 
 interface FeaturedEraHeroProps {
   era: HistoricalEra;
@@ -72,8 +71,11 @@ export function FeaturedEraHero({ era, progress, onStart, overrideImageUrl }: Fe
 
       {/* Featured badge */}
       <div className="absolute top-3 left-4 sm:top-4 sm:left-5">
-        <span className="px-2.5 py-1 rounded-full bg-white/20 backdrop-blur-sm text-white text-[10px] sm:text-xs font-bold uppercase tracking-wider">
-          Featured Campaign
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-void/60 backdrop-blur-sm border border-gold-2/30">
+          <span className="text-gold-2 text-[10px]">◆</span>
+          <span className="font-mono text-gold-2 text-[10px] sm:text-xs font-medium uppercase tracking-wider">
+            Featured
+          </span>
         </span>
       </div>
 
@@ -83,19 +85,19 @@ export function FeaturedEraHero({ era, progress, onStart, overrideImageUrl }: Fe
           {/* Left: Title and info */}
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
-              <h2 className="font-editorial text-xl sm:text-2xl font-bold text-white leading-tight">
+              <h2 className="font-serif text-xl sm:text-2xl font-bold text-off-white leading-tight">
                 {era.name}
               </h2>
               {isComplete && (
-                <CheckCircle size={18} className="text-green-400" />
+                <CheckCircle size={18} className="text-success" />
               )}
             </div>
 
-            <p className="text-white/70 text-xs sm:text-sm mb-1">
+            <p className="text-off-white/70 text-xs sm:text-sm mb-1">
               {era.subtitle}
             </p>
 
-            <p className="text-white/50 text-[10px] sm:text-xs">
+            <p className="font-mono text-off-white/50 text-[10px] sm:text-xs uppercase tracking-wide">
               {era.dateRange}
             </p>
 
@@ -103,17 +105,22 @@ export function FeaturedEraHero({ era, progress, onStart, overrideImageUrl }: Fe
             {progress && (
               <div className="mt-3 space-y-1.5">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-white/60">
+                  <span className="font-mono text-off-white/60 text-[10px] uppercase tracking-wide">
                     {progress.completed}/{progress.total} Lessons
                   </span>
                   {progress.xp > 0 && (
-                    <span className="flex items-center gap-1 text-amber-400">
+                    <span className="flex items-center gap-1 text-gold-2 font-mono text-[10px]">
                       <Sparkles size={12} />
                       {progress.xp} XP
                     </span>
                   )}
                 </div>
-                <Progress value={progressPercent} className="h-1.5" />
+                <div className="h-[2px] bg-void/50 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gold-2 transition-all duration-500"
+                    style={{ width: `${progressPercent}%` }}
+                  />
+                </div>
               </div>
             )}
           </div>
@@ -125,36 +132,36 @@ export function FeaturedEraHero({ era, progress, onStart, overrideImageUrl }: Fe
                 w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center
                 shadow-lg transition-transform group-hover:scale-105
                 ${isComplete
-                  ? 'bg-green-500'
+                  ? 'bg-success'
                   : hasStarted
-                    ? 'bg-amber-500'
-                    : 'bg-white'
+                    ? 'bg-gold-2'
+                    : 'bg-ha-red'
                 }
               `}
             >
               {isComplete ? (
-                <CheckCircle size={24} className="text-white" />
+                <CheckCircle size={24} className="text-void" />
               ) : (
                 <Play
                   size={20}
-                  className={`ml-0.5 ${hasStarted ? 'text-white' : 'text-black'}`}
-                  fill={hasStarted ? 'white' : 'black'}
+                  className="ml-0.5 text-void"
+                  fill="currentColor"
                 />
               )}
             </div>
 
-            <span className={`text-xs sm:text-sm font-semibold ${
+            <span className={`font-mono text-[10px] sm:text-xs font-semibold uppercase tracking-wider ${
               isComplete
-                ? 'text-green-400'
+                ? 'text-success'
                 : hasStarted
-                  ? 'text-amber-400'
-                  : 'text-white'
+                  ? 'text-gold-2'
+                  : 'text-off-white'
             }`}>
               {isComplete
                 ? 'Review'
                 : hasStarted
                   ? 'Continue'
-                  : 'Start'}
+                  : 'Begin'}
             </span>
           </div>
         </div>

@@ -28,12 +28,13 @@ export function EraCarousel({ title, subtitle, eras, onSelectEra }: EraCarouselP
       transition={{ duration: 0.3, delay: 0.1 }}
       className="space-y-3"
     >
-      {/* Header */}
+      {/* Header with red underline */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="section-plaque">{title}</h2>
+          <h2 className="font-serif text-xl text-off-white">{title}</h2>
+          <div className="w-12 h-0.5 bg-ha-red mt-1.5" />
           {subtitle && (
-            <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>
+            <p className="font-mono text-[10px] text-off-white/50 mt-2 uppercase tracking-wide">{subtitle}</p>
           )}
         </div>
       </div>

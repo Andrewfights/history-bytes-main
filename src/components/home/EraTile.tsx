@@ -59,19 +59,18 @@ export function EraTile({ era, size = 'md', onClick }: EraTileProps) {
       )}
 
       {/* Dark gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-t from-void/95 via-void/40 to-transparent" />
 
-      {/* Accent border on left */}
+      {/* Accent border on left - gold for available, muted for locked */}
       <div
-        className="absolute top-0 left-0 w-1 h-full"
-        style={{ backgroundColor: era.accentColor }}
+        className={`absolute top-0 left-0 w-1 h-full rounded-l ${era.isAvailable ? 'bg-gold-2' : 'bg-off-white/20'}`}
       />
 
       {/* Coming Soon overlay */}
       {!era.isAvailable && (
-        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+        <div className="absolute inset-0 bg-void/60 flex items-center justify-center">
           <div className="absolute top-3 right-3">
-            <Lock size={16} className="text-white/60" />
+            <Lock size={16} className="text-off-white/50" />
           </div>
         </div>
       )}
@@ -80,24 +79,24 @@ export function EraTile({ era, size = 'md', onClick }: EraTileProps) {
       <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4">
         {/* Coming Soon Badge */}
         {!era.isAvailable && (
-          <span className="inline-block px-2 py-0.5 mb-2 rounded-full bg-white/20 text-white/80 text-[10px] font-medium uppercase tracking-wider">
+          <span className="inline-block px-2 py-0.5 mb-2 rounded bg-gold-2/20 border border-gold-2/30 font-mono text-gold-2 text-[9px] font-medium uppercase tracking-wider">
             Coming Soon
           </span>
         )}
 
         {/* Era Name */}
-        <h3 className="font-editorial font-bold text-sm sm:text-base text-white leading-tight mb-0.5">
+        <h3 className="font-serif font-bold text-sm sm:text-base text-off-white leading-tight mb-0.5">
           {era.name}
         </h3>
 
         {/* Date Range */}
-        <p className="text-[10px] sm:text-xs text-white/60">
+        <p className="font-mono text-[9px] sm:text-[10px] text-off-white/50 uppercase tracking-wide">
           {era.dateRange}
         </p>
 
         {/* XP Reward (if available) */}
         {era.isAvailable && era.xpReward && (
-          <p className="text-[10px] text-amber-400 mt-1">
+          <p className="font-mono text-[10px] text-gold-2 mt-1">
             +{era.xpReward} XP
           </p>
         )}

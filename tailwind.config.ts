@@ -16,61 +16,60 @@ export default {
     },
     extend: {
       fontFamily: {
-        // A+E Brand Fonts
-        editorial: ['Georgia', 'Times New Roman', 'serif'],
-        sans: ['"Avenir Next LT Pro"', 'Avenir Next', 'Avenir', 'Nunito Sans', 'system-ui', '-apple-system', 'sans-serif'],
-        avenir: ['"Avenir Next LT Pro"', 'Avenir Next', 'Avenir', 'Nunito Sans', 'sans-serif'],
-        georgia: ['Georgia', 'Times New Roman', 'serif'],
+        // History Academy Dark v2 Fonts
+        display: ['Oswald', 'sans-serif'],
+        serif: ['"Playfair Display"', 'Georgia', 'serif'],
+        body: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        mono: ['"JetBrains Mono"', 'Menlo', 'Monaco', 'monospace'],
+        // Legacy aliases
+        editorial: ['"Playfair Display"', 'Georgia', 'serif'],
+        sans: ['Inter', '-apple-system', 'sans-serif'],
       },
       colors: {
-        // A+E Primary Colors
-        'ae-black': '#000000',
-        'ae-dark-grey': '#262626',
-        'ae-medium-grey': '#747474',
-        'ae-light-grey': '#AEAEAE',
-        'ae-white': '#FFFFFF',
-
-        // A+E Secondary Accent Colors
-        'ae-tan': '#F0C190',
-        'ae-taupe': '#AF8B68',
-        'ae-red': '#FE2762',
-        'ae-yellow': '#FADD00',
-
-        // Mapped grey scale for convenience
-        grey: {
-          900: '#000000',
-          800: '#262626',
-          600: '#747474',
-          400: '#AEAEAE',
-          100: '#FFFFFF',
-        },
-
-        // Legacy support - map to new palette
-        obsidian: {
-          900: '#000000',
-          850: '#0D0D0D',
-          800: '#1A1A1A',
-          750: '#262626',
-          700: '#333333',
+        // History Academy Dark v2 - Canvas
+        void: '#000000',
+        ink: {
+          DEFAULT: '#0A0A0A',
+          lift: '#141414',
         },
         charcoal: {
-          650: '#404040',
-          600: '#4D4D4D',
-          550: '#5A5A5A',
+          DEFAULT: '#1C1C1C',
+          2: '#242424',
         },
-        // Accent colors mapped from A+E palette
+        smoke: '#3A3A3A',
+        stone: {
+          DEFAULT: '#6A6A65',
+          light: '#8A8A85',
+        },
+
+        // History Academy Dark v2 - Text
+        'off-white': '#F2EEE6',
+        ivory: '#E8E4DA',
+        cream: '#FAF4E4',
+
+        // History Academy Dark v2 - Brand
+        'ha-red': {
+          DEFAULT: '#CD0E14',
+          deep: '#8A0A0E',
+        },
         gold: {
-          primary: '#F0C190',  // Tan
-          highlight: '#FADD00', // Yellow
-          deep: '#AF8B68',     // Taupe
+          1: '#F6E355',
+          2: '#E6AB2A',
+          3: '#B2641F',
+          deep: '#6A3A12',
         },
-        // A+E Brand Red (Bright Red)
-        'hc-red': {
-          DEFAULT: '#FE2762',
-          light: '#FF4D7F',
-          dark: '#D91F52',
+
+        // History Academy Dark v2 - Status
+        'ha-success': {
+          DEFAULT: '#3DD67A',
+          deep: '#1E7A3A',
         },
-        ivory: '#FFFFFF',
+
+        // Legacy A+E colors (for admin panel)
+        'ae-tan': '#F0C190',
+        'ae-red': '#FE2762',
+        'ae-yellow': '#FADD00',
+        'ae-dark-grey': '#262626',
         // Existing token mappings
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -131,10 +130,11 @@ export default {
         'elev1': '0 8px 24px rgba(0,0,0,0.35)',
         'elev2': '0 12px 32px rgba(0,0,0,0.45)',
         'elev3': '0 24px 60px rgba(0,0,0,0.60)',
-        'gold-glow': '0 10px 24px rgba(198,162,79,0.25)',
-        'gold-glow-strong': '0 14px 34px rgba(198,162,79,0.35)',
-        'red-glow': '0 0 8px rgba(196,18,48,0.4)',
-        'inset-hairline': '0 0 0 1px rgba(255,255,255,0.08) inset',
+        'gold-glow': '0 10px 24px rgba(230,171,42,0.25)',
+        'gold-glow-strong': '0 14px 34px rgba(230,171,42,0.35)',
+        'gold-btn': '0 3px 0 #6A3A12',
+        'red-glow': '0 0 8px rgba(205,14,20,0.4)',
+        'inset-hairline': '0 0 0 1px rgba(242,238,230,0.08) inset',
       },
       keyframes: {
         "accordion-down": {
@@ -146,8 +146,8 @@ export default {
           to: { height: "0" },
         },
         "pulse-glow": {
-          "0%, 100%": { boxShadow: "0 0 10px hsl(53 91% 65% / 0.3)" },
-          "50%": { boxShadow: "0 0 25px hsl(53 91% 65% / 0.5)" },
+          "0%, 100%": { boxShadow: "0 0 10px rgba(230,171,42,0.3)" },
+          "50%": { boxShadow: "0 0 25px rgba(230,171,42,0.5)" },
         },
         "slide-up": {
           from: { opacity: "0", transform: "translateY(10px)" },
@@ -167,10 +167,10 @@ export default {
         },
         "glow-pulse": {
           "0%, 100%": {
-            boxShadow: "0 0 8px hsl(53 91% 65% / 0.2), 0 0 16px hsl(53 91% 65% / 0.1)"
+            boxShadow: "0 0 8px rgba(230,171,42,0.2), 0 0 16px rgba(230,171,42,0.1)"
           },
           "50%": {
-            boxShadow: "0 0 16px hsl(53 91% 65% / 0.4), 0 0 32px hsl(53 91% 65% / 0.2)"
+            boxShadow: "0 0 16px rgba(230,171,42,0.4), 0 0 32px rgba(230,171,42,0.2)"
           },
         },
         "shine": {

@@ -5,7 +5,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 active:scale-[0.98]",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[10px] text-sm font-medium ring-offset-background transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 active:scale-[0.98]",
   {
     variants: {
       variant: {
@@ -15,14 +15,21 @@ const buttonVariants = cva(
         secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80 shadow-sm hover:shadow-md",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
-        premium: "bg-gradient-to-br from-gold-primary via-gold-highlight to-gold-deep text-obsidian-900 font-semibold shadow-[0_0_0_1px_rgba(255,255,255,0.08)_inset,0_10px_24px_rgba(198,162,79,0.25)] hover:shadow-[0_0_0_1px_rgba(255,255,255,0.08)_inset,0_14px_34px_rgba(198,162,79,0.35)] gradient-shine",
+        // History Academy Dark v2 variants
+        "ha-red": "bg-ha-red text-off-white font-semibold hover:bg-ha-red-deep shadow-sm hover:shadow-md",
+        "ha-gold": "bg-gradient-to-b from-gold-1 via-gold-2 to-gold-3 text-void font-semibold shadow-gold-btn hover:brightness-110 active:translate-y-[2px] active:shadow-none",
+        "ha-ghost": "bg-charcoal text-off-white hover:bg-charcoal-2 border border-transparent hover:border-gold-2/20",
+        "ha-outline": "border border-gold-2/30 bg-transparent text-off-white hover:border-gold-2/60 hover:bg-gold-2/5",
+        // Legacy variants
+        premium: "bg-gradient-to-b from-gold-1 via-gold-2 to-gold-3 text-void font-semibold shadow-gold-btn hover:brightness-110",
         glass: "bg-card/50 backdrop-blur-md border border-white/10 text-foreground hover:bg-card/70 hover:border-primary/30 shadow-lg",
-        brand: "bg-hc-red text-white font-semibold hover:bg-hc-red-dark shadow-sm hover:shadow-md hover:shadow-hc-red/20",
+        brand: "bg-ha-red text-off-white font-semibold hover:bg-ha-red-deep shadow-sm hover:shadow-md",
       },
       size: {
         default: "h-10 px-4 py-2",
-        sm: "h-9 rounded-md px-3",
-        lg: "h-11 rounded-md px-8",
+        sm: "h-9 px-3",
+        lg: "h-11 px-8",
+        xl: "h-14 px-10 text-base",
         icon: "h-10 w-10",
       },
     },

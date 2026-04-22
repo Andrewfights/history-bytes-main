@@ -59,11 +59,11 @@ export function ProfileSettings() {
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             onClick={() => setShowAvatarPicker(!showAvatarPicker)}
-            className="w-24 h-24 rounded-full bg-primary/10 mx-auto mb-2 flex items-center justify-center text-4xl relative group"
+            className="w-[78px] h-[78px] rounded-full bg-ink-lift border-2 border-gold-2/30 mx-auto mb-2 flex items-center justify-center text-4xl relative group"
           >
             {selectedAvatar}
-            <div className="absolute inset-0 rounded-full bg-background/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-              <Camera size={20} className="text-foreground" />
+            <div className="absolute inset-0 rounded-full bg-void/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <Camera size={20} className="text-off-white" />
             </div>
           </motion.button>
         </div>
@@ -72,14 +72,14 @@ export function ProfileSettings() {
           <motion.div
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex flex-wrap justify-center gap-2 mb-3 bg-card border border-border rounded-xl p-3 max-w-xs mx-auto"
+            className="flex flex-wrap justify-center gap-2 mb-3 bg-ink-lift border border-off-white/[0.06] rounded-xl p-3 max-w-xs mx-auto"
           >
             {avatarOptions.map((av) => (
               <button
                 key={av}
                 onClick={() => { setSelectedAvatar(av); setShowAvatarPicker(false); }}
                 className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl transition-all ${
-                  selectedAvatar === av ? 'bg-primary/20 ring-2 ring-primary' : 'bg-card hover:bg-muted'
+                  selectedAvatar === av ? 'bg-gold-2/20 ring-2 ring-gold-2' : 'bg-ink-lift hover:bg-off-white/[0.04]'
                 }`}
               >
                 {av}
@@ -94,93 +94,102 @@ export function ProfileSettings() {
               type="text"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
-              className="bg-input border border-border rounded-lg px-3 py-2 text-center font-semibold focus:outline-none focus:border-primary"
+              className="bg-ink-lift border border-off-white/10 rounded-lg px-3 py-2 text-center font-semibold text-off-white focus:outline-none focus:border-gold-2/50"
               autoFocus
             />
-            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={handleSave} className="p-2 rounded-lg bg-success text-success-foreground">
+            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={handleSave} className="p-2 rounded-lg bg-success text-void">
               <Check size={18} />
             </motion.button>
           </div>
         ) : (
           <div className="flex items-center justify-center gap-2">
-            <h2 className="text-xl font-semibold">{user.displayName}</h2>
-            <button onClick={() => setIsEditing(true)} className="p-1.5 rounded-lg hover:bg-card transition-colors">
-              <Edit2 size={16} className="text-muted-foreground" />
+            <h2 className="font-display text-xl font-semibold text-off-white uppercase tracking-wide">{user.displayName}</h2>
+            <button onClick={() => setIsEditing(true)} className="p-1.5 rounded-lg hover:bg-off-white/[0.04] transition-colors">
+              <Edit2 size={16} className="text-off-white/50" />
             </button>
           </div>
         )}
 
-        <div className="flex items-center justify-center gap-4 mt-3">
+        {/* Stats Grid - 4 columns */}
+        <div className="flex items-center justify-center gap-4 mt-4">
           <div className="text-center">
-            <p className="text-2xl font-bold text-gradient-gold">{user.xp.toLocaleString()}</p>
-            <p className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Total XP</p>
+            <p className="font-serif text-xl font-bold text-gold-2">{user.xp.toLocaleString()}</p>
+            <p className="font-mono text-[8px] uppercase tracking-[0.2em] text-off-white/50">XP</p>
           </div>
-          <div className="w-px h-8 bg-border" />
+          <div className="w-px h-8 bg-off-white/10" />
           <div className="text-center">
-            <p className="text-2xl font-bold">{user.streak}</p>
-            <p className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Day Streak</p>
+            <p className="font-serif text-xl font-bold text-off-white">{user.streak}</p>
+            <p className="font-mono text-[8px] uppercase tracking-[0.2em] text-off-white/50">Day Streak</p>
           </div>
-          <div className="w-px h-8 bg-border" />
+          <div className="w-px h-8 bg-off-white/10" />
           <div className="text-center">
-            <p className="text-2xl font-bold">{Math.round(overallAccuracy)}%</p>
-            <p className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Accuracy</p>
+            <p className="font-serif text-xl font-bold text-off-white">{Math.round(overallAccuracy)}%</p>
+            <p className="font-mono text-[8px] uppercase tracking-[0.2em] text-off-white/50">Accuracy</p>
           </div>
-          <div className="w-px h-8 bg-border" />
+          <div className="w-px h-8 bg-off-white/10" />
           <div className="text-center">
-            <p className="text-2xl font-bold text-primary">{crownedCount}</p>
-            <p className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Crowned</p>
+            <p className="font-serif text-xl font-bold text-gold-2">{crownedCount}</p>
+            <p className="font-mono text-[8px] uppercase tracking-[0.2em] text-off-white/50">Crowned</p>
           </div>
         </div>
       </div>
 
-      {/* Rank Section */}
+      {/* Rank Section - pfr pattern with left gold accent */}
       {(() => {
         const rank = getRank(user.xp);
         const { next, threshold, current } = getNextRankXP(user.xp);
         const pct = next ? Math.round(((user.xp - current) / (threshold - current)) * 100) : 100;
         return (
-          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="bg-card border border-primary/30 rounded-xl p-4">
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="relative bg-ink-lift border border-gold-2/15 rounded-xl p-4 overflow-hidden">
+            {/* Left gold accent bar */}
+            <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-gold-2 rounded-l-xl" />
+
             <div className="flex items-center gap-2 mb-2">
-              <Crown size={16} className="text-primary" />
-              <h3 className="text-xs uppercase tracking-[0.2em] font-bold text-muted-foreground">Current Rank</h3>
+              <div className="w-8 h-8 rounded-full bg-gold-2/15 flex items-center justify-center">
+                <Crown size={16} className="text-gold-2" />
+              </div>
+              <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-off-white/50">Current Rank</h3>
             </div>
-            <p className="font-editorial text-2xl font-bold text-primary">{rank}</p>
-            <div className="mt-2 h-2 rounded-full bg-border overflow-hidden">
+            <p className="font-serif text-lg font-bold text-gold-2">{rank}</p>
+            <div className="mt-3 h-[2px] rounded-full bg-void/50 overflow-hidden">
               <motion.div
-                className="h-full bg-primary rounded-full"
+                className="h-full bg-gold-2 rounded-full"
                 initial={{ width: 0 }}
                 animate={{ width: `${pct}%` }}
                 transition={{ delay: 0.3, duration: 0.8 }}
               />
             </div>
-            <div className="flex justify-between mt-1.5">
-              <span className="text-xs text-muted-foreground">{user.xp.toLocaleString()} XP</span>
+            <div className="flex justify-between mt-2">
+              <span className="font-mono text-[10px] text-off-white/50">{user.xp.toLocaleString()} XP</span>
               {next ? (
-                <span className="text-xs text-muted-foreground">Next: {next} ({threshold.toLocaleString()} XP)</span>
+                <span className="font-mono text-[10px] text-off-white/50">Next: {next} ({threshold.toLocaleString()} XP)</span>
               ) : (
-                <span className="text-xs text-primary font-bold">Maximum Rank Achieved</span>
+                <span className="font-mono text-[10px] text-gold-2 font-bold uppercase tracking-wide">Maximum Rank</span>
               )}
             </div>
           </motion.div>
         );
       })()}
 
-      {/* WW2 Guide Section */}
+      {/* WW2 Guide Section - pfg pattern with left red accent */}
       {hasSelectedHost && currentHost && (
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.05 }}
-          className="bg-card border border-border rounded-xl p-4"
+          className="relative bg-ink-lift border border-off-white/[0.06] rounded-xl p-4 overflow-hidden"
         >
+          {/* Left red accent bar */}
+          <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-ha-red rounded-l-xl" />
+
           <div className="flex items-center gap-2 mb-3">
-            <Users size={16} className="text-amber-500" />
-            <h3 className="text-xs uppercase tracking-[0.2em] font-bold text-muted-foreground">Your WW2 Guide</h3>
+            <Users size={16} className="text-gold-2" />
+            <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-off-white/50">Your WW2 Guide</h3>
           </div>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div
-                className="w-12 h-12 rounded-full flex items-center justify-center text-2xl overflow-hidden"
+                className="w-12 h-12 rounded-full flex items-center justify-center text-2xl overflow-hidden border border-off-white/10"
                 style={{ backgroundColor: currentHost.primaryColor + '30' }}
               >
                 {currentHost.avatarUrl ? (
@@ -190,13 +199,13 @@ export function ProfileSettings() {
                 )}
               </div>
               <div>
-                <p className="font-bold text-white">{currentHost.name}</p>
-                <p className="text-xs text-white/60">{currentHost.description}</p>
+                <p className="font-display font-bold text-off-white uppercase tracking-wide">{currentHost.name}</p>
+                <p className="font-serif italic text-xs text-gold-2">{currentHost.description}</p>
               </div>
             </div>
             <button
               onClick={() => setShowHostSelection(true)}
-              className="px-3 py-1.5 text-xs font-medium bg-white/10 hover:bg-white/20 text-white/80 rounded-lg transition-colors"
+              className="px-3 py-1.5 font-mono text-[10px] font-medium bg-off-white/[0.04] hover:bg-off-white/[0.08] text-off-white/70 rounded-lg transition-colors border border-off-white/[0.06] uppercase tracking-wide"
             >
               Change
             </button>
@@ -209,7 +218,7 @@ export function ProfileSettings() {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05 }}
-        className="bg-card border border-border rounded-xl p-4"
+        className="bg-ink-lift border border-off-white/[0.06] rounded-xl p-4"
       >
         <BadgeShowcase />
       </motion.div>
@@ -220,21 +229,21 @@ export function ProfileSettings() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.075 }}
         onClick={() => setShowPantheon(true)}
-        className="w-full bg-gradient-to-r from-slate-800/80 to-slate-900/60 border border-white/10 hover:border-amber-500/30 rounded-xl p-4 text-left transition-all group"
+        className="w-full bg-ink-lift border border-off-white/[0.06] hover:border-gold-2/20 rounded-xl p-4 text-left transition-all group"
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500/20 to-slate-700/50 flex items-center justify-center text-2xl">
+            <div className="w-12 h-12 rounded-xl bg-gold-2/10 border border-gold-2/20 flex items-center justify-center text-2xl">
               🪖
             </div>
             <div>
-              <h3 className="font-bold text-white flex items-center gap-2">
+              <h3 className="font-serif font-bold text-off-white flex items-center gap-2">
                 The Pantheon
                 {!isPantheonLoading && getHighestTier() && (
                   <TierBadge tier={getHighestTier()!} size="sm" showLabel={false} />
                 )}
               </h3>
-              <p className="text-xs text-white/60">
+              <p className="font-mono text-[10px] text-off-white/50 uppercase tracking-wide">
                 {isPantheonLoading ? (
                   'Loading...'
                 ) : getTotalSouvenirs() > 0 ? (
@@ -245,26 +254,29 @@ export function ProfileSettings() {
               </p>
             </div>
           </div>
-          <Trophy size={20} className="text-amber-400/50 group-hover:text-amber-400 transition-colors" />
+          <Trophy size={20} className="text-gold-2/50 group-hover:text-gold-2 transition-colors" />
         </div>
       </motion.button>
 
       {/* Category Breakdown */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-        <h3 className="text-xs uppercase tracking-[0.2em] font-bold text-muted-foreground mb-3">Progress by Category</h3>
+        <div className="mb-3">
+          <h3 className="font-serif text-lg text-off-white">Progress by Category</h3>
+          <div className="w-12 h-0.5 bg-ha-red mt-1.5" />
+        </div>
         <div className="grid grid-cols-2 gap-3">
           {categoryStats.map((cat) => {
             const Icon = cat.icon;
             const pct = cat.total > 0 ? (cat.completed / cat.total) * 100 : 0;
             return (
-              <div key={cat.category} className="bg-card border border-border rounded-xl p-3">
+              <div key={cat.category} className="bg-ink-lift border border-off-white/[0.06] rounded-xl p-3">
                 <div className="flex items-center gap-2 mb-2">
-                  <Icon size={14} className={cat.color} />
-                  <span className="text-xs font-semibold">{cat.category}</span>
+                  <Icon size={14} className="text-gold-2" />
+                  <span className="font-mono text-[10px] font-semibold text-off-white/70 uppercase tracking-wide">{cat.category}</span>
                 </div>
-                <p className="text-lg font-bold">{cat.completed}<span className="text-muted-foreground text-sm font-normal">/{cat.total}</span></p>
-                <div className="h-1.5 rounded-full bg-border mt-2 overflow-hidden">
-                  <motion.div className="h-full bg-primary rounded-full" initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ delay: 0.4, duration: 0.6 }} />
+                <p className="font-serif text-lg font-bold text-off-white">{cat.completed}<span className="text-off-white/50 text-sm font-normal">/{cat.total}</span></p>
+                <div className="h-[2px] rounded-full bg-void/50 mt-2 overflow-hidden">
+                  <motion.div className="h-full bg-gold-2 rounded-full" initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ delay: 0.4, duration: 0.6 }} />
                 </div>
               </div>
             );
@@ -274,35 +286,38 @@ export function ProfileSettings() {
 
       {/* Per-Era Performance */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-        <h3 className="text-xs uppercase tracking-[0.2em] font-bold text-muted-foreground mb-3">Performance by Era</h3>
+        <div className="mb-3">
+          <h3 className="font-serif text-lg text-off-white">Performance by Era</h3>
+          <div className="w-12 h-0.5 bg-ha-red mt-1.5" />
+        </div>
         <div className="space-y-3">
           {eraStats.map((era) => {
             const notStarted = era.quizzesDone === 0;
             return (
-              <div key={era.era} className="bg-card border border-border rounded-xl p-4">
+              <div key={era.era} className="bg-ink-lift border border-off-white/[0.06] rounded-xl p-4">
                 <div className="flex items-center justify-between mb-1">
-                  <h4 className="text-sm font-semibold">{era.era}</h4>
+                  <h4 className="font-serif text-sm font-semibold text-off-white">{era.era}</h4>
                   {notStarted ? (
-                    <span className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Not Started</span>
+                    <span className="font-mono text-[10px] uppercase tracking-wider text-off-white/40">Not Started</span>
                   ) : (
-                    <span className={`text-sm font-bold ${era.accuracy >= 80 ? 'text-success' : era.accuracy >= 60 ? 'text-primary' : 'text-destructive'}`}>
+                    <span className={`font-serif text-sm font-bold ${era.accuracy >= 80 ? 'text-success' : era.accuracy >= 60 ? 'text-gold-2' : 'text-ha-red'}`}>
                       {era.accuracy}%
                     </span>
                   )}
                 </div>
                 {!notStarted && (
                   <>
-                    <p className="text-xs text-muted-foreground mb-2">{era.quizzesDone} quizzes completed</p>
+                    <p className="font-mono text-[10px] text-off-white/50 mb-2">{era.quizzesDone} quizzes completed</p>
                     {era.strongTopics.length > 0 && (
                       <div className="flex items-center gap-1.5 mb-1">
                         <TrendingUp size={12} className="text-success" />
-                        <span className="text-[11px] text-foreground/80">Strong: {era.strongTopics.join(', ')}</span>
+                        <span className="text-[11px] text-off-white/70">Strong: {era.strongTopics.join(', ')}</span>
                       </div>
                     )}
                     {era.weakTopics.length > 0 && (
                       <div className="flex items-center gap-1.5">
-                        <TrendingDown size={12} className="text-destructive" />
-                        <span className="text-[11px] text-foreground/80">Improve: {era.weakTopics.join(', ')}</span>
+                        <TrendingDown size={12} className="text-ha-red" />
+                        <span className="text-[11px] text-off-white/70">Improve: {era.weakTopics.join(', ')}</span>
                       </div>
                     )}
                   </>
@@ -315,13 +330,18 @@ export function ProfileSettings() {
 
       {/* Recommendations */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-        <h3 className="text-xs uppercase tracking-[0.2em] font-bold text-muted-foreground mb-3">Recommended Next</h3>
-        <div className="bg-card border border-primary/30 rounded-xl p-4">
+        <div className="mb-3">
+          <h3 className="font-serif text-lg text-off-white">Recommended Next</h3>
+          <div className="w-12 h-0.5 bg-ha-red mt-1.5" />
+        </div>
+        <div className="relative bg-ink-lift border border-gold-2/15 rounded-xl p-4 overflow-hidden">
+          {/* Left gold accent bar */}
+          <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-gold-2 rounded-l-xl" />
           <div className="flex items-start gap-3">
-            <Target size={20} className="text-primary mt-0.5" />
+            <Target size={20} className="text-gold-2 mt-0.5" />
             <div>
-              <p className="text-sm font-semibold">Strengthen: Roman Law</p>
-              <p className="text-xs text-muted-foreground mt-0.5">Your weakest topic in The Ancient World. Revisit the lesson and retake the quiz.</p>
+              <p className="font-serif text-sm font-semibold text-off-white">Strengthen: Roman Law</p>
+              <p className="text-xs text-off-white/60 mt-0.5">Your weakest topic in The Ancient World. Revisit the lesson and retake the quiz.</p>
             </div>
           </div>
         </div>
@@ -338,34 +358,37 @@ export function ProfileSettings() {
 
       {/* Settings */}
       <div className="space-y-3">
-        <h3 className="text-xs uppercase tracking-[0.2em] font-bold text-muted-foreground">Settings</h3>
+        <div className="mb-1">
+          <h3 className="font-serif text-lg text-off-white">Settings</h3>
+          <div className="w-12 h-0.5 bg-ha-red mt-1.5" />
+        </div>
 
         <motion.button
           initial={{ opacity: 0, x: -10 }}
           animate={{ opacity: 1, x: 0 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => updateUser({ anonLeaderboard: !user.anonLeaderboard })}
-          className="w-full lesson-card flex items-center justify-between"
+          className="w-full bg-ink-lift border border-off-white/[0.06] rounded-xl p-4 flex items-center justify-between"
         >
           <div className="flex items-center gap-3">
-            {user.anonLeaderboard ? <EyeOff size={20} className="text-muted-foreground" /> : <Eye size={20} className="text-primary" />}
+            {user.anonLeaderboard ? <EyeOff size={20} className="text-off-white/50" /> : <Eye size={20} className="text-gold-2" />}
             <div className="text-left">
-              <p className="font-medium">Anonymous on Leaderboard</p>
-              <p className="text-sm text-muted-foreground">{user.anonLeaderboard ? 'Your name is hidden' : 'Your name is visible'}</p>
+              <p className="font-medium text-off-white">Anonymous on Leaderboard</p>
+              <p className="text-sm text-off-white/50">{user.anonLeaderboard ? 'Your name is hidden' : 'Your name is visible'}</p>
             </div>
           </div>
-          <div className={`w-12 h-6 rounded-full transition-colors ${user.anonLeaderboard ? 'bg-primary' : 'bg-border'}`}>
-            <motion.div className="w-5 h-5 bg-foreground rounded-full mt-0.5" animate={{ x: user.anonLeaderboard ? 26 : 2 }} transition={{ type: 'spring', stiffness: 500, damping: 30 }} />
+          <div className={`w-12 h-6 rounded-full transition-colors ${user.anonLeaderboard ? 'bg-gold-2' : 'bg-off-white/10'}`}>
+            <motion.div className="w-5 h-5 bg-off-white rounded-full mt-0.5" animate={{ x: user.anonLeaderboard ? 26 : 2 }} transition={{ type: 'spring', stiffness: 500, damping: 30 }} />
           </div>
         </motion.button>
 
         {/* Account info */}
         {userEmail && (
-          <div className="w-full lesson-card flex items-center gap-3">
-            <User size={20} className="text-muted-foreground" />
+          <div className="w-full bg-ink-lift border border-off-white/[0.06] rounded-xl p-4 flex items-center gap-3">
+            <User size={20} className="text-off-white/50" />
             <div className="text-left">
-              <p className="font-medium">Account</p>
-              <p className="text-sm text-muted-foreground">{userEmail}</p>
+              <p className="font-medium text-off-white">Account</p>
+              <p className="text-sm text-off-white/50">{userEmail}</p>
             </div>
           </div>
         )}
@@ -379,18 +402,18 @@ export function ProfileSettings() {
         >
           <button
             onClick={() => setShowStudyNotes(!showStudyNotes)}
-            className="w-full lesson-card flex items-center justify-between"
+            className="w-full bg-ink-lift border border-off-white/[0.06] rounded-xl p-4 flex items-center justify-between"
           >
             <div className="flex items-center gap-3">
-              <BookOpen size={20} className="text-primary" />
-              <span className="font-medium">Study Notes</span>
+              <BookOpen size={20} className="text-gold-2" />
+              <span className="font-medium text-off-white">Study Notes</span>
               {studyNotes.length > 0 && (
-                <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full">
+                <span className="font-mono text-[10px] bg-gold-2/20 text-gold-2 px-2 py-0.5 rounded-full">
                   {studyNotes.length}
                 </span>
               )}
             </div>
-            {showStudyNotes ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+            {showStudyNotes ? <ChevronUp size={18} className="text-off-white/50" /> : <ChevronDown size={18} className="text-off-white/50" />}
           </button>
 
           <AnimatePresence>
@@ -401,7 +424,7 @@ export function ProfileSettings() {
                 exit={{ opacity: 0, height: 0 }}
                 className="overflow-hidden"
               >
-                <div className="mt-2 rounded-xl border border-border bg-card overflow-hidden">
+                <div className="mt-2 rounded-xl border border-off-white/[0.06] bg-ink-lift overflow-hidden">
                   <StudyNotes />
                 </div>
               </motion.div>
@@ -415,7 +438,7 @@ export function ProfileSettings() {
           transition={{ delay: 0.1 }}
           whileTap={{ scale: 0.98 }}
           onClick={signOut}
-          className="w-full lesson-card flex items-center gap-3 text-destructive"
+          className="w-full bg-ink-lift border border-off-white/[0.06] rounded-xl p-4 flex items-center gap-3 text-ha-red"
         >
           <LogOut size={20} />
           <span className="font-medium">Sign Out</span>
@@ -429,7 +452,7 @@ export function ProfileSettings() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.15 }}
               whileTap={{ scale: 0.98 }}
-              className="w-full lesson-card flex items-center gap-3 text-primary"
+              className="w-full bg-ink-lift border border-off-white/[0.06] rounded-xl p-4 flex items-center gap-3 text-gold-2"
             >
               <Settings size={20} />
               <span className="font-medium">Admin Panel</span>

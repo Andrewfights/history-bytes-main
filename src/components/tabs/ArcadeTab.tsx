@@ -368,8 +368,9 @@ export function ArcadeTab() {
     <div className="px-4 py-6 space-y-5 pb-24">
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="font-editorial text-2xl font-bold">Arcade</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">Fast Play · Leaderboards</p>
+        <h1 className="font-serif text-2xl font-bold text-off-white">Arcade</h1>
+        <div className="w-12 h-0.5 bg-ha-red mt-1.5 mb-1" />
+        <p className="font-mono text-[10px] text-off-white/50 uppercase tracking-wide">Fast Play · Leaderboards</p>
       </motion.div>
 
       {/* Featured Game Hero - NEW */}
@@ -396,7 +397,10 @@ export function ArcadeTab() {
 
       {/* All Games Section */}
       <section className="space-y-3">
-        <h2 className="section-plaque">All Games</h2>
+        <div>
+          <h2 className="font-serif text-lg text-off-white">All Games</h2>
+          <div className="w-12 h-0.5 bg-ha-red mt-1.5" />
+        </div>
         <div className="space-y-3">
           {ARCADE_GAMES.map((game, i) => {
             const playsToday = getArcadePlaysToday(game.id);
@@ -411,32 +415,32 @@ export function ArcadeTab() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.1 + i * 0.05 }}
                 onClick={() => setActiveGame(game.type as ActiveGame)}
-                className="w-full lesson-card card-hover flex items-center gap-4 text-left active:scale-[0.99] transition-transform touch-target"
+                className="w-full bg-ink-lift border border-off-white/[0.06] hover:border-gold-2/30 rounded-xl p-4 flex items-center gap-4 text-left active:scale-[0.99] transition-all touch-target"
               >
-                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">
+                <div className="w-12 h-12 rounded-xl bg-gold-2/10 border border-gold-2/20 flex items-center justify-center overflow-hidden flex-shrink-0">
                   {imageUrl ? (
                     <img src={imageUrl} alt={game.title} className="w-full h-full object-cover" />
                   ) : (
-                    <Gamepad2 size={24} className="text-primary/50" />
+                    <Gamepad2 size={24} className="text-gold-2/50" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <h3 className="font-semibold text-sm">{game.title}</h3>
+                    <h3 className="font-serif font-semibold text-sm text-off-white">{game.title}</h3>
                     {isFeatured && (
-                      <span className="text-[9px] uppercase tracking-wider font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">Today</span>
+                      <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-gold-2 bg-gold-2/10 px-1.5 py-0.5 rounded border border-gold-2/20">Today</span>
                     )}
                   </div>
                   <div className="flex items-center gap-2 mt-1.5">
                     <div className="flex gap-0.5">
                       {[0, 1, 2].map(j => (
-                        <div key={j} className={`w-4 h-1.5 rounded-full transition-colors ${j < playsToday ? 'bg-primary' : 'bg-border'}`} />
+                        <div key={j} className={`w-4 h-1.5 rounded-full transition-colors ${j < playsToday ? 'bg-gold-2' : 'bg-off-white/10'}`} />
                       ))}
                     </div>
                     {xpCapReached ? (
-                      <span className="text-[10px] text-muted-foreground">Max XP reached · Play for fun</span>
+                      <span className="font-mono text-[10px] text-off-white/50">Max XP reached · Play for fun</span>
                     ) : (
-                      <span className="text-[10px] text-muted-foreground">+{game.xpReward} XP per play</span>
+                      <span className="font-mono text-[10px] text-gold-2">+{game.xpReward} XP per play</span>
                     )}
                   </div>
                 </div>

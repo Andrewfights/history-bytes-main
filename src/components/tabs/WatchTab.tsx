@@ -159,7 +159,7 @@ export function WatchTab() {
       className="h-[calc(100vh-4rem)] md:h-[calc(100vh-3.5rem)] overflow-hidden bg-black relative"
     >
       {/* Category indicator at top */}
-      <div className="absolute top-0 left-0 right-0 z-20 p-4 bg-gradient-to-b from-black/60 to-transparent">
+      <div className="absolute top-0 left-0 right-0 z-20 p-4 bg-gradient-to-b from-void/80 to-transparent">
         <div className="flex items-center justify-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
           {watchCategories.map((cat, idx) => (
             <motion.button
@@ -169,10 +169,10 @@ export function WatchTab() {
                 setCategoryIndex(idx);
                 setVideoIndex(0);
               }}
-              className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-full font-mono text-[10px] uppercase tracking-wide font-medium transition-all whitespace-nowrap ${
                 idx === categoryIndex
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-white/20 text-white/70 hover:bg-white/30'
+                  ? 'bg-gold-2 text-void'
+                  : 'border border-off-white/20 text-off-white/70 hover:border-gold-2/40'
               }`}
               animate={{ scale: idx === categoryIndex ? 1 : 0.9 }}
             >
@@ -233,20 +233,20 @@ export function WatchTab() {
       </AnimatePresence>
 
       {/* Video info overlay at bottom */}
-      <div className="absolute bottom-0 left-0 right-16 z-20 p-4 pb-6 bg-gradient-to-t from-black/80 via-black/40 to-transparent">
+      <div className="absolute bottom-0 left-0 right-16 z-20 p-4 pb-6 bg-gradient-to-t from-void/90 via-void/50 to-transparent">
         <motion.div
           key={currentVideo.id}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          <h2 className="font-editorial text-lg font-bold text-white leading-tight mb-1">
+          <h2 className="font-serif text-lg font-bold text-off-white leading-tight mb-1">
             {currentVideo.title}
           </h2>
-          <p className="text-sm text-white/80 line-clamp-2">
+          <p className="text-sm text-off-white/70 line-clamp-2">
             {currentVideo.description}
           </p>
-          <div className="flex items-center gap-3 mt-2 text-xs text-white/60">
+          <div className="flex items-center gap-3 mt-2 font-mono text-[10px] text-off-white/50 uppercase tracking-wide">
             <span>{currentVideo.duration}</span>
             {currentVideo.views && (
               <span>
@@ -267,14 +267,14 @@ export function WatchTab() {
           className="flex flex-col items-center gap-1"
         >
           <div className={`w-11 h-11 rounded-full flex items-center justify-center ${
-            isLiked[currentVideo.id] ? 'bg-red-500' : 'bg-white/20 backdrop-blur-sm'
+            isLiked[currentVideo.id] ? 'bg-ha-red' : 'bg-off-white/10 backdrop-blur-sm border border-off-white/10'
           }`}>
             <Heart
               size={22}
-              className={isLiked[currentVideo.id] ? 'text-white fill-white' : 'text-white'}
+              className={isLiked[currentVideo.id] ? 'text-off-white fill-off-white' : 'text-off-white'}
             />
           </div>
-          <span className="text-xs text-white/80">Like</span>
+          <span className="font-mono text-[9px] text-off-white/70 uppercase tracking-wide">Like</span>
         </motion.button>
 
         <motion.button
@@ -283,14 +283,14 @@ export function WatchTab() {
           className="flex flex-col items-center gap-1"
         >
           <div className={`w-11 h-11 rounded-full flex items-center justify-center ${
-            isSaved[currentVideo.id] ? 'bg-primary' : 'bg-white/20 backdrop-blur-sm'
+            isSaved[currentVideo.id] ? 'bg-gold-2' : 'bg-off-white/10 backdrop-blur-sm border border-off-white/10'
           }`}>
             <Bookmark
               size={22}
-              className={isSaved[currentVideo.id] ? 'text-primary-foreground fill-primary-foreground' : 'text-white'}
+              className={isSaved[currentVideo.id] ? 'text-void fill-void' : 'text-off-white'}
             />
           </div>
-          <span className="text-xs text-white/80">Save</span>
+          <span className="font-mono text-[9px] text-off-white/70 uppercase tracking-wide">Save</span>
         </motion.button>
 
         <motion.button
@@ -298,10 +298,10 @@ export function WatchTab() {
           onClick={(e) => e.stopPropagation()}
           className="flex flex-col items-center gap-1"
         >
-          <div className="w-11 h-11 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-            <Share2 size={22} className="text-white" />
+          <div className="w-11 h-11 rounded-full bg-off-white/10 backdrop-blur-sm border border-off-white/10 flex items-center justify-center">
+            <Share2 size={22} className="text-off-white" />
           </div>
-          <span className="text-xs text-white/80">Share</span>
+          <span className="font-mono text-[9px] text-off-white/70 uppercase tracking-wide">Share</span>
         </motion.button>
 
         <motion.button
@@ -309,10 +309,10 @@ export function WatchTab() {
           onClick={(e) => e.stopPropagation()}
           className="flex flex-col items-center gap-1"
         >
-          <div className="w-11 h-11 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-            <MessageCircle size={22} className="text-white" />
+          <div className="w-11 h-11 rounded-full bg-off-white/10 backdrop-blur-sm border border-off-white/10 flex items-center justify-center">
+            <MessageCircle size={22} className="text-off-white" />
           </div>
-          <span className="text-xs text-white/80">Facts</span>
+          <span className="font-mono text-[9px] text-off-white/70 uppercase tracking-wide">Facts</span>
         </motion.button>
       </div>
 
@@ -349,7 +349,7 @@ export function WatchTab() {
           <div
             key={idx}
             className={`w-1 h-4 rounded-full transition-all ${
-              idx === videoIndex ? 'bg-primary' : 'bg-white/30'
+              idx === videoIndex ? 'bg-gold-2' : 'bg-off-white/20'
             }`}
           />
         ))}
