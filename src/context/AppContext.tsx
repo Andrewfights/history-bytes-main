@@ -111,6 +111,9 @@ interface AppContextType {
   // Pearl Harbor journey entry
   pendingPearlHarbor: boolean;
   setPendingPearlHarbor: (pending: boolean) => void;
+  // Trophy Room navigation
+  pendingTrophyRoom: boolean;
+  setPendingTrophyRoom: (pending: boolean) => void;
   // Hydration state
   isHydrated: boolean;
   // Authentication
@@ -177,6 +180,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [pendingLuckyNode, setPendingLuckyNode] = useState<PendingLuckyNode | null>(null);
   // Pearl Harbor journey entry
   const [pendingPearlHarbor, setPendingPearlHarbor] = useState<boolean>(false);
+  // Trophy Room navigation
+  const [pendingTrophyRoom, setPendingTrophyRoom] = useState<boolean>(false);
 
   // Badge system state
   const [earnedBadges, setEarnedBadges] = useState<EarnedBadge[]>([]);
@@ -1088,6 +1093,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setPendingLuckyNode,
       pendingPearlHarbor,
       setPendingPearlHarbor,
+      pendingTrophyRoom,
+      setPendingTrophyRoom,
       isHydrated,
       isAuthenticated,
       userEmail,

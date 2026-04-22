@@ -11,7 +11,7 @@ import {
   Share2, Settings, ChevronRight, ChevronDown, ChevronUp, Star, Flame,
   BookOpen, Trophy, Award, Gamepad2, User, LogOut, Eye, EyeOff
 } from 'lucide-react';
-import { useApp } from '@/context/AppContext';
+import { useApp, type TabType } from '@/context/AppContext';
 import { getNextRankXP } from '@/types';
 import { isAdminUser } from '@/components/admin/AdminRoute';
 import { cn } from '@/lib/utils';
@@ -59,8 +59,13 @@ const sampleActivities = [
 const weekDays = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
 export function ProfileTab() {
-  const { user, updateUser, crownedCount, signOut, userEmail, studyNotes } = useApp();
+  const { user, updateUser, crownedCount, signOut, userEmail, studyNotes, setActiveTab, setPendingTrophyRoom } = useApp();
   const [showStudyNotes, setShowStudyNotes] = useState(false);
+
+  const handleTrophyRoomClick = () => {
+    setPendingTrophyRoom(true);
+    setActiveTab('journey');
+  };
 
   // Get rank info
   const { next, threshold, current } = getNextRankXP(user.xp);
@@ -266,7 +271,7 @@ export function ProfileTab() {
 
       {/* ═══════════ TROPHY HIGHLIGHTS ═══════════ */}
       <div className="pb-4">
-        <SectionHeader kick="The Hall" title="Trophy" em="Highlights" action="Trophy Room →" />
+        <SectionHeader kick="The Hall" title="Trophy" em="Highlights" action="Trophy Room →" onAction={handleTrophyRoomClick} />
         <div className="flex gap-3 overflow-x-auto px-4 pb-2 hide-scrollbar">
           {sampleTrophies.map((trophy) => (
             <TrophyCard key={trophy.id} trophy={trophy} />
@@ -459,7 +464,7 @@ function StatCard({ value, label, highlight, valueColor }: { value: string; labe
   );
 }
 
-function SectionHeader({ kick, title, em, count, action }: { kick: string; title: string; em?: string; count?: number; action?: string }) {
+function SectionHeader({ kick, title, em, count, action, onAction }: { kick: string; title: string; em?: string; count?: number; action?: string; onAction?: () => void }) {
   return (
     <div className="px-4 pb-3 flex justify-between items-end">
       <div>
@@ -471,7 +476,7 @@ function SectionHeader({ kick, title, em, count, action }: { kick: string; title
         </div>
       </div>
       {action && (
-        <button className="font-mono text-[9px] tracking-[0.18em] text-gold-2 uppercase font-semibold">
+        <button onClick={onAction} className="font-mono text-[9px] tracking-[0.18em] text-gold-2 uppercase font-semibold hover:text-gold-1 transition-colors">
           {action}
         </button>
       )}

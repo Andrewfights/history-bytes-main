@@ -96,6 +96,8 @@ export function JourneyTab() {
     setPendingLuckyNode,
     pendingPearlHarbor,
     setPendingPearlHarbor,
+    pendingTrophyRoom,
+    setPendingTrophyRoom,
     isFunnelMode,
     funnelState,
     markWW2IntroViewed,
@@ -285,6 +287,14 @@ export function JourneyTab() {
     // Clear flag AFTER navigation is set to avoid race condition
     setPendingPearlHarbor(false);
   }, [pendingPearlHarbor, hasSelectedHost, selectedHostId, isPreferencesLoading]);
+
+  // Check for pending Trophy Room entry (from ProfileTab)
+  useEffect(() => {
+    if (pendingTrophyRoom) {
+      setView('trophy-room');
+      setPendingTrophyRoom(false);
+    }
+  }, [pendingTrophyRoom]);
 
   // Restore view state on mount
   useEffect(() => {
@@ -874,11 +884,11 @@ export function JourneyTab() {
               bossNodesDefeated={bossNodesDefeated}
             />
 
-            {/* Pantheon - Souvenir Collection */}
+            {/* Trophy Room */}
             <motion.button
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              onClick={() => setView('pantheon')}
+              onClick={() => setView('trophy-room')}
               className="w-full mb-4 p-3 sm:p-4 rounded-xl bg-ink-lift border border-off-white/[0.06] hover:border-gold-2/30 transition-all group relative overflow-hidden"
             >
               {/* Custom background image */}
@@ -894,12 +904,12 @@ export function JourneyTab() {
                     {journeyUIAssets?.pantheonIcon ? (
                       <img src={journeyUIAssets.pantheonIcon} alt="" className="w-full h-full object-cover" />
                     ) : (
-                      '🪖'
+                      <Trophy size={18} className="text-gold-2" />
                     )}
                   </div>
                   <div className="text-left">
-                    <h3 className="font-serif font-bold text-sm sm:text-base text-off-white">The Pantheon</h3>
-                    <p className="font-mono text-[10px] sm:text-xs text-off-white/50 uppercase tracking-wide">Your souvenir collection</p>
+                    <h3 className="font-serif font-bold text-sm sm:text-base text-off-white">Trophy Room</h3>
+                    <p className="font-mono text-[10px] sm:text-xs text-off-white/50 uppercase tracking-wide">Your medal collection</p>
                   </div>
                 </div>
                 <ChevronRight size={18} className="text-off-white/40 group-hover:text-gold-2 group-hover:translate-x-1 transition-all sm:w-5 sm:h-5" />
@@ -1188,8 +1198,8 @@ export function JourneyTab() {
         )}
         */}
 
-        {/* Pantheon - Souvenir Collection */}
-        {view === 'pantheon' && (
+        {/* Trophy Room */}
+        {view === 'trophy-room' && (
           <PantheonRoom onBack={() => setView('landing')} />
         )}
       </AnimatePresence>

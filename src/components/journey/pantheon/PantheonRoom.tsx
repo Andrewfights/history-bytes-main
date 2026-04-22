@@ -102,8 +102,8 @@ export function PantheonRoom({ onBack }: PantheonRoomProps) {
             <span className="text-sm">Back</span>
           </button>
 
-          <h1 className="font-editorial text-xl font-bold text-white">
-            The Pantheon
+          <h1 className="font-serif text-xl font-bold italic text-white">
+            Trophy Room
           </h1>
 
           <div className="w-16" /> {/* Spacer for centering */}
@@ -117,7 +117,7 @@ export function PantheonRoom({ onBack }: PantheonRoomProps) {
             <span className="text-white/70 text-sm">
               <span className="text-white font-medium">{totalSouvenirs}</span>
               {' / '}
-              {availableWorlds} Souvenirs
+              {availableWorlds} Trophies
             </span>
           </div>
 
@@ -161,10 +161,10 @@ export function PantheonRoom({ onBack }: PantheonRoomProps) {
             {totalSouvenirs === 0 && (
               <div className="mt-8 text-center">
                 <p className="text-white/50 text-sm">
-                  Complete historical journeys to unlock souvenirs
+                  Complete historical journeys to earn trophies
                 </p>
                 <p className="text-white/30 text-xs mt-2">
-                  Your collection awaits...
+                  Your hall of honor awaits...
                 </p>
               </div>
             )}
