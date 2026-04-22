@@ -1503,127 +1503,324 @@ body::after {
 
   /* ========================================
      MEDAL COMPONENT - Trophy System
+     Design spec: Hall of Honor v2.0
   ======================================== */
+
+  /* Trophy tier color tokens */
+  :root {
+    --bronze-br: #D4A574;
+    --bronze: #B2641F;
+    --bronze-dp: #6A3A12;
+    --silver-br: #E8E8EE;
+    --silver: #B5B5BC;
+    --silver-dp: #707078;
+    --plat-br: #F5F5FF;
+    --plat: #C8C8D8;
+    --plat-dp: #8A8A9A;
+  }
+
   .medal {
-    --medal-primary: var(--gold-2);
-    --medal-secondary: var(--gold-3);
-    --medal-highlight: var(--gold-1);
-    --medal-ribbon: linear-gradient(135deg, var(--medal-highlight), var(--medal-secondary));
-    --medal-disc: radial-gradient(circle at 30% 30%, var(--medal-highlight), var(--medal-secondary));
-    --medal-glow: rgba(230,171,42,0.4);
-    --medal-ring-border: var(--medal-secondary);
-    --medal-icon-color: var(--void);
+    --medal-icon-color: rgba(0,0,0,0.55);
   }
 
   /* === RIBBON STYLES === */
   .medal-ribbon-l,
-  .medal-ribbon-r,
-  .medal-ribbon-c {
-    background: var(--medal-ribbon);
+  .medal-ribbon-r {
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%);
+  }
+
+  .medal-ribbon-c::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: rgba(255,255,255,0.15);
   }
 
   /* === DISC STYLES === */
-  .medal-disc {
-    background: var(--medal-disc);
-    box-shadow:
-      0 4px 12px var(--medal-glow),
-      inset 0 1px 2px rgba(255,255,255,0.3),
-      inset 0 -1px 2px rgba(0,0,0,0.2);
-  }
-
   .medal-ring {
-    background: rgba(0,0,0,0.2);
-    border: 2px solid var(--medal-ring-border);
+    border: 1.5px dashed rgba(0,0,0,0.35);
+    background: transparent;
   }
 
   .medal-icon {
     color: var(--medal-icon-color);
+    filter: drop-shadow(0 1px 1px rgba(255,255,255,0.15));
   }
 
   .medal-stars {
-    color: var(--medal-primary);
-    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
-  }
-
-  /* === BRONZE TIER === */
-  .medal.bronze {
-    --medal-primary: #D4A574;
-    --medal-secondary: #8B5A2B;
-    --medal-highlight: #E8C4A0;
-    --medal-ribbon: linear-gradient(135deg, #D4A574, #8B5A2B);
-    --medal-disc: radial-gradient(circle at 30% 30%, #E8C4A0, #8B5A2B);
-    --medal-glow: rgba(212,165,116,0.3);
-    --medal-ring-border: #8B5A2B;
-    --medal-icon-color: var(--void);
-  }
-
-  /* === SILVER TIER === */
-  .medal.silver {
-    --medal-primary: #C0C0C0;
-    --medal-secondary: #8A8A8A;
-    --medal-highlight: #E8E8E8;
-    --medal-ribbon: linear-gradient(135deg, #D8D8D8, #8A8A8A);
-    --medal-disc: radial-gradient(circle at 30% 30%, #E8E8E8, #8A8A8A);
-    --medal-glow: rgba(192,192,192,0.35);
-    --medal-ring-border: #A0A0A0;
-    --medal-icon-color: var(--void);
+    color: rgba(0,0,0,0.5);
+    filter: drop-shadow(0 1px 0 rgba(255,255,255,0.2));
   }
 
   /* === GOLD TIER === */
-  .medal.gold {
-    --medal-primary: var(--gold-2);
-    --medal-secondary: var(--gold-3);
-    --medal-highlight: var(--gold-1);
-    --medal-ribbon: linear-gradient(135deg, var(--gold-1), var(--gold-3));
-    --medal-disc: radial-gradient(circle at 30% 30%, var(--gold-1), var(--gold-3));
-    --medal-glow: rgba(230,171,42,0.4);
-    --medal-ring-border: var(--gold-3);
-    --medal-icon-color: var(--void);
+  .medal.gold .medal-ribbon-l,
+  .medal.gold .medal-ribbon-r {
+    background: #B30A10;
+  }
+  .medal.gold .medal-ribbon-c {
+    background: var(--ha-red);
+  }
+  .medal.gold .medal-disc {
+    background: radial-gradient(circle at 32% 28%, #FFEC8B 0%, var(--gold-1) 20%, var(--gold-2) 55%, var(--gold-3) 85%, #6A3A12 100%);
+    box-shadow:
+      0 6px 16px rgba(0,0,0,0.5),
+      0 0 32px rgba(230,171,42,0.4),
+      inset 0 -6px 12px rgba(106,58,18,0.5),
+      inset 0 4px 8px rgba(255,236,139,0.3);
+  }
+  .medal.gold::before {
+    content: "";
+    position: absolute;
+    top: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120px;
+    height: 120px;
+    background: radial-gradient(circle, rgba(246,227,85,0.2), transparent 60%);
+    filter: blur(8px);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .medal.gold .medal-ring {
+    border-color: rgba(0,0,0,0.35);
   }
 
-  .medal.gold .medal-disc {
+  /* === SILVER TIER === */
+  .medal.silver .medal-ribbon-l,
+  .medal.silver .medal-ribbon-r {
+    background: #2a3a4a;
+  }
+  .medal.silver .medal-ribbon-c {
+    background: #4a5a6a;
+  }
+  .medal.silver .medal-disc {
+    background: radial-gradient(circle at 32% 28%, #FFFFFF 0%, var(--silver-br) 20%, var(--silver) 55%, var(--silver-dp) 85%, #505058 100%);
     box-shadow:
-      0 0 20px var(--medal-glow),
-      0 4px 12px var(--medal-glow),
-      inset 0 1px 2px rgba(255,255,255,0.4),
-      inset 0 -1px 2px rgba(0,0,0,0.2);
+      0 6px 16px rgba(0,0,0,0.5),
+      0 0 24px rgba(184,184,192,0.3),
+      inset 0 -6px 12px rgba(80,80,88,0.5),
+      inset 0 4px 8px rgba(255,255,255,0.3);
+  }
+  .medal.silver .medal-ring {
+    border-color: rgba(0,0,0,0.35);
+  }
+  .medal.silver .medal-icon {
+    color: rgba(0,0,0,0.5);
+  }
+
+  /* === BRONZE TIER === */
+  .medal.bronze .medal-ribbon-l,
+  .medal.bronze .medal-ribbon-r {
+    background: #3a1a08;
+  }
+  .medal.bronze .medal-ribbon-c {
+    background: #5a2818;
+  }
+  .medal.bronze .medal-disc {
+    background: radial-gradient(circle at 32% 28%, #F5D4A8 0%, var(--bronze-br) 20%, var(--bronze) 55%, var(--bronze-dp) 85%, #3A2008 100%);
+    box-shadow:
+      0 6px 16px rgba(0,0,0,0.5),
+      0 0 20px rgba(178,100,31,0.3),
+      inset 0 -6px 12px rgba(58,32,8,0.5),
+      inset 0 4px 8px rgba(245,212,168,0.3);
+  }
+  .medal.bronze .medal-ring {
+    border-color: rgba(0,0,0,0.35);
   }
 
   /* === PLATINUM TIER === */
-  .medal.platinum {
-    --medal-primary: #E5E4E2;
-    --medal-secondary: #B8B8B8;
-    --medal-highlight: #FFFFFF;
-    --medal-ribbon: linear-gradient(135deg, #E5E4E2, #B8B8B8, #E5E4E2);
-    --medal-disc: linear-gradient(135deg, #FFFFFF, #E5E4E2, #B8B8B8, #E5E4E2);
-    --medal-glow: rgba(229,228,226,0.5);
-    --medal-ring-border: #D0D0D0;
-    --medal-icon-color: var(--void);
+  .medal.platinum .medal-ribbon-l,
+  .medal.platinum .medal-ribbon-r {
+    background: #0a1a2a;
   }
-
+  .medal.platinum .medal-ribbon-c {
+    background: #1a2a3a;
+  }
   .medal.platinum .medal-disc {
+    background: radial-gradient(circle at 32% 28%, #FFFFFF 0%, var(--plat-br) 20%, var(--plat) 55%, var(--plat-dp) 85%, #50505A 100%);
     box-shadow:
-      0 0 24px var(--medal-glow),
-      0 4px 16px rgba(255,255,255,0.3),
-      inset 0 1px 3px rgba(255,255,255,0.6),
-      inset 0 -1px 2px rgba(0,0,0,0.1);
+      0 6px 16px rgba(0,0,0,0.5),
+      0 0 36px rgba(200,200,216,0.5),
+      inset 0 -6px 12px rgba(80,80,90,0.5),
+      inset 0 4px 8px rgba(255,255,255,0.4);
+  }
+  .medal.platinum .medal-ring {
+    border-color: rgba(0,0,0,0.35);
+  }
+  .medal.platinum .medal-icon {
+    color: rgba(0,0,0,0.5);
   }
 
   /* === LOCKED TIER === */
-  .medal.locked {
-    --medal-primary: #3A3A3A;
-    --medal-secondary: #2A2A2A;
-    --medal-highlight: #4A4A4A;
-    --medal-ribbon: linear-gradient(135deg, #3A3A3A, #2A2A2A);
-    --medal-disc: radial-gradient(circle at 30% 30%, #4A4A4A, #2A2A2A);
-    --medal-glow: transparent;
-    --medal-ring-border: #3A3A3A;
-    --medal-icon-color: var(--text-3);
+  .medal.locked .medal-ribbon-l,
+  .medal.locked .medal-ribbon-r {
+    background: #1a1a1a;
+    opacity: 0.6;
+  }
+  .medal.locked .medal-ribbon-c {
+    background: #2a2a2a;
+    opacity: 0.6;
+  }
+  .medal.locked .medal-disc {
+    background: radial-gradient(circle at 32% 28%, #3a3a3a 0%, #2a2a2a 55%, #1a1a1a 100%);
+    box-shadow:
+      0 6px 16px rgba(0,0,0,0.6),
+      inset 0 -6px 12px rgba(0,0,0,0.5),
+      inset 0 4px 8px rgba(80,80,80,0.2);
     opacity: 0.5;
   }
+  .medal.locked .medal-ring {
+    border-color: rgba(80,80,80,0.3);
+  }
+  .medal.locked .medal-icon {
+    color: rgba(100,100,100,0.4);
+  }
 
-  .medal.locked .medal-disc {
-    box-shadow: none;
+  /* === TROPHY CARD TIER TOP BARS === */
+  .trophy-card.gold::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--gold-3), var(--gold-1), var(--gold-3));
+  }
+  .trophy-card.silver::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--silver-dp), var(--silver-br), var(--silver-dp));
+  }
+  .trophy-card.bronze::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--bronze-dp), var(--bronze-br), var(--bronze-dp));
+  }
+  .trophy-card.platinum::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--plat-dp), var(--plat-br), var(--plat-dp));
+  }
+
+  /* === TIER STAT PILLS === */
+  .tier-stat.gold {
+    background: rgba(230,171,42,0.1);
+    color: var(--gold-2);
+    border: 1px solid rgba(230,171,42,0.2);
+  }
+  .tier-stat.gold::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--gold-3), var(--gold-1), var(--gold-3));
+  }
+  .tier-stat.silver {
+    background: rgba(184,184,192,0.08);
+    color: var(--silver-br);
+    border: 1px solid rgba(184,184,192,0.2);
+  }
+  .tier-stat.silver::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--silver-dp), var(--silver-br), var(--silver-dp));
+  }
+  .tier-stat.bronze {
+    background: rgba(178,100,31,0.1);
+    color: var(--bronze-br);
+    border: 1px solid rgba(178,100,31,0.3);
+  }
+  .tier-stat.bronze::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--bronze-dp), var(--bronze-br), var(--bronze-dp));
+  }
+  .tier-stat.plat {
+    background: rgba(200,200,216,0.1);
+    color: var(--plat-br);
+    border: 1px solid rgba(200,200,216,0.2);
+  }
+  .tier-stat.plat::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--plat-dp), var(--plat-br), var(--plat-dp));
+  }
+
+  /* === FEATURED TROPHY CARD === */
+  .featured-trophy {
+    background: var(--card);
+    border: 1px solid rgba(230,171,42,0.3);
+    border-radius: 12px;
+    position: relative;
+    overflow: hidden;
+  }
+  .featured-trophy::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--gold-3), var(--gold-1), var(--gold-3));
+  }
+  .featured-trophy-media {
+    background:
+      radial-gradient(ellipse at 50% 30%, rgba(246,227,85,0.15), transparent 60%),
+      linear-gradient(180deg, #1a1408 0%, #0a0604 100%);
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* === CAMPAIGN PILL === */
+  .campaign-pill {
+    padding: 9px 14px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    cursor: pointer;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .campaign-pill:hover {
+    border-color: rgba(230,171,42,0.2);
+  }
+  .campaign-pill.active {
+    background: linear-gradient(180deg, rgba(230,171,42,0.1), rgba(178,100,31,0.05));
+    border-color: var(--gold-2);
+  }
+  .campaign-pill.active .campaign-pill-count {
+    color: var(--gold-2);
   }
 
   /* ========================================

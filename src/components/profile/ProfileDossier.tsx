@@ -16,7 +16,7 @@ import { StreakCalendar, DayStatus } from './StreakCalendar';
 import { ActivityFeed, ActivityItem } from './ActivityFeed';
 import { CampaignCard, CampaignInfo } from './CampaignCard';
 import { Medal, MedalTier } from '@/components/ui/Medal';
-import { Trophy } from '@/components/trophy/TrophyCard';
+import { Trophy } from '@/components/trophy';
 
 interface ProfileDossierProps {
   user: {
