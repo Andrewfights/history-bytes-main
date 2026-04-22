@@ -21,6 +21,7 @@ export default {
         serif: ['"Playfair Display"', 'Georgia', 'serif'],
         body: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
         mono: ['"JetBrains Mono"', 'Menlo', 'Monaco', 'monospace'],
+        calligraphy: ['"Cormorant Garamond"', 'Georgia', 'serif'],
         // Legacy aliases
         editorial: ['"Playfair Display"', 'Georgia', 'serif'],
         sans: ['Inter', '-apple-system', 'sans-serif'],
