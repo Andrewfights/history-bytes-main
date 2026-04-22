@@ -92,7 +92,7 @@ export function InteractiveMap({
       <div className="relative w-full aspect-[16/10] rounded-xl overflow-hidden bg-slate-900">
         {/* Map Image or Placeholder */}
         {imageError || !mapImage ? (
-          <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900 text-white/60">
+          <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-[#1a1a1a] to-black text-white/60">
             <ImageOff size={48} className="mb-3 text-white/40" />
             <p className="text-sm">Map image not available</p>
             <p className="text-xs text-white/40 mt-1">Upload an image in the admin panel</p>
@@ -281,7 +281,7 @@ export function InteractiveMap({
               initial={{ scale: 0.9, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 20 }}
-              className="relative bg-gradient-to-b from-slate-800 to-slate-900 rounded-xl p-5 max-w-sm w-full border border-white/10 shadow-2xl"
+              className="relative bg-gradient-to-b from-[#1a1a1a] to-black rounded-xl p-5 max-w-sm w-full border border-white/10 shadow-2xl"
             >
               {/* Close button */}
               <button

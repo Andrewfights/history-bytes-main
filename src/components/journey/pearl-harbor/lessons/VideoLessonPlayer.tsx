@@ -297,7 +297,7 @@ export function VideoLessonPlayer({ host, onComplete, onSkip, onBack }: VideoLes
                 className="relative flex-1 bg-black"
               >
                 {/* Video placeholder */}
-                <div className="absolute inset-0 bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center">
+                <div className="absolute inset-0 bg-gradient-to-br from-[#1a1a1a] to-black flex items-center justify-center">
                   <span className="text-6xl opacity-50">🎬</span>
                 </div>
 

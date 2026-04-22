@@ -222,7 +222,7 @@ export function RadarBlipBeat({ host, onComplete, onSkip, onBack, isPreview = fa
   };
 
   return (
-    <div className="fixed inset-0 z-[60] pt-safe bg-gradient-to-b from-slate-900 via-slate-950 to-black flex flex-col">
+    <div className="fixed inset-0 z-[60] pt-safe bg-black flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
         <button onClick={onBack} className="p-2 -ml-2 text-white/60 hover:text-white transition-colors">
@@ -254,28 +254,170 @@ export function RadarBlipBeat({ host, onComplete, onSkip, onBack, isPreview = fa
             />
           )}
 
-          {/* INTRO */}
+          {/* INTRO - New Design */}
           {screen === 'intro' && (
-            <motion.div key="intro" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full p-6">
-              <div className="flex-1 flex flex-col items-center justify-center text-center">
-                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center mb-6">
-                  <Radio size={40} className="text-green-400" />
+            <motion.div key="intro" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full relative">
+              {/* Atmospheric Background */}
+              <div className="absolute inset-0 z-0">
+                <div className="absolute inset-0 bg-gradient-to-b from-[#050a08] via-[#030806] to-[#020302]" />
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_40%,rgba(30,100,60,0.12)_0%,transparent_55%)]" />
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_20%_70%,rgba(60,100,140,0.1)_0%,transparent_50%)]" />
+                {/* Grain overlay */}
+                <div className="absolute inset-0 opacity-30 mix-blend-overlay" style={{
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.3 0 0 0 0 0.5 0 0 0 0 0.4 0 0 0 0.25 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`
+                }} />
+              </div>
+
+              {/* Scrollable content area */}
+              <div className="flex-1 overflow-y-auto relative z-10">
+                <div className="flex flex-col items-center text-center px-6 py-8 min-h-full">
+                {/* Kick label */}
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex items-center gap-2.5 mb-4"
+                >
+                  <div className="w-6 h-px bg-success" />
+                  <span className="font-mono text-[10px] tracking-[0.4em] text-success font-bold uppercase">
+                    ◆ Scene · December 7, 1941
+                  </span>
+                  <div className="w-6 h-px bg-success" />
                 </motion.div>
-                <h2 className="text-2xl font-bold text-white mb-4">7:02 AM</h2>
-                <p className="text-white/70 mb-6 max-w-sm leading-relaxed">
-                  December 7, 1941. You are Private Joseph Lockard, 19 years old, manning an experimental radar station at Opana Point, Hawaii.
-                </p>
-                <div className="bg-green-500/10 rounded-xl p-4 max-w-sm border border-green-500/30">
-                  <p className="text-green-300 text-sm italic">
-                    "We had been told to shut down at 7:00 AM, but the truck to pick us up was late. I decided to keep the radar running for practice..."
+
+                {/* Title */}
+                <motion.h1
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className="font-serif text-5xl md:text-6xl font-bold text-off-white leading-[0.95] tracking-[-0.018em] mb-3"
+                >
+                  The <em className="text-success">radar blip.</em>
+                </motion.h1>
+
+                {/* Meta info */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.15 }}
+                  className="font-serif italic text-base text-off-white/70 mb-8"
+                >
+                  Opana Point, Hawaii · <span className="text-gold-2 font-semibold">07:02 local</span> · Private Joseph Lockard, 19
+                </motion.div>
+
+                {/* Radar Visual */}
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.2 }}
+                  className="relative w-40 h-40 mb-8"
+                >
+                  {/* Radar rings */}
+                  <div className="absolute inset-0 rounded-full border border-success/20" />
+                  <div className="absolute inset-5 rounded-full border border-success/20" />
+                  <div className="absolute inset-10 rounded-full border border-success/20" />
+                  <div className="absolute inset-[60px] rounded-full border border-success/20" />
+                  {/* Cross lines */}
+                  <div className="absolute top-1/2 left-0 right-0 h-px bg-success/15 -translate-y-1/2" />
+                  <div className="absolute left-1/2 top-0 bottom-0 w-px bg-success/15 -translate-x-1/2" />
+                  {/* Sweep line */}
+                  <motion.div
+                    className="absolute top-1/2 left-1/2 w-1/2 h-0.5 origin-left"
+                    style={{ background: 'linear-gradient(90deg, rgba(61,214,122,0.8), transparent)' }}
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
+                  />
+                  {/* Sweep glow */}
+                  <motion.div
+                    className="absolute top-1/2 left-1/2 w-1/2 h-20 origin-left -translate-y-1/2"
+                    style={{ background: 'radial-gradient(ellipse at 0% 50%, rgba(61,214,122,0.22), transparent 70%)' }}
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
+                  />
+                  {/* Blip */}
+                  <motion.div
+                    className="absolute top-[24%] right-[18%] w-2 h-2 rounded-full bg-success z-10"
+                    style={{ boxShadow: '0 0 14px 4px rgba(61,214,122,0.7)' }}
+                    animate={{ opacity: [1, 0.4, 1] }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                  />
+                  {/* Pulse ring */}
+                  <motion.div
+                    className="absolute top-[24%] right-[18%] w-2 h-2 rounded-full border border-success"
+                    animate={{ scale: [0.3, 1.1], opacity: [1, 0] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  />
+                  {/* Center label */}
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
+                    <div className="font-serif italic text-xl text-off-white tracking-[-0.01em]">07:02</div>
+                    <div className="font-mono text-[7px] tracking-[0.3em] text-success font-bold uppercase">Bearing 137</div>
+                  </div>
+                </motion.div>
+
+                {/* Scene text */}
+                <motion.p
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="font-body text-sm text-off-white/70 leading-relaxed max-w-sm mb-6"
+                >
+                  You are <strong className="text-gold-2 font-semibold">Private Joseph Lockard</strong>. The truck to pick you up from your experimental radar station is late. You keep the screen running for practice. Then you see something you have never seen before.
+                </motion.p>
+
+                {/* Testimony card - parchment style */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10, rotate: 0 }}
+                  animate={{ opacity: 1, y: 0, rotate: -0.4 }}
+                  transition={{ delay: 0.4 }}
+                  className="relative max-w-md p-5 rounded-sm shadow-2xl"
+                  style={{
+                    background: '#F5ECD2',
+                    color: '#1a1008',
+                    boxShadow: '0 16px 40px rgba(0,0,0,0.5)'
+                  }}
+                >
+                  <div className="absolute top-0 left-0 right-0 h-0.5" style={{ background: 'linear-gradient(90deg, transparent, rgba(106,58,18,0.25), transparent)' }} />
+                  <div className="flex items-center gap-2 mb-2">
+                    <span style={{ color: '#8A5A1A' }}>◆</span>
+                    <span className="font-mono text-[8.5px] tracking-[0.28em] uppercase font-bold" style={{ color: 'rgba(26,16,8,0.5)' }}>
+                      From the oral history · 1977
+                    </span>
+                  </div>
+                  <p className="font-serif italic text-lg leading-relaxed" style={{ color: '#1a1008' }}>
+                    <span className="font-serif text-3xl leading-none align-[-8px] mr-0.5" style={{ color: '#8A5A1A' }}>"</span>
+                    We had been told to shut down at 7:00, but the truck to pick us up was late. I decided to keep the radar running for practice. That's when I saw the biggest blip I had ever seen.
+                    <span className="font-serif text-3xl leading-none align-[-18px] ml-0.5" style={{ color: '#8A5A1A' }}>"</span>
                   </p>
+                  <div className="font-serif italic text-xs text-right mt-2" style={{ color: 'rgba(26,16,8,0.55)' }}>
+                    — Pvt. Joseph Lockard, Opana Point, 1941
+                  </div>
+                </motion.div>
+
+                  {/* Spacer for scroll padding */}
+                  <div className="h-8 flex-shrink-0" />
                 </div>
               </div>
-              <div className="space-y-3" style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))' }}>
-                <button onClick={nextScreen} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors">
-                  Continue
-                </button>
-                <button onClick={() => { setSkipped(true); onSkip(); }} className="w-full py-3 text-white/50 hover:text-white/70 text-sm">
+
+              {/* Bottom CTA - Fixed at bottom */}
+              <div className="relative z-20 px-6 pb-6 pt-4 bg-gradient-to-t from-void via-void/95 to-transparent backdrop-blur-sm border-t border-off-white/[0.06] flex-shrink-0" style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))' }}>
+                <motion.button
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5 }}
+                  onClick={nextScreen}
+                  className="relative w-full py-4 bg-ha-red hover:bg-ha-red/90 text-off-white font-display text-sm font-bold uppercase tracking-[0.2em] transition-colors flex items-center justify-center gap-3"
+                >
+                  {/* Corner brackets */}
+                  <div className="absolute top-[-1px] left-[-1px] w-3 h-3 border-l-[1.5px] border-t-[1.5px] border-gold-2" />
+                  <div className="absolute bottom-[-1px] right-[-1px] w-3 h-3 border-r-[1.5px] border-b-[1.5px] border-gold-2" />
+                  Continue to the Report
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4">
+                    <path d="M5 12h14M13 6l6 6-6 6"/>
+                  </svg>
+                </motion.button>
+                <button
+                  onClick={() => { setSkipped(true); onSkip(); }}
+                  className="w-full mt-3 py-2 font-mono text-[10px] tracking-[0.28em] text-off-white/35 hover:text-off-white/50 uppercase transition-colors"
+                >
                   Skip this beat
                 </button>
               </div>

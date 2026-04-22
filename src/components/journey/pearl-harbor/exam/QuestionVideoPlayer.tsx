@@ -80,7 +80,7 @@ export function QuestionVideoPlayer({
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className={`${getLayoutClasses()} bg-gradient-to-br from-amber-900/30 via-slate-900 to-slate-950`}
+      className={`${getLayoutClasses()} bg-gradient-to-br from-amber-900/30 via-black to-black`}
     >
       <div className="w-full h-full flex items-center justify-center">
         <div className="w-16 h-16 rounded-full bg-amber-500/20 flex items-center justify-center">

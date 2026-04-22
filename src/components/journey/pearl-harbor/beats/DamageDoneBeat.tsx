@@ -302,7 +302,7 @@ export function DamageDoneBeat({ host, onComplete, onSkip, onBack, isPreview = f
   const beat = TIMELINE_BEATS[currentBeat];
 
   return (
-    <div className="fixed inset-0 z-[60] pt-safe bg-gradient-to-b from-slate-900 via-slate-950 to-black flex flex-col">
+    <div className="fixed inset-0 z-[60] pt-safe bg-black flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
         <button onClick={onBack} className="p-2 -ml-2 text-white/60 hover:text-white transition-colors">
@@ -334,30 +334,153 @@ export function DamageDoneBeat({ host, onComplete, onSkip, onBack, isPreview = f
             />
           )}
 
-          {/* INTRO */}
+          {/* INTRO - New Design */}
           {screen === 'intro' && (
-            <motion.div key="intro" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full p-6">
-              <div className="flex-1 flex flex-col items-center justify-center text-center">
-                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="text-6xl mb-6">💥</motion.div>
-                <h2 className="text-2xl font-bold text-white mb-4">The Full Impact</h2>
-                <p className="text-white/70 mb-6 max-w-sm leading-relaxed">
-                  In just 110 minutes, the attack on Pearl Harbor would change history forever. Explore the timeline minute by minute and see the devastating toll.
-                </p>
-                <div className="bg-red-500/10 rounded-xl p-4 max-w-sm border border-red-500/30">
-                  <div className="flex items-center gap-2 text-red-300 mb-2">
-                    <Clock size={18} />
-                    <span className="font-bold">7:48 AM - 9:45 AM</span>
+            <motion.div key="intro" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full relative">
+              {/* Atmospheric Background - Red smoke */}
+              <div className="absolute inset-0 z-0">
+                <div className="absolute inset-0 bg-gradient-to-b from-[#150a06] via-[#0a0503] to-[#020100]" />
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_40%,rgba(205,14,20,0.15)_0%,transparent_50%)]" />
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_20%_70%,rgba(120,50,30,0.2)_0%,transparent_55%)]" />
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_80%_30%,rgba(80,40,20,0.2)_0%,transparent_55%)]" />
+                {/* Smoke effect */}
+                <div className="absolute top-[10%] left-[15%] right-[15%] h-[60%] bg-[radial-gradient(ellipse_at_50%_50%,rgba(40,25,20,0.35)_0%,transparent_70%)] blur-[24px]" />
+                {/* Grain overlay */}
+                <div className="absolute inset-0 opacity-40 mix-blend-overlay" style={{
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.3 0 0 0 0 0.1 0 0 0 0.32 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`
+                }} />
+              </div>
+
+              {/* Scrollable content area */}
+              <div className="flex-1 overflow-y-auto relative z-10">
+                <div className="flex flex-col items-center text-center px-6 py-8 min-h-full">
+                {/* Kick label */}
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex items-center gap-2.5 mb-4"
+                >
+                  <div className="w-6 h-px bg-ha-red" />
+                  <span className="font-mono text-[10px] tracking-[0.4em] text-ha-red font-bold uppercase">
+                    ◆ Scene · The Ledger
+                  </span>
+                  <div className="w-6 h-px bg-ha-red" />
+                </motion.div>
+
+                {/* Title */}
+                <motion.h1
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className="font-serif text-5xl md:text-6xl font-bold text-off-white leading-[0.95] tracking-[-0.018em] mb-3"
+                  style={{ textShadow: '0 4px 24px rgba(0,0,0,0.8)' }}
+                >
+                  Damage <em className="text-ha-red italic">done.</em>
+                </motion.h1>
+
+                {/* Subtitle */}
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.15 }}
+                  className="font-serif italic text-base text-off-white/70 max-w-md mb-8"
+                  style={{ textShadow: '0 2px 12px rgba(0,0,0,0.6)' }}
+                >
+                  One hundred and ten minutes from first contact to last. Two waves. The longest two hours in American naval history.
+                </motion.p>
+
+                {/* Time Range Ornament */}
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.2 }}
+                  className="flex flex-col items-center mb-8"
+                >
+                  {/* Ornamental line */}
+                  <div className="flex items-center gap-3.5 mb-2.5 font-mono text-[9px] tracking-[0.35em] text-gold-dp font-bold uppercase">
+                    <div className="w-12 h-px" style={{ background: 'linear-gradient(90deg, transparent, #B2641F)' }} />
+                    <span>◆ &nbsp; December 7, 1941 &nbsp; ◆</span>
+                    <div className="w-12 h-px" style={{ background: 'linear-gradient(90deg, #B2641F, transparent)' }} />
                   </div>
-                  <p className="text-white/60 text-sm">
-                    December 7, 1941 - A date which will live in infamy
-                  </p>
+                  {/* Time range */}
+                  <div
+                    className="font-serif italic text-5xl md:text-6xl font-bold leading-none tracking-[-0.02em] flex items-baseline gap-3"
+                    style={{
+                      background: 'linear-gradient(180deg, #F6E355 0%, #E6AB2A 45%, #B2641F 100%)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      backgroundClip: 'text',
+                      textShadow: '0 4px 30px rgba(230,171,42,0.3)'
+                    }}
+                  >
+                    <span>07:48</span>
+                    <span className="text-4xl text-gold-dp" style={{ WebkitTextFillColor: '#B2641F' }}>—</span>
+                    <span>09:38</span>
+                  </div>
+                  {/* FDR quote */}
+                  <div className="font-serif italic text-sm text-off-white/50 mt-1 tracking-[0.01em]">
+                    <em>"A date which will live in infamy"</em> · FDR, 8 Dec
+                  </div>
+                </motion.div>
+
+                {/* Stats Preview Strip - Museum plaque style */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="w-full max-w-lg grid grid-cols-4 bg-[rgba(20,10,6,0.65)] backdrop-blur-sm border border-gold-2/15 rounded overflow-hidden relative"
+                >
+                  {/* Top red accent line */}
+                  <div className="absolute top-0 left-0 right-0 h-0.5" style={{ background: 'linear-gradient(90deg, #8A0A0E, #CD0E14, #8A0A0E)' }} />
+
+                  <div className="p-3.5 border-r border-off-white/[0.06] text-center">
+                    <div className="font-mono text-[7.5px] tracking-[0.3em] text-off-white/50 uppercase font-semibold mb-1">Duration</div>
+                    <div className="font-serif italic text-2xl font-bold text-ha-red leading-none tracking-[-0.01em]">110</div>
+                    <div className="font-serif italic text-[11px] text-off-white/50 mt-0.5">minutes, first to last</div>
+                  </div>
+                  <div className="p-3.5 border-r border-off-white/[0.06] text-center">
+                    <div className="font-mono text-[7.5px] tracking-[0.3em] text-off-white/50 uppercase font-semibold mb-1">Ships</div>
+                    <div className="font-serif italic text-2xl font-bold text-ha-red leading-none tracking-[-0.01em]">21</div>
+                    <div className="font-serif italic text-[11px] text-off-white/50 mt-0.5">sunk or damaged</div>
+                  </div>
+                  <div className="p-3.5 border-r border-off-white/[0.06] text-center">
+                    <div className="font-mono text-[7.5px] tracking-[0.3em] text-off-white/50 uppercase font-semibold mb-1">Aircraft</div>
+                    <div className="font-serif italic text-2xl font-bold text-ha-red leading-none tracking-[-0.01em]">347</div>
+                    <div className="font-serif italic text-[11px] text-off-white/50 mt-0.5">destroyed on ground</div>
+                  </div>
+                  <div className="p-3.5 text-center">
+                    <div className="font-mono text-[7.5px] tracking-[0.3em] text-off-white/50 uppercase font-semibold mb-1">Lives</div>
+                    <div className="font-serif italic text-2xl font-bold text-ha-red leading-none tracking-[-0.01em]">2,403</div>
+                    <div className="font-serif italic text-[11px] text-off-white/50 mt-0.5">American dead</div>
+                  </div>
+                </motion.div>
+
+                  {/* Spacer for scroll padding */}
+                  <div className="h-8 flex-shrink-0" />
                 </div>
               </div>
-              <div className="space-y-3" style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))' }}>
-                <button onClick={nextScreen} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors">
-                  Explore the Timeline
-                </button>
-                <button onClick={() => { setSkipped(true); onSkip(); }} className="w-full py-3 text-white/50 hover:text-white/70 text-sm">
+
+              {/* Bottom CTA - Fixed at bottom */}
+              <div className="relative z-20 px-6 pb-6 pt-4 bg-gradient-to-t from-void via-void/95 to-transparent backdrop-blur-sm border-t border-off-white/[0.06] flex-shrink-0" style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))' }}>
+                <motion.button
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                  onClick={nextScreen}
+                  className="relative w-full py-4 bg-ha-red hover:bg-ha-red/90 text-off-white font-display text-sm font-bold uppercase tracking-[0.2em] transition-colors flex items-center justify-center gap-3"
+                >
+                  {/* Corner brackets */}
+                  <div className="absolute top-[-1px] left-[-1px] w-3 h-3 border-l-[1.5px] border-t-[1.5px] border-gold-2" />
+                  <div className="absolute bottom-[-1px] right-[-1px] w-3 h-3 border-r-[1.5px] border-b-[1.5px] border-gold-2" />
+                  Walk the Timeline
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4">
+                    <path d="M5 12h14M13 6l6 6-6 6"/>
+                  </svg>
+                </motion.button>
+                <button
+                  onClick={() => { setSkipped(true); onSkip(); }}
+                  className="w-full mt-3 py-2 font-mono text-[10px] tracking-[0.28em] text-off-white/35 hover:text-off-white/50 uppercase transition-colors"
+                >
                   Skip this beat
                 </button>
               </div>

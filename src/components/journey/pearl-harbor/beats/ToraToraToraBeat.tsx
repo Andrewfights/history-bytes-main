@@ -272,7 +272,7 @@ export function ToraToraToraBeat({ host, onComplete, onSkip, onBack, isPreview =
   const allHotspotsViewed = viewedHotspots.size >= 3; // Require at least 3
 
   return (
-    <div className="fixed inset-0 z-[60] pt-safe bg-gradient-to-b from-slate-900 via-slate-950 to-black flex flex-col">
+    <div className="fixed inset-0 z-[60] pt-safe bg-black flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
         <button onClick={onBack} className="p-2 -ml-2 text-white/60 hover:text-white transition-colors">
@@ -585,7 +585,7 @@ export function ToraToraToraBeat({ host, onComplete, onSkip, onBack, isPreview =
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 50, scale: 0.95 }}
                     transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-                    className="absolute bottom-20 left-4 right-4 bg-gradient-to-b from-slate-800 to-slate-900 rounded-2xl p-5 border border-white/20 shadow-2xl"
+                    className="absolute bottom-20 left-4 right-4 bg-gradient-to-b from-[#1a1a1a] to-black rounded-2xl p-5 border border-white/20 shadow-2xl"
                   >
                     <motion.div
                       className="absolute inset-0 rounded-2xl border border-red-500/30"

@@ -208,7 +208,7 @@ export function WreckMatchQuiz({ onComplete, onBack, host = DEFAULT_HOST }: Wrec
           className="w-full max-w-sm"
         >
           {/* Ship visual */}
-          <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-6 border border-white/10 mb-6">
+          <div className="bg-gradient-to-br from-[#1a1a1a] to-black rounded-2xl p-6 border border-white/10 mb-6">
             <div className="text-center mb-4">
               <div className="text-5xl mb-2">🚢</div>
               <h2 className="text-xl font-bold text-white">{currentShip.name}</h2>

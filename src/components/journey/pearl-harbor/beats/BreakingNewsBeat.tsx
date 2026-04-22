@@ -280,7 +280,7 @@ export function BreakingNewsBeat({ host, onComplete, onSkip, onBack, isPreview =
   const allStationsListened = stationsListened.size >= 2; // Require at least 2
 
   return (
-    <div className="fixed inset-0 z-[60] pt-safe bg-gradient-to-b from-slate-900 via-slate-950 to-black flex flex-col">
+    <div className="fixed inset-0 z-[60] pt-safe bg-black flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
         <button onClick={onBack} className="p-2 -ml-2 text-white/60 hover:text-white transition-colors">
@@ -314,29 +314,230 @@ export function BreakingNewsBeat({ host, onComplete, onSkip, onBack, isPreview =
 
           {/* INTRO */}
           {screen === 'intro' && (
-            <motion.div key="intro" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full p-6">
-              <div className="flex-1 flex flex-col items-center justify-center text-center">
-                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="w-20 h-20 rounded-full bg-amber-500/20 flex items-center justify-center mb-6">
-                  <Radio size={40} className="text-amber-400" />
-                </motion.div>
-                <h2 className="text-2xl font-bold text-white mb-4">America Learns</h2>
-                <p className="text-white/70 mb-6 max-w-sm leading-relaxed">
-                  December 7, 1941 was a quiet Sunday afternoon across America. Families gathered around radios for football games and symphony concerts. Then everything changed.
-                </p>
-                <div className="bg-white/5 rounded-xl p-4 max-w-sm border border-white/10">
-                  <p className="text-white/60 text-sm">
-                    <strong className="text-amber-400">2:26 PM Eastern Time</strong><br />
-                    The first bulletins interrupted regular programming
-                  </p>
+            <motion.div key="intro" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full relative overflow-hidden">
+              {/* Red atmospheric background */}
+              <div
+                className="absolute inset-0 z-0"
+                style={{
+                  background: `
+                    radial-gradient(ellipse at 30% 30%, rgba(205,14,20,0.15) 0%, transparent 55%),
+                    radial-gradient(ellipse at 70% 70%, rgba(100,50,30,0.18) 0%, transparent 55%),
+                    linear-gradient(180deg, #1a0806 0%, #0a0502 50%, #050201 100%)
+                  `
+                }}
+              />
+
+              {/* Scan lines overlay */}
+              <div
+                className="absolute inset-0 z-[1] pointer-events-none"
+                style={{
+                  background: 'repeating-linear-gradient(0deg, transparent 0, transparent 2px, rgba(205,14,20,0.04) 2px, rgba(205,14,20,0.04) 3px)'
+                }}
+              />
+
+              {/* Grain overlay */}
+              <div className="absolute inset-0 z-[5] opacity-35 mix-blend-overlay pointer-events-none"
+                style={{
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='ng'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.35 0 0 0 0 0.15 0 0 0 0.3 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23ng)'/%3E%3C/svg%3E")`
+                }}
+              />
+
+              {/* Scrollable content area */}
+              <div className="flex-1 overflow-y-auto relative z-10">
+                <div className="flex flex-col items-center text-center px-6 py-8 min-h-full">
+                  {/* Kick label */}
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex items-center gap-2.5 mb-4"
+                  >
+                    <div className="w-6 h-px bg-ha-red" />
+                    <span className="font-mono text-[10px] tracking-[0.4em] text-ha-red font-bold uppercase">
+                      ◆ Sunday, Dec 7 · 2:22 PM EST
+                    </span>
+                    <div className="w-6 h-px bg-ha-red" />
+                  </motion.div>
+
+                  {/* Title */}
+                  <motion.h1
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="font-playfair italic text-[50px] sm:text-[62px] font-bold text-off-white leading-[0.95] tracking-tight mb-4"
+                    style={{ textShadow: '0 4px 24px rgba(0,0,0,0.8)' }}
+                  >
+                    Tune <em className="text-gold">in.</em>
+                  </motion.h1>
+
+                  {/* Subtitle */}
+                  <motion.p
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.15 }}
+                    className="font-cormorant italic text-lg text-off-white/70 max-w-[520px] leading-relaxed mb-6"
+                    style={{ textShadow: '0 2px 12px rgba(0,0,0,0.6)' }}
+                  >
+                    News of the attack hit American radios while most of the country was finishing Sunday dinner. Only one of these three stations cut into its programming to carry the bulletin.
+                  </motion.p>
+
+                  {/* Radio console */}
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.2 }}
+                    className="relative w-full max-w-[600px] rounded p-5 mb-6"
+                    style={{
+                      background: 'rgba(20,10,6,0.78)',
+                      backdropFilter: 'blur(10px)',
+                      border: '1px solid rgba(230,171,42,0.3)'
+                    }}
+                  >
+                    {/* Red top bar */}
+                    <div className="absolute top-0 left-0 right-0 h-0.5 bg-ha-red" />
+
+                    {/* Header */}
+                    <div className="flex justify-between items-center mb-3 pb-3 border-b border-dashed border-off-white/[0.08]">
+                      <div className="flex items-center gap-2.5 font-mono text-[9px] tracking-[0.28em] text-ha-red uppercase font-bold">
+                        <span className="w-1.5 h-1.5 rounded-full bg-ha-red shadow-[0_0_6px_var(--ha-red,#CD0E14)] animate-pulse" />
+                        ◆ Live Broadcast Log
+                      </div>
+                      <span className="font-mono text-[8px] tracking-[0.25em] text-off-white/50 uppercase font-semibold">
+                        <span className="text-gold">3</span> stations monitored · NYC market
+                      </span>
+                    </div>
+
+                    {/* Frequency dial */}
+                    <div
+                      className="h-14 rounded-sm mb-4 relative overflow-hidden flex items-center"
+                      style={{
+                        background: '#080402',
+                        border: '1px solid #6A3A12'
+                      }}
+                    >
+                      {/* Tick marks background */}
+                      <div
+                        className="absolute inset-0"
+                        style={{
+                          backgroundImage: 'repeating-linear-gradient(90deg, transparent 0, transparent 24px, rgba(230,171,42,0.15) 24px, rgba(230,171,42,0.15) 25px)'
+                        }}
+                      />
+
+                      {/* Station markers */}
+                      <div className="relative w-full h-full flex justify-around items-center px-4">
+                        {[
+                          { name: 'CBS', freq: '880', pos: '20%' },
+                          { name: 'NBC', freq: '660', pos: '50%' },
+                          { name: 'MBS', freq: '1050', pos: '78%' },
+                        ].map((station) => (
+                          <div
+                            key={station.name}
+                            className="absolute flex flex-col items-center"
+                            style={{ left: station.pos }}
+                          >
+                            <span className="font-mono text-[9px] text-gold font-bold tracking-[0.1em]">{station.name}</span>
+                            <div className="w-0.5 h-3 bg-gold-dp my-0.5" />
+                            <span className="font-mono text-[7px] text-off-white/50">{station.freq}</span>
+                          </div>
+                        ))}
+
+                        {/* Radio needle */}
+                        <motion.div
+                          className="absolute h-full w-0.5 bg-ha-red z-10"
+                          style={{ left: '78%', boxShadow: '0 0 10px var(--ha-red, #CD0E14)' }}
+                          animate={{ x: [0, 2, 0] }}
+                          transition={{ duration: 3, repeat: Infinity }}
+                        >
+                          <div
+                            className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-ha-red"
+                            style={{ clipPath: 'polygon(0 0, 100% 0, 50% 100%)' }}
+                          />
+                        </motion.div>
+                      </div>
+                    </div>
+
+                    {/* Station preview list */}
+                    <div className="flex flex-col gap-1.5">
+                      {[
+                        { id: 'cbs', name: 'CBS', program: 'New York Philharmonic', status: 'Still playing' },
+                        { id: 'nbc', name: 'NBC', program: 'Dodgers vs. Giants', status: 'Still playing' },
+                        { id: 'mbs', name: 'MBS', program: 'Double or Nothing · Interrupted', status: 'On Air', selected: true },
+                      ].map((station) => (
+                        <div
+                          key={station.id}
+                          className="grid grid-cols-[52px_1fr_auto] gap-3 items-center p-2.5 rounded transition-all"
+                          style={{
+                            background: station.selected ? 'rgba(230,171,42,0.05)' : 'rgba(0,0,0,0.3)',
+                            border: station.selected ? '1px solid var(--gold, #E6AB2A)' : '1px solid rgba(230,171,42,0.15)',
+                            boxShadow: station.selected ? 'inset 0 0 0 1px rgba(230,171,42,0.3)' : 'none'
+                          }}
+                        >
+                          <div
+                            className="w-10 h-10 rounded-full flex items-center justify-center font-oswald font-bold text-[11px] tracking-[0.06em]"
+                            style={{
+                              background: station.selected ? '#B2641F' : '#1a1008',
+                              border: station.selected ? '1.5px solid var(--gold, #E6AB2A)' : '1.5px solid #B2641F',
+                              color: station.selected ? 'var(--cream, #FAF4E4)' : 'var(--gold, #E6AB2A)'
+                            }}
+                          >
+                            {station.name}
+                          </div>
+                          <div className="text-left min-w-0">
+                            <p className="font-playfair italic text-sm font-bold text-off-white truncate">{station.program}</p>
+                          </div>
+                          <div className="flex items-center gap-1.5 font-mono text-[9px] tracking-[0.12em] text-off-white/50 font-bold">
+                            {station.selected && (
+                              <div className="flex gap-0.5 h-3.5 items-end">
+                                {[30, 70, 100, 55].map((h, i) => (
+                                  <motion.span
+                                    key={i}
+                                    className="w-0.5 bg-gold rounded-sm"
+                                    style={{ height: `${h}%` }}
+                                    animate={{ height: ['30%', `${h}%`, '30%'] }}
+                                    transition={{ duration: 0.8 + i * 0.1, repeat: Infinity, delay: i * 0.1 }}
+                                  />
+                                ))}
+                              </div>
+                            )}
+                            <span className={station.selected ? 'text-gold' : ''}>{station.status}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+
+                  {/* Spacer for scroll */}
+                  <div className="h-8 flex-shrink-0" />
                 </div>
               </div>
-              <div className="space-y-3">
-                <button onClick={nextScreen} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors">
-                  Tune In
-                </button>
-                <button onClick={() => { setSkipped(true); onSkip(); }} className="w-full py-3 text-white/50 hover:text-white/70 text-sm">
-                  Skip this beat
-                </button>
+
+              {/* Bottom CTA - Fixed at bottom */}
+              <div className="relative z-20 px-6 pb-6 pt-4 bg-gradient-to-t from-[#0a0502] via-[#0a0502]/95 to-transparent backdrop-blur-sm border-t border-off-white/[0.06] flex-shrink-0">
+                <div className="flex flex-col items-center gap-3.5 max-w-sm mx-auto">
+                  {/* CTA Button */}
+                  <motion.button
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    onClick={nextScreen}
+                    className="relative w-full py-4 bg-ha-red hover:bg-ha-red/90 text-off-white font-oswald text-[13px] font-bold uppercase tracking-[0.2em] transition-colors flex items-center justify-center gap-3"
+                  >
+                    {/* Corner brackets */}
+                    <span className="absolute top-[-1px] left-[-1px] w-[11px] h-[11px] border-l-[1.5px] border-t-[1.5px] border-gold" />
+                    <span className="absolute bottom-[-1px] right-[-1px] w-[11px] h-[11px] border-r-[1.5px] border-b-[1.5px] border-gold" />
+                    Tune to MBS · 1050 kHz
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <path d="M5 12h14M13 6l6 6-6 6" />
+                    </svg>
+                  </motion.button>
+
+                  {/* Skip link */}
+                  <button
+                    onClick={() => { setSkipped(true); onSkip(); }}
+                    className="font-mono text-[9.5px] tracking-[0.28em] text-off-white/35 uppercase font-semibold hover:text-off-white/50 transition-colors py-1 px-2.5"
+                  >
+                    Skip this beat
+                  </button>
+                </div>
               </div>
             </motion.div>
           )}

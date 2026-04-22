@@ -15,6 +15,9 @@ import type { WW2Host } from '@/types';
 
 type AuthMode = 'landing' | 'signin' | 'signup' | 'forgot' | 'verify-sent' | 'reset-sent';
 
+// Trailer video path
+const TRAILER_VIDEO = '/assets/Teaser.mp4';
+
 // Translate Firebase error codes to user-friendly messages
 function getAuthErrorMessage(error: unknown): string {
   if (!(error instanceof Error)) return 'An unexpected error occurred';
@@ -58,6 +61,7 @@ export function LandingPage({ onAuthSuccess }: LandingPageProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showTrailer, setShowTrailer] = useState(false);
   const [ww2Hosts, setWw2Hosts] = useState<(WW2Host & { hidden?: boolean })[]>([]);
 
   // Load ALL WW2 hosts including hidden ones (for landing page showcase)
@@ -262,7 +266,10 @@ export function LandingPage({ onAuthSuccess }: LandingPageProps) {
                 >
                   Begin Your Journey <ChevronRight size={18} />
                 </button>
-                <button className="px-6 py-4 rounded-md border border-off-white/30 font-display text-sm font-bold uppercase tracking-[0.15em] text-off-white hover:border-gold-2 hover:text-gold-2 transition-colors flex items-center justify-center gap-2">
+                <button
+                  onClick={() => setShowTrailer(true)}
+                  className="px-6 py-4 rounded-md border border-off-white/30 font-display text-sm font-bold uppercase tracking-[0.15em] text-off-white hover:border-gold-2 hover:text-gold-2 transition-colors flex items-center justify-center gap-2"
+                >
                   <Play size={16} fill="currentColor" /> Watch Trailer
                 </button>
               </div>
@@ -754,6 +761,58 @@ export function LandingPage({ onAuthSuccess }: LandingPageProps) {
                 </div>
               )}
             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Trailer Video Modal */}
+      <AnimatePresence>
+        {showTrailer && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[110] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4"
+            onClick={() => setShowTrailer(false)}
+          >
+            {/* Close button */}
+            <button
+              onClick={() => setShowTrailer(false)}
+              className="absolute top-6 right-6 w-12 h-12 rounded-full bg-off-white/10 border border-off-white/20 flex items-center justify-center text-off-white hover:bg-off-white/20 transition-colors z-10"
+            >
+              <X size={24} />
+            </button>
+
+            {/* Video container - 9:16 aspect ratio for mobile feel */}
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: 'spring', damping: 25 }}
+              onClick={(e) => e.stopPropagation()}
+              className="relative w-full max-w-[400px] md:max-w-[450px] aspect-[9/16] bg-ink rounded-2xl overflow-hidden shadow-2xl border border-gold-2/20"
+            >
+              {/* Video */}
+              <video
+                src={TRAILER_VIDEO}
+                autoPlay
+                controls
+                playsInline
+                className="w-full h-full object-cover"
+              />
+
+              {/* Decorative corner flourishes */}
+              <div className="absolute top-2 left-2 w-6 h-6 border-l-2 border-t-2 border-gold-2/40 rounded-tl pointer-events-none" />
+              <div className="absolute top-2 right-2 w-6 h-6 border-r-2 border-t-2 border-gold-2/40 rounded-tr pointer-events-none" />
+              <div className="absolute bottom-2 left-2 w-6 h-6 border-l-2 border-b-2 border-gold-2/40 rounded-bl pointer-events-none" />
+              <div className="absolute bottom-2 right-2 w-6 h-6 border-r-2 border-b-2 border-gold-2/40 rounded-br pointer-events-none" />
+            </motion.div>
+
+            {/* Trailer label */}
+            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-ha-red animate-pulse" />
+              <span className="font-mono text-[10px] tracking-[0.3em] text-off-white/60 uppercase">Official Trailer</span>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

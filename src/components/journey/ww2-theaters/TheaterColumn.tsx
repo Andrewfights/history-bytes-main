@@ -26,11 +26,11 @@ export function TheaterColumn({
     ? '/assets/ww2-battles/pacific-theater-banner.png'
     : '/assets/ww2-battles/european-theater-banner.png';
 
-  // Theater colors
+  // Theater colors - using black base with subtle color tint
   const theaterColor = isPacific ? 'blue' : 'red';
   const bgGradient = isPacific
-    ? 'from-blue-900/30 via-slate-900/50 to-slate-900/70'
-    : 'from-red-900/30 via-slate-900/50 to-slate-900/70';
+    ? 'from-blue-900/20 via-black/80 to-black'
+    : 'from-red-900/20 via-black/80 to-black';
 
   return (
     <motion.div
@@ -49,7 +49,7 @@ export function TheaterColumn({
         <div
           className={`
             absolute inset-0
-            ${isPacific ? 'bg-blue-900/60' : 'bg-red-900/60'}
+            ${isPacific ? 'bg-blue-900/40' : 'bg-red-900/40'}
           `}
         />
 

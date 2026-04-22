@@ -64,7 +64,7 @@ export function WW2TheaterSelection({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex flex-col bg-gradient-to-b from-slate-900 via-slate-950 to-black overflow-hidden"
+      className="fixed inset-0 z-50 flex flex-col bg-black overflow-hidden"
     >
       {/* Film grain overlay */}
       <div
@@ -109,7 +109,7 @@ export function WW2TheaterSelection({
                     initial={{ opacity: 0, y: -10, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                    className="absolute top-12 left-0 z-50 w-48 bg-slate-800 rounded-xl border border-white/10 shadow-xl overflow-hidden"
+                    className="absolute top-12 left-0 z-50 w-48 bg-[#1a1a1a] rounded-xl border border-white/10 shadow-xl overflow-hidden"
                   >
                     <div className="p-3 border-b border-white/10">
                       <p className="text-xs text-white/50">Current Guide</p>
@@ -243,7 +243,7 @@ function ComingSoonModal({
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
-        className="relative w-[calc(100%-2rem)] sm:w-full sm:max-w-sm mx-auto bg-gradient-to-b from-slate-800 to-slate-900 rounded-2xl overflow-hidden border border-white/10"
+        className="relative w-[calc(100%-2rem)] sm:w-full sm:max-w-sm mx-auto bg-gradient-to-b from-[#1a1a1a] to-black rounded-2xl overflow-hidden border border-white/10"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Battle Image */}
@@ -253,7 +253,7 @@ function ComingSoonModal({
             alt={battle.name}
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-800 via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
 
           {/* Close Button */}
           <button

@@ -509,7 +509,7 @@ export function ExamResults({
         >
           <button
             onClick={onEnterArena}
-            className="w-full relative overflow-hidden rounded-xl bg-gradient-to-br from-slate-800 via-slate-900 to-black border border-amber-500/30 p-4 text-left group hover:border-amber-500/50 transition-all"
+            className="w-full relative overflow-hidden rounded-xl bg-gradient-to-br from-slate-800 via-black to-black border border-amber-500/30 p-4 text-left group hover:border-amber-500/50 transition-all"
           >
             {/* Animated glow effect */}
             <div className="absolute inset-0 bg-gradient-to-r from-amber-500/0 via-amber-500/10 to-amber-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />

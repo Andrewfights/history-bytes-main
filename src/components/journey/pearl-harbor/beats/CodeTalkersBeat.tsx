@@ -303,7 +303,7 @@ export function CodeTalkersBeat({ host, onComplete, onSkip, onBack, isPreview = 
   };
 
   return (
-    <div className="fixed inset-0 z-[60] pt-safe bg-gradient-to-b from-slate-900 via-slate-950 to-black flex flex-col">
+    <div className="fixed inset-0 z-[60] pt-safe bg-black flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
         <button onClick={onBack} className="p-2 -ml-2 text-white/60 hover:text-white transition-colors">
@@ -337,29 +337,186 @@ export function CodeTalkersBeat({ host, onComplete, onSkip, onBack, isPreview = 
 
           {/* INTRO */}
           {screen === 'intro' && (
-            <motion.div key="intro" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full p-6">
-              <div className="flex-1 flex flex-col items-center justify-center text-center">
-                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="w-20 h-20 rounded-full bg-amber-500/20 flex items-center justify-center mb-6">
-                  <span className="text-4xl">🦅</span>
-                </motion.div>
-                <h2 className="text-2xl font-bold text-white mb-4">The Navajo Secret</h2>
-                <p className="text-white/70 mb-6 max-w-sm leading-relaxed">
-                  In WWII, Navajo Marines created an unbreakable code based on their native language. The Japanese never decoded a single message.
-                </p>
-                <div className="bg-amber-500/10 rounded-xl p-4 max-w-sm border border-amber-500/30">
-                  <p className="text-amber-200 italic text-sm">
-                    "Were it not for the Navajos, the Marines would never have taken Iwo Jima."
-                  </p>
-                  <p className="text-white/50 text-xs mt-2">— Major Howard Connor</p>
+            <motion.div key="intro" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full relative overflow-hidden">
+              {/* Gold atmospheric background */}
+              <div
+                className="absolute inset-0 z-0"
+                style={{
+                  background: `
+                    radial-gradient(ellipse at 50% 40%, rgba(230,171,42,0.1) 0%, transparent 55%),
+                    radial-gradient(ellipse at 30% 80%, rgba(120,80,30,0.2) 0%, transparent 55%),
+                    linear-gradient(180deg, #1a1208 0%, #0a0604 50%, #050302 100%)
+                  `
+                }}
+              />
+
+              {/* Gold light rays */}
+              <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-[800px] h-[500px] z-[1] pointer-events-none">
+                {[...Array(6)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="absolute top-1/2 left-1/2 w-px h-[260px] origin-top"
+                    style={{
+                      background: 'linear-gradient(180deg, rgba(230,171,42,0.15), transparent)',
+                      transform: `translate(-50%, 0) rotate(${-30 + i * 12}deg)`
+                    }}
+                  />
+                ))}
+              </div>
+
+              {/* Grain overlay */}
+              <div className="absolute inset-0 z-[5] opacity-35 mix-blend-overlay pointer-events-none"
+                style={{
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='ng'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.35 0 0 0 0 0.15 0 0 0 0.3 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23ng)'/%3E%3C/svg%3E")`
+                }}
+              />
+
+              {/* Scrollable content area */}
+              <div className="flex-1 overflow-y-auto relative z-10">
+                <div className="flex flex-col items-center text-center px-6 py-8 min-h-full">
+                  {/* Kick label */}
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex items-center gap-2.5 mb-4"
+                  >
+                    <div className="w-6 h-px bg-ha-red" />
+                    <span className="font-mono text-[10px] tracking-[0.4em] text-ha-red font-bold uppercase">
+                      ◆ Scene · An Unbreakable Code
+                    </span>
+                    <div className="w-6 h-px bg-ha-red" />
+                  </motion.div>
+
+                  {/* Title */}
+                  <motion.h1
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="font-playfair italic text-[42px] sm:text-[54px] font-bold text-off-white leading-[0.95] tracking-tight mb-4"
+                    style={{ textShadow: '0 4px 24px rgba(0,0,0,0.8)' }}
+                  >
+                    The <em className="text-gold">Navajo secret.</em>
+                  </motion.h1>
+
+                  {/* Subtitle */}
+                  <motion.p
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.15 }}
+                    className="font-cormorant italic text-lg text-off-white/70 max-w-[520px] leading-relaxed mb-6"
+                    style={{ textShadow: '0 2px 12px rgba(0,0,0,0.6)' }}
+                  >
+                    In WWII, 420 Navajo Marines created a code no cryptographer could crack. Based on a language the Japanese had never heard. Not one message, across three years of fighting, was ever broken.
+                  </motion.p>
+
+                  {/* Cipher panel */}
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.2 }}
+                    className="relative w-full max-w-[480px] rounded p-5 sm:p-6 mb-6"
+                    style={{
+                      background: 'rgba(20,14,8,0.78)',
+                      backdropFilter: 'blur(10px)',
+                      border: '1px solid rgba(230,171,42,0.3)'
+                    }}
+                  >
+                    {/* Gold top bar */}
+                    <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-gold-dp via-gold-br to-gold-dp" />
+
+                    {/* Header */}
+                    <div className="flex justify-between items-center mb-3 font-mono text-[8.5px] tracking-[0.3em] text-off-white/50 uppercase font-bold">
+                      <span>◆ Diné Bizaad · Cipher Preview</span>
+                      <span
+                        className="text-ha-red font-bold py-0.5 px-2 animate-pulse"
+                        style={{
+                          border: '1px solid rgba(205,14,20,0.35)',
+                          background: 'rgba(205,14,20,0.08)'
+                        }}
+                      >
+                        Classified until 1968
+                      </span>
+                    </div>
+
+                    {/* Cipher rows */}
+                    <div className="flex flex-col gap-2.5 mb-4">
+                      {[
+                        { en: 'Battleship', na: 'Lo-tso' },
+                        { en: 'Submarine', na: 'Besh-lo' },
+                        { en: 'Fighter Plane', na: 'Da-he-tih-hi' },
+                        { en: 'America', na: 'Ne-he-mah' },
+                      ].map((row, i) => (
+                        <div key={i} className="grid grid-cols-[100px_16px_1fr] gap-3 items-center">
+                          <span className="font-mono text-[11.5px] tracking-[0.15em] text-off-white/70 uppercase font-semibold text-right">{row.en}</span>
+                          <span className="font-mono text-sm text-gold-dp text-center">→</span>
+                          <span className="font-playfair italic text-[17px] text-gold font-bold text-left tracking-wide">{row.na}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Footer */}
+                    <div className="pt-3 border-t border-dashed border-off-white/[0.08] flex justify-between font-mono text-[8px] tracking-[0.18em] text-off-white/50 uppercase font-semibold">
+                      <span>◆ 211 Coded Terms</span>
+                      <span className="text-gold font-bold">Never broken</span>
+                    </div>
+                  </motion.div>
+
+                  {/* Quote */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="w-full max-w-[480px] rounded p-4 mb-4"
+                    style={{
+                      background: 'rgba(15,10,6,0.7)',
+                      backdropFilter: 'blur(8px)',
+                      border: '1px solid rgba(230,171,42,0.3)',
+                      borderLeft: '3px solid var(--gold, #E6AB2A)'
+                    }}
+                  >
+                    <p className="font-cormorant italic text-[17px] text-off-white leading-relaxed mb-2">
+                      <span className="text-gold text-[26px] leading-none align-[-6px] mr-0.5">"</span>
+                      Were it not for the Navajos, the Marines would never have taken Iwo Jima.
+                      <span className="text-gold text-[26px] leading-none align-[-14px] ml-0.5">"</span>
+                    </p>
+                    <p className="font-mono text-[9px] tracking-[0.22em] text-gold uppercase font-bold text-right">
+                      — Major Howard Connor · 5th Marine Div. Signal Officer
+                    </p>
+                  </motion.div>
+
+                  {/* Spacer for scroll */}
+                  <div className="h-8 flex-shrink-0" />
                 </div>
               </div>
-              <div className="space-y-3" style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))' }}>
-                <button onClick={nextScreen} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors">
-                  Learn the Code
-                </button>
-                <button onClick={() => { setSkipped(true); onSkip(); }} className="w-full py-3 text-white/50 hover:text-white/70 text-sm">
-                  Skip this beat
-                </button>
+
+              {/* Bottom CTA - Fixed at bottom */}
+              <div className="relative z-20 px-6 pb-6 pt-4 bg-gradient-to-t from-[#0a0604] via-[#0a0604]/95 to-transparent backdrop-blur-sm border-t border-off-white/[0.06] flex-shrink-0">
+                <div className="flex flex-col items-center gap-3.5 max-w-sm mx-auto">
+                  {/* CTA Button */}
+                  <motion.button
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.35 }}
+                    onClick={nextScreen}
+                    className="relative w-full py-4 bg-ha-red hover:bg-ha-red/90 text-off-white font-oswald text-[13px] font-bold uppercase tracking-[0.2em] transition-colors flex items-center justify-center gap-3"
+                  >
+                    {/* Corner brackets */}
+                    <span className="absolute top-[-1px] left-[-1px] w-[11px] h-[11px] border-l-[1.5px] border-t-[1.5px] border-gold" />
+                    <span className="absolute bottom-[-1px] right-[-1px] w-[11px] h-[11px] border-r-[1.5px] border-b-[1.5px] border-gold" />
+                    Learn the Code
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <path d="M5 12h14M13 6l6 6-6 6" />
+                    </svg>
+                  </motion.button>
+
+                  {/* Skip link */}
+                  <button
+                    onClick={() => { setSkipped(true); onSkip(); }}
+                    className="font-mono text-[9.5px] tracking-[0.28em] text-off-white/35 uppercase font-semibold hover:text-off-white/50 transition-colors py-1 px-2.5"
+                  >
+                    Skip this beat
+                  </button>
+                </div>
               </div>
             </motion.div>
           )}

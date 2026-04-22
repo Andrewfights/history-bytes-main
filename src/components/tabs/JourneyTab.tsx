@@ -1364,94 +1364,133 @@ function ProgressOverview({
       animate={{ opacity: 1, y: 0 }}
       className="mb-6"
     >
-      {/* Header */}
-      <div className="flex items-center justify-between mb-3 sm:mb-4">
-        <div>
-          <h1 className="font-serif text-xl sm:text-2xl font-bold text-off-white">Your Campaign</h1>
-          <div className="mt-1.5 w-12 sm:w-16 h-0.5 bg-ha-red" />
+      {/* Section Header - "Your Campaign" with streak */}
+      <div className="flex items-center justify-between mb-3 sm:mb-4 pt-4">
+        <div className="flex-1">
+          <h1 className="font-display text-lg sm:text-xl font-bold text-off-white uppercase tracking-[0.05em] relative inline-block">
+            Your Campaign
+            <div className="absolute -bottom-1 left-0 w-8 h-0.5 bg-ha-red" />
+          </h1>
         </div>
-        <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 rounded-full bg-gold-2/10 border border-gold-2/20">
-          <Flame size={14} className="text-gold-2 sm:w-4 sm:h-4" />
-          <span className="font-mono text-sm sm:text-base font-bold text-gold-2">{user.streak}</span>
+        <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-ink-lift border border-gold-2/15">
+          <svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5 text-gold-2">
+            <path d="M12 2s1 3 3 5 3 4 3 7a6 6 0 1 1-12 0c0-2 1-4 2-5s2-3 2-5 1-2 2-2z"/>
+          </svg>
+          <span className="font-mono text-xs font-bold text-gold-2">{user.streak}</span>
         </div>
       </div>
 
-      {/* Rank Card */}
-      <div className="relative p-3 sm:p-4 rounded-xl bg-ink-lift border border-gold-2/15 mb-4 overflow-hidden">
+      {/* Rank Card - matches design */}
+      <div className="relative bg-ink-lift border border-gold-2/15 p-3 mb-1 overflow-hidden">
         {/* Left gold accent bar */}
-        <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-gold-2 rounded-l-xl" />
+        <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-gold-2" />
 
-        <div className="flex items-center gap-3 sm:gap-4 mb-3">
-          {/* Rank Badge */}
-          <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-xl bg-gradient-to-br ${tierColors[rankInfo.tier]} flex items-center justify-center overflow-hidden`}>
+        <div className="flex items-center gap-2.5 ml-1">
+          {/* Rank Badge - circular with gradient */}
+          <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${tierColors[rankInfo.tier]} flex items-center justify-center overflow-hidden flex-shrink-0`}>
             {customRankBadge ? (
               <img src={customRankBadge} alt={rankInfo.rank} className="w-full h-full object-cover" />
             ) : (
-              <span className="text-2xl sm:text-3xl">{rankInfo.icon}</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="#1a1008" strokeWidth="1.8" className="w-4 h-4">
+                <path d="M4 19V5l4 3 4-4 4 4 4-3v14z"/>
+                <circle cx="12" cy="12" r="1.5" fill="#1a1008"/>
+              </svg>
             )}
           </div>
 
           {/* Rank Info */}
           <div className="flex-1">
-            <p className="font-mono text-[10px] sm:text-xs uppercase tracking-[0.2em] text-off-white/50 mb-0.5">
+            <div className="flex items-center gap-1 font-mono text-[8.5px] uppercase tracking-[0.2em] text-off-white/50 font-semibold mb-0.5">
+              <svg viewBox="0 0 24 24" fill="currentColor" className="w-2.5 h-2.5 text-gold-2">
+                <path d="M5 16L3 6l5 3 4-6 4 6 5-3-2 10z"/>
+              </svg>
               Current Rank
-            </p>
-            <h2 className="font-serif text-lg sm:text-xl font-bold text-gold-2">{rankInfo.rank}</h2>
-            <p className="font-mono text-xs sm:text-sm text-off-white/50">{user.xp.toLocaleString()} XP</p>
+            </div>
+            <h2 className="font-display text-base font-bold text-gold-2 uppercase tracking-[0.01em] leading-none">{rankInfo.rank}</h2>
+            <p className="font-mono text-[9px] text-off-white/50 mt-0.5 tracking-[0.1em]">{user.xp.toLocaleString()} XP</p>
           </div>
         </div>
-
-        {/* XP Progress Bar */}
-        {nextRank.next && (
-          <div>
-            <div className="flex items-center justify-between font-mono text-[10px] text-off-white/50 mb-1">
-              <span>Progress to {nextRank.next}</span>
-              <span>{xpToNext.toLocaleString()} XP to go</span>
-            </div>
-            <div className="h-[2px] bg-void/50 rounded-full overflow-hidden">
-              <motion.div
-                className="h-full bg-gold-2 rounded-full"
-                initial={{ width: 0 }}
-                animate={{ width: `${progressToNext}%` }}
-                transition={{ duration: 0.5, delay: 0.2 }}
-              />
-            </div>
-          </div>
-        )}
-        {!nextRank.next && (
-          <div className="text-center py-2">
-            <span className="font-mono text-sm text-gold-2 font-medium uppercase tracking-wide">Max Rank Achieved!</span>
-          </div>
-        )}
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-4 gap-2">
-        <StatCard icon={<Trophy size={16} className="text-gold-2" />} value={arcsWithContent} label="Eras" />
-        <StatCard icon={<TrendingUp size={16} className="text-success" />} value={completedNodesCount} label="Nodes" />
-        <StatCard icon={<Target size={16} className="text-gold-2" />} value={totalQuestions > 0 ? `${quizAccuracy}%` : '—'} label="Accuracy" />
-        <StatCard icon={<Flame size={16} className="text-gold-2" />} value={user.streak} label="Streak" />
+      {/* Rank Progress Bar - separate card below */}
+      <div className="bg-ink-lift border border-gold-2/15 border-t-0 p-2.5 px-3.5 mb-4">
+        <div className="flex justify-between font-mono text-[9px] text-off-white/50 mb-1.5 tracking-[0.1em] uppercase">
+          <span>Progress to {nextRank.next || 'Max Rank'}</span>
+          <span className="text-off-white/70">{nextRank.next ? `${xpToNext.toLocaleString()} XP to go` : 'Achieved!'}</span>
+        </div>
+        <div className="h-[3px] bg-off-white/[0.08] overflow-hidden">
+          <motion.div
+            className="h-full bg-gold-2"
+            initial={{ width: 0 }}
+            animate={{ width: `${progressToNext}%` }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          />
+        </div>
+      </div>
+
+      {/* Stats Grid - 4 columns matching design */}
+      <div className="grid grid-cols-4 gap-1.5">
+        <StatCard
+          icon={
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-3.5 h-3.5 text-gold-2">
+              <path d="M7 4h10l1 5a6 6 0 0 1-12 0zM9 20h6M10 14v6M14 14v6"/>
+            </svg>
+          }
+          value={arcsWithContent}
+          label="Eras"
+        />
+        <StatCard
+          icon={
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-3.5 h-3.5 text-success">
+              <path d="M4 18L10 12L14 16L20 6M15 6h5v5"/>
+            </svg>
+          }
+          value={completedNodesCount}
+          label="Nodes"
+          iconColor="g"
+        />
+        <StatCard
+          icon={
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-3.5 h-3.5 text-gold-2">
+              <circle cx="12" cy="12" r="9"/>
+              <circle cx="12" cy="12" r="5"/>
+              <circle cx="12" cy="12" r="1" fill="currentColor"/>
+            </svg>
+          }
+          value={totalQuestions > 0 ? `${quizAccuracy}%` : '—'}
+          label="Accu."
+        />
+        <StatCard
+          icon={
+            <svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5 text-ha-red">
+              <path d="M12 2s1 3 3 5 3 4 3 7a6 6 0 1 1-12 0c0-2 1-4 2-5s2-3 2-5 1-2 2-2z"/>
+            </svg>
+          }
+          value={user.streak}
+          label="Streak"
+          iconColor="r"
+        />
       </div>
 
       {/* Quiz Performance Card - Only show if user has answered questions */}
       {totalQuestions > 0 && (
-        <div className="mt-4 p-3 sm:p-4 rounded-xl bg-ink-lift border border-off-white/[0.06]">
+        <div className="mt-4 p-3 sm:p-4 bg-ink-lift border border-off-white/[0.06]">
           <div className="flex items-center gap-2 mb-3">
-            <Target size={16} className="text-gold-2" />
-            <h3 className="font-serif font-bold text-sm text-off-white">Quiz Performance</h3>
+            <Target size={14} className="text-gold-2" />
+            <h3 className="font-display font-bold text-sm text-off-white uppercase tracking-[0.05em]">Quiz Performance</h3>
           </div>
           <div className="grid grid-cols-3 gap-3 text-center">
             <div>
-              <div className="font-serif text-lg sm:text-xl font-bold text-gold-2">{quizAccuracy}%</div>
-              <div className="font-mono text-[8px] sm:text-[10px] text-off-white/50 uppercase tracking-[0.2em]">Accuracy</div>
+              <div className="font-display text-xl font-bold text-gold-2">{quizAccuracy}%</div>
+              <div className="font-mono text-[8px] text-off-white/50 uppercase tracking-[0.15em] font-semibold">Accuracy</div>
             </div>
             <div>
-              <div className="font-serif text-lg sm:text-xl font-bold text-off-white">{totalCorrectAnswers}/{totalQuestions}</div>
-              <div className="font-mono text-[8px] sm:text-[10px] text-off-white/50 uppercase tracking-[0.2em]">Correct</div>
+              <div className="font-display text-xl font-bold text-off-white">{totalCorrectAnswers}/{totalQuestions}</div>
+              <div className="font-mono text-[8px] text-off-white/50 uppercase tracking-[0.15em] font-semibold">Correct</div>
             </div>
             <div>
-              <div className="font-serif text-lg sm:text-xl font-bold text-gold-2">{totalQuizAttempts}</div>
-              <div className="font-mono text-[8px] sm:text-[10px] text-off-white/50 uppercase tracking-[0.2em]">Quizzes</div>
+              <div className="font-display text-xl font-bold text-gold-2">{totalQuizAttempts}</div>
+              <div className="font-mono text-[8px] text-off-white/50 uppercase tracking-[0.15em] font-semibold">Quizzes</div>
             </div>
           </div>
         </div>
@@ -1460,12 +1499,12 @@ function ProgressOverview({
   );
 }
 
-function StatCard({ icon, value, label }: { icon: React.ReactNode; value: string | number; label: string }) {
+function StatCard({ icon, value, label, iconColor }: { icon: React.ReactNode; value: string | number; label: string; iconColor?: 'g' | 'r' }) {
   return (
-    <div className="p-3 rounded-xl bg-ink-lift border border-off-white/[0.06] text-center">
-      <div className="flex justify-center mb-1">{icon}</div>
-      <div className="font-serif font-bold text-lg text-off-white">{value}</div>
-      <div className="font-mono text-[8px] text-off-white/50 uppercase tracking-[0.2em]">{label}</div>
+    <div className="bg-ink-lift border border-gold-2/15 py-2.5 px-1.5 text-center relative">
+      <div className="flex justify-center mb-1.5">{icon}</div>
+      <div className="font-display font-bold text-xl text-off-white leading-none">{value}</div>
+      <div className="font-mono text-[8px] text-off-white/50 uppercase tracking-[0.15em] font-semibold mt-1">{label}</div>
     </div>
   );
 }

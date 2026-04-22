@@ -320,7 +320,7 @@ export function RoadToWarBeat({ host, onComplete, onSkip, onBack, isPreview = fa
   const allHotspotsViewed = viewedHotspots.size >= activeHotspots.length;
 
   return (
-    <div className="fixed inset-0 z-[60] pt-safe bg-gradient-to-b from-slate-900 via-slate-950 to-black flex flex-col">
+    <div className="fixed inset-0 z-[60] pt-safe bg-black flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
         <button
@@ -366,33 +366,40 @@ export function RoadToWarBeat({ host, onComplete, onSkip, onBack, isPreview = fa
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex flex-col h-full p-6"
+              className="flex flex-col h-full"
             >
-              <div className="flex-1 flex flex-col items-center justify-center text-center">
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="w-20 h-20 rounded-full bg-amber-500/20 flex items-center justify-center mb-6"
-                >
-                  <Map size={40} className="text-amber-400" />
-                </motion.div>
+              {/* Scrollable content area */}
+              <div className="flex-1 overflow-y-auto p-6">
+                <div className="flex flex-col items-center text-center min-h-full">
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="w-20 h-20 rounded-full bg-amber-500/20 flex items-center justify-center mb-6"
+                  >
+                    <Map size={40} className="text-amber-400" />
+                  </motion.div>
 
-                <h2 className="text-2xl font-bold text-white mb-4">
-                  The Road to War
-                </h2>
+                  <h2 className="text-2xl font-bold text-white mb-4">
+                    The Road to War
+                  </h2>
 
-                <p className="text-white/70 mb-6 max-w-sm leading-relaxed">
-                  Pearl Harbor wasn't a random act of aggression. It was the culmination of decades of geopolitical tension between two nations on a collision course.
-                </p>
-
-                <div className="bg-white/5 rounded-xl p-4 max-w-sm border border-white/10">
-                  <p className="text-white/80 text-sm italic">
-                    "In January 1940, 88% of Americans opposed war. By December 8, 1941, 97% approved it. What changed everything?"
+                  <p className="text-white/70 mb-6 max-w-sm leading-relaxed">
+                    Pearl Harbor wasn't a random act of aggression. It was the culmination of decades of geopolitical tension between two nations on a collision course.
                   </p>
+
+                  <div className="bg-white/5 rounded-xl p-4 max-w-sm border border-white/10">
+                    <p className="text-white/80 text-sm italic">
+                      "In January 1940, 88% of Americans opposed war. By December 8, 1941, 97% approved it. What changed everything?"
+                    </p>
+                  </div>
+
+                  {/* Spacer for scroll padding */}
+                  <div className="h-8 flex-shrink-0" />
                 </div>
               </div>
 
-              <div className="space-y-3" style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))' }}>
+              {/* Fixed bottom CTA */}
+              <div className="flex-shrink-0 p-6 pt-4 bg-gradient-to-t from-void via-void/95 to-transparent space-y-3" style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))' }}>
                 <button
                   onClick={() => nextScreen()}
                   className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors"

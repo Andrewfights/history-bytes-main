@@ -319,7 +319,7 @@ export function MidModuleVideoTestBeat({ host, onComplete, onSkip, onBack, isPre
   const currentQ = questions[currentQuestion];
 
   return (
-    <div className="fixed inset-0 z-[60] pt-safe bg-gradient-to-b from-slate-900 via-slate-950 to-black flex flex-col">
+    <div className="fixed inset-0 z-[60] pt-safe bg-black flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
         <button
@@ -435,7 +435,7 @@ export function MidModuleVideoTestBeat({ host, onComplete, onSkip, onBack, isPre
                       className="w-full h-full object-contain bg-black"
                     />
                   ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-amber-900/30 via-slate-900 to-slate-950 flex items-center justify-center">
+                    <div className="w-full h-full bg-gradient-to-br from-amber-900/30 via-black to-black flex items-center justify-center">
                       <div className="w-16 h-16 rounded-full flex items-center justify-center text-3xl" style={{ backgroundColor: host.primaryColor }}>
                         {host.avatar}
                       </div>

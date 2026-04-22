@@ -240,7 +240,7 @@ export function TorpedoDodge({ onComplete, onBack }: TorpedoDodgeProps) {
 
   // Playing screen
   return (
-    <div className="h-screen flex flex-col bg-gradient-to-b from-blue-950 to-slate-950">
+    <div className="h-screen flex flex-col bg-gradient-to-b from-blue-950 to-black">
       <Header onBack={onBack} />
 
       {/* HUD */}

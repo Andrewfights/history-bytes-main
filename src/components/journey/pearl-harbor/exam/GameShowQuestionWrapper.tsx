@@ -208,7 +208,7 @@ export function GameShowQuestionWrapper({
             </>
           ) : (
             /* Fallback gradient when no video */
-            <div className="w-full h-full bg-gradient-to-br from-amber-900/30 via-slate-900 to-slate-950 flex items-center justify-center">
+            <div className="w-full h-full bg-gradient-to-br from-amber-900/30 via-black to-black flex items-center justify-center">
               <div className="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center">
                 <div className="w-6 h-6 rounded-full bg-amber-500/30 animate-pulse" />
               </div>

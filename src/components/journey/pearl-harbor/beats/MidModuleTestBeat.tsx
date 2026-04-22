@@ -247,7 +247,7 @@ export function MidModuleTestBeat({ host, onComplete, onSkip, onBack, isPreview 
   const currentQ = QUIZ_QUESTIONS[currentQuestion];
 
   return (
-    <div className="fixed inset-0 z-[60] pt-safe bg-gradient-to-b from-slate-900 via-slate-950 to-black flex flex-col">
+    <div className="fixed inset-0 z-[60] pt-safe bg-black flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
         <button

@@ -249,7 +249,7 @@ export function MasteryRunBeat({ host, onComplete, onSkip, onBack, isPreview = f
   const earnedXP = calculateXP();
 
   return (
-    <div className="fixed inset-0 z-[60] pt-safe bg-gradient-to-b from-slate-900 via-slate-950 to-black flex flex-col">
+    <div className="fixed inset-0 z-[60] pt-safe bg-black flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
         <button onClick={onBack} className="p-2 -ml-2 text-white/60 hover:text-white transition-colors">
@@ -283,49 +283,265 @@ export function MasteryRunBeat({ host, onComplete, onSkip, onBack, isPreview = f
 
           {/* INTRO */}
           {screen === 'intro' && (
-            <motion.div key="intro" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full p-6">
-              <div className="flex-1 flex flex-col items-center justify-center text-center">
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="w-24 h-24 rounded-full bg-gradient-to-br from-amber-500 to-yellow-600 flex items-center justify-center mb-6 shadow-lg shadow-amber-500/30"
-                >
-                  <Trophy size={48} className="text-white" />
-                </motion.div>
-                <h2 className="text-2xl font-bold text-white mb-4">Pearl Harbor Final Challenge</h2>
-                <p className="text-white/70 mb-6 max-w-sm leading-relaxed">
-                  Put everything you've learned to the test. 12 questions covering the entire Pearl Harbor curriculum.
-                </p>
+            <motion.div key="intro" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full relative overflow-hidden">
+              {/* Gold/red atmospheric background */}
+              <div
+                className="absolute inset-0 z-0"
+                style={{
+                  background: `
+                    radial-gradient(ellipse at 50% 30%, rgba(230,171,42,0.15) 0%, transparent 55%),
+                    radial-gradient(ellipse at 50% 100%, rgba(205,14,20,0.15) 0%, transparent 55%),
+                    linear-gradient(180deg, #140a04 0%, #0a0503 50%, #050201 100%)
+                  `
+                }}
+              />
 
-                {/* Rules */}
-                <div className="bg-white/5 rounded-xl p-4 max-w-sm border border-white/10 mb-6 text-left">
-                  <h4 className="text-white font-bold mb-3 flex items-center gap-2">
-                    <Target size={16} className="text-amber-400" /> Challenge Rules
-                  </h4>
-                  <ul className="text-white/70 text-sm space-y-2">
-                    <li>• <strong className="text-white">12 questions</strong> from all 9 beats</li>
-                    <li>• <strong className="text-white">30 seconds</strong> per question</li>
-                    <li>• Build streaks for bonus points</li>
-                    <li>• <strong className="text-amber-400">12/12</strong> earns "Pearl Harbor Scholar" badge</li>
-                  </ul>
-                </div>
+              {/* Faded diploma decorations */}
+              <div className="absolute inset-0 z-[1] pointer-events-none opacity-[0.08]">
+                <div
+                  className="absolute w-[140px] h-[180px] bg-[#F5ECD2]"
+                  style={{ top: '15%', left: '8%', transform: 'rotate(-8deg)', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}
+                />
+                <div
+                  className="absolute w-[140px] h-[180px] bg-[#F5ECD2]"
+                  style={{ bottom: '15%', right: '8%', transform: 'rotate(6deg)', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}
+                />
+              </div>
 
-                {/* Scoring tiers */}
-                <div className="flex gap-2 text-xs">
-                  <span className="px-2 py-1 rounded bg-amber-500/20 text-amber-400">12: 75 XP</span>
-                  <span className="px-2 py-1 rounded bg-green-500/20 text-green-400">10-11: 60 XP</span>
-                  <span className="px-2 py-1 rounded bg-blue-500/20 text-blue-400">8-9: 45 XP</span>
-                  <span className="px-2 py-1 rounded bg-white/10 text-white/60">&lt;8: 30 XP</span>
+              {/* Grain overlay */}
+              <div className="absolute inset-0 z-[5] opacity-35 mix-blend-overlay pointer-events-none"
+                style={{
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='ng'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.35 0 0 0 0 0.15 0 0 0 0.3 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23ng)'/%3E%3C/svg%3E")`
+                }}
+              />
+
+              {/* Scrollable content area */}
+              <div className="flex-1 overflow-y-auto relative z-10">
+                <div className="flex flex-col items-center text-center px-6 py-8 min-h-full">
+                  {/* Kick label */}
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex items-center gap-2.5 mb-4"
+                  >
+                    <div className="w-6 h-px bg-ha-red" />
+                    <span className="font-mono text-[10px] tracking-[0.4em] text-ha-red font-bold uppercase">
+                      ◆ Pearl Harbor · Final Examination
+                    </span>
+                    <div className="w-6 h-px bg-ha-red" />
+                  </motion.div>
+
+                  {/* Exam Seal */}
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.1 }}
+                    className="relative w-[96px] h-[96px] mb-5"
+                  >
+                    {/* Outer ring */}
+                    <div
+                      className="absolute inset-0 rounded-full"
+                      style={{
+                        background: 'radial-gradient(circle at 50% 35%, #3a2a14, #1a1008 55%, #0a0604)',
+                        border: '2px solid var(--gold, #E6AB2A)',
+                        boxShadow: '0 8px 30px rgba(0,0,0,0.6), 0 0 40px rgba(230,171,42,0.3)'
+                      }}
+                    />
+                    {/* Inner dashed border with glow */}
+                    <div
+                      className="absolute inset-[6px] rounded-full flex items-center justify-center"
+                      style={{
+                        border: '1.5px dashed rgba(230,171,42,0.45)',
+                        background: 'radial-gradient(circle at 50% 40%, rgba(230,171,42,0.08), transparent 70%)'
+                      }}
+                    >
+                      <div className="text-center leading-none">
+                        <span
+                          className="block font-playfair italic text-[30px] font-bold mb-0.5"
+                          style={{
+                            background: 'linear-gradient(180deg, #F6E355 0%, #E6AB2A 45%, #B2641F 100%)',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                            backgroundClip: 'text'
+                          }}
+                        >
+                          XII
+                        </span>
+                        <span className="font-oswald text-[8px] tracking-[0.28em] text-gold font-bold uppercase">
+                          Questions
+                        </span>
+                      </div>
+                    </div>
+                    {/* Top star */}
+                    <span className="absolute top-[10%] left-1/2 -translate-x-1/2 text-gold text-[10px] z-[2]">◆</span>
+                    {/* Bottom star */}
+                    <span className="absolute bottom-[10%] left-1/2 -translate-x-1/2 text-gold text-[10px] z-[2]">◆</span>
+                  </motion.div>
+
+                  {/* Title */}
+                  <motion.h1
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.15 }}
+                    className="font-playfair italic text-[42px] sm:text-[54px] font-bold text-off-white leading-[0.95] tracking-tight mb-4"
+                    style={{ textShadow: '0 4px 24px rgba(0,0,0,0.8)' }}
+                  >
+                    The <em className="text-gold">final exam.</em>
+                  </motion.h1>
+
+                  {/* Subtitle */}
+                  <motion.p
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="font-cormorant italic text-lg text-off-white/70 max-w-[520px] leading-relaxed mb-5"
+                    style={{ textShadow: '0 2px 12px rgba(0,0,0,0.6)' }}
+                  >
+                    One more sitting stands between you and the Pearl Harbor diploma. Your instructor has a few last words before you begin.
+                  </motion.p>
+
+                  {/* Instructor briefing card */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.25 }}
+                    className="relative w-full max-w-[560px] rounded p-5 mb-5 text-left"
+                    style={{
+                      background: 'rgba(20,14,8,0.78)',
+                      backdropFilter: 'blur(10px)',
+                      border: '1px solid rgba(230,171,42,0.3)'
+                    }}
+                  >
+                    {/* Gold top bar */}
+                    <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-gold-dp via-gold-br to-gold-dp" />
+
+                    {/* Header */}
+                    <div className="flex justify-between items-start mb-3.5 pb-3 border-b border-dashed border-off-white/[0.08] gap-2.5">
+                      {/* Instructor */}
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        <div
+                          className="w-9 h-9 rounded-full flex-shrink-0"
+                          style={{
+                            background: 'radial-gradient(circle at 40% 35%, rgba(180,140,95,0.55), rgba(60,40,25,0.85) 55%, rgba(20,12,6,0.95))',
+                            border: '1px solid var(--gold, #E6AB2A)'
+                          }}
+                        />
+                        <div className="min-w-0">
+                          <p className="font-playfair italic text-[13px] font-bold text-off-white truncate">Sgt. J. Mitchell</p>
+                          <p className="font-mono text-[8px] tracking-[0.22em] text-gold uppercase font-semibold mt-0.5">◆ Proctor · ETO 1944</p>
+                        </div>
+                      </div>
+                      {/* Sealed badge */}
+                      <span
+                        className="font-mono text-[8px] tracking-[0.28em] text-ha-red font-bold py-1 px-2 rounded-sm flex-shrink-0 whitespace-nowrap"
+                        style={{
+                          border: '1px solid rgba(205,14,20,0.3)',
+                          background: 'rgba(205,14,20,0.06)'
+                        }}
+                      >
+                        Sealed Until Finished
+                      </span>
+                    </div>
+
+                    {/* Briefing text */}
+                    <p className="font-cormorant italic text-[15.5px] text-off-white/70 leading-relaxed mb-3.5">
+                      Twelve questions, thirty seconds each. No hints. You won't know if you're right until the last answer is locked. Lock in{' '}
+                      <span className="text-gold font-bold italic">ten</span> to earn the bronze,{' '}
+                      <span className="text-gold font-bold italic">eleven</span> for silver,{' '}
+                      <span className="text-gold font-bold italic">all twelve</span> for gold.
+                    </p>
+
+                    {/* Signature */}
+                    <p className="font-cormorant italic text-sm text-gold text-right pt-2.5 border-t border-dashed border-off-white/[0.08] tracking-wide">
+                      — J. Mitchell, USA (ret.)
+                    </p>
+                  </motion.div>
+
+                  {/* Exam specs strip */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="relative w-full max-w-[560px] rounded overflow-hidden mb-4"
+                    style={{
+                      background: 'rgba(15,10,6,0.6)',
+                      backdropFilter: 'blur(8px)',
+                      border: '1px solid rgba(230,171,42,0.15)'
+                    }}
+                  >
+                    {/* Gold top bar */}
+                    <div className="absolute top-0 left-0 right-0 h-0.5 bg-gold" />
+
+                    <div className="grid grid-cols-4">
+                      {[
+                        { label: 'Questions', value: '12' },
+                        { label: 'Per Q', value: '30s' },
+                        { label: 'Total', value: '6:00' },
+                        { label: 'Attempts', value: '∞' },
+                      ].map((spec, i) => (
+                        <div key={i} className="py-3 px-3 text-center flex flex-col gap-0.5 border-r border-off-white/[0.08] last:border-r-0">
+                          <span className="font-mono text-[7.5px] tracking-[0.28em] text-off-white/50 uppercase font-semibold mb-1">{spec.label}</span>
+                          <span className="font-playfair italic text-[20px] font-bold text-gold leading-none">{spec.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+
+                  {/* Difficulty chips */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.35 }}
+                    className="flex gap-2.5 flex-wrap justify-center mb-4"
+                  >
+                    {[
+                      { label: 'Easy', range: '1–4', color: 'text-green-400', borderColor: 'rgba(61,214,122,0.35)' },
+                      { label: 'Medium', range: '5–8', color: 'text-gold', borderColor: 'rgba(230,171,42,0.35)' },
+                      { label: 'Hard', range: '9–12', color: 'text-ha-red', borderColor: 'rgba(205,14,20,0.35)' },
+                    ].map((chip) => (
+                      <span
+                        key={chip.label}
+                        className={`py-1.5 px-3.5 rounded-full font-mono text-[9px] tracking-[0.16em] uppercase font-bold inline-flex items-center gap-1.5 ${chip.color}`}
+                        style={{ border: `1px solid ${chip.borderColor}`, background: 'rgba(0,0,0,0.3)' }}
+                      >
+                        {chip.label} <span className="opacity-70 font-semibold">{chip.range}</span>
+                      </span>
+                    ))}
+                  </motion.div>
+
+                  {/* Spacer for scroll */}
+                  <div className="h-8 flex-shrink-0" />
                 </div>
               </div>
 
-              <div className="space-y-3" style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))' }}>
-                <button onClick={nextScreen} className="w-full py-4 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-black font-bold rounded-xl transition-colors">
-                  Begin Mastery Run
-                </button>
-                <button onClick={() => { setSkipped(true); onSkip(); }} className="w-full py-3 text-white/50 hover:text-white/70 text-sm">
-                  Skip this beat
-                </button>
+              {/* Bottom CTA - Fixed at bottom */}
+              <div className="relative z-20 px-6 pb-6 pt-4 bg-gradient-to-t from-[#0a0503] via-[#0a0503]/95 to-transparent backdrop-blur-sm border-t border-off-white/[0.06] flex-shrink-0">
+                <div className="flex flex-col items-center gap-3.5 max-w-sm mx-auto">
+                  {/* CTA Button */}
+                  <motion.button
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 }}
+                    onClick={nextScreen}
+                    className="relative w-full py-4 bg-ha-red hover:bg-ha-red/90 text-off-white font-oswald text-[13px] font-bold uppercase tracking-[0.2em] transition-colors flex items-center justify-center gap-3"
+                  >
+                    {/* Corner brackets */}
+                    <span className="absolute top-[-1px] left-[-1px] w-[11px] h-[11px] border-l-[1.5px] border-t-[1.5px] border-gold" />
+                    <span className="absolute bottom-[-1px] right-[-1px] w-[11px] h-[11px] border-r-[1.5px] border-b-[1.5px] border-gold" />
+                    Begin Exam
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <path d="M5 12h14M13 6l6 6-6 6" />
+                    </svg>
+                  </motion.button>
+
+                  {/* Skip link */}
+                  <button
+                    onClick={() => { setSkipped(true); onSkip(); }}
+                    className="font-mono text-[9.5px] tracking-[0.28em] text-off-white/35 uppercase font-semibold hover:text-off-white/50 transition-colors py-1 px-2.5"
+                  >
+                    Review the campaign first
+                  </button>
+                </div>
               </div>
             </motion.div>
           )}

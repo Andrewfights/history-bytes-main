@@ -212,7 +212,7 @@ export function EmptyWarChestBeat({ host, onComplete, onSkip, onBack, isPreview 
   const allFactsViewed = viewedFacts.size >= MANEUVERS_FACTS.length;
 
   return (
-    <div className="fixed inset-0 z-[60] pt-safe bg-gradient-to-b from-slate-900 via-slate-950 to-black flex flex-col">
+    <div className="fixed inset-0 z-[60] pt-safe bg-black flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
         <button
@@ -261,40 +261,199 @@ export function EmptyWarChestBeat({ host, onComplete, onSkip, onBack, isPreview 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex flex-col h-full p-6"
+              className="flex flex-col h-full relative overflow-hidden"
             >
-              <div className="flex-1 flex flex-col items-center justify-center text-center">
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="w-20 h-20 rounded-full bg-red-500/20 flex items-center justify-center mb-6"
-                >
-                  <AlertTriangle size={40} className="text-red-400" />
-                </motion.div>
+              {/* Red atmospheric background */}
+              <div
+                className="absolute inset-0 z-0"
+                style={{
+                  background: `
+                    radial-gradient(ellipse at 50% 40%, rgba(205,14,20,0.12) 0%, transparent 55%),
+                    radial-gradient(ellipse at 30% 80%, rgba(60,30,20,0.2) 0%, transparent 55%),
+                    linear-gradient(180deg, #140604 0%, #080302 50%, #020100 100%)
+                  `
+                }}
+              />
 
-                <h2 className="text-2xl font-bold text-white mb-4">
-                  A Nation Unprepared
-                </h2>
+              {/* Grain overlay */}
+              <div className="absolute inset-0 z-[5] opacity-35 mix-blend-overlay pointer-events-none"
+                style={{
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='ng'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.35 0 0 0 0 0.15 0 0 0 0.3 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23ng)'/%3E%3C/svg%3E")`
+                }}
+              />
 
-                <div className="bg-white/5 rounded-xl p-4 max-w-sm border border-white/10 mb-6">
-                  <p className="text-white/70 text-sm leading-relaxed">
-                    When U.S. military leadership took a look under the hood after Pearl Harbor, they panicked. In almost every way imaginable, the country was <span className="text-red-400 font-semibold">not prepared</span> for the kind of war being waged across the pond.
-                  </p>
+              {/* Scrollable content area */}
+              <div className="flex-1 overflow-y-auto relative z-10">
+                <div className="flex flex-col items-center text-center px-6 py-8 min-h-full">
+                  {/* Kick label */}
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex items-center gap-2.5 mb-4"
+                  >
+                    <div className="w-6 h-px bg-ha-red" />
+                    <span className="font-mono text-[10px] tracking-[0.4em] text-ha-red font-bold uppercase">
+                      ◆ Scene · December 8, 1941
+                    </span>
+                    <div className="w-6 h-px bg-ha-red" />
+                  </motion.div>
+
+                  {/* War Dept Alert Seal */}
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.1 }}
+                    className="relative w-[88px] h-[88px] mb-5"
+                  >
+                    {/* Outer ring */}
+                    <div
+                      className="absolute inset-0 rounded-full"
+                      style={{
+                        background: 'radial-gradient(circle at 50% 35%, #e82020, #8a0a0e 45%, #5a0205)',
+                        border: '2px solid #B2641F',
+                        boxShadow: '0 6px 20px rgba(0,0,0,0.6), 0 0 30px rgba(205,14,20,0.4)'
+                      }}
+                    />
+                    {/* Inner dashed border */}
+                    <div
+                      className="absolute inset-[6px] rounded-full flex items-center justify-center"
+                      style={{ border: '1px dashed rgba(230,171,42,0.5)' }}
+                    >
+                      <div className="text-center leading-tight">
+                        <span
+                          className="block font-playfair italic text-[26px] font-bold leading-none mb-0.5"
+                          style={{ color: '#F6E355' }}
+                        >
+                          1941
+                        </span>
+                        <span className="font-oswald text-[9px] tracking-[0.2em] text-[#F5ECD2] font-bold uppercase"
+                          style={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}
+                        >
+                          War Dept.
+                        </span>
+                      </div>
+                    </div>
+                  </motion.div>
+
+                  {/* Title */}
+                  <motion.h1
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.15 }}
+                    className="font-playfair italic text-[42px] sm:text-[54px] font-bold text-off-white leading-[0.95] tracking-tight mb-4"
+                    style={{ textShadow: '0 4px 24px rgba(0,0,0,0.8)' }}
+                  >
+                    A nation <em className="text-gold">unprepared.</em>
+                  </motion.h1>
+
+                  {/* Subtitle */}
+                  <motion.p
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="font-cormorant italic text-lg text-off-white/70 max-w-[520px] leading-relaxed mb-5"
+                    style={{ textShadow: '0 2px 12px rgba(0,0,0,0.6)' }}
+                  >
+                    When U.S. military leadership took a hard look the morning after, they panicked. In almost every measurable way, the country was behind.
+                  </motion.p>
+
+                  {/* Statement card */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.25 }}
+                    className="relative w-full max-w-[540px] rounded p-5 mb-5"
+                    style={{
+                      background: 'rgba(20,6,4,0.7)',
+                      backdropFilter: 'blur(8px)',
+                      border: '1px solid rgba(205,14,20,0.25)'
+                    }}
+                  >
+                    {/* Red top bar */}
+                    <div className="absolute top-0 left-0 right-0 h-0.5 bg-ha-red" />
+
+                    <div className="flex items-center gap-2 mb-2.5 font-mono text-[9px] tracking-[0.3em] text-ha-red uppercase font-bold">
+                      <span>⚠</span>
+                      Internal War Department Memo
+                    </div>
+
+                    <p className="font-cormorant italic text-[18px] sm:text-[20px] text-off-white leading-relaxed">
+                      Our standing army ranks{' '}
+                      <span className="text-ha-red font-bold italic underline underline-offset-4" style={{ textDecorationColor: 'rgba(205,14,20,0.5)', textDecorationThickness: '1.5px' }}>
+                        nineteenth in the world
+                      </span>
+                      {' '}— behind Portugal, Switzerland, and the Netherlands. Our frontline fighter, the P-40, is already obsolete. Our Pacific carrier force is{' '}
+                      <span className="text-ha-red font-bold italic underline underline-offset-4" style={{ textDecorationColor: 'rgba(205,14,20,0.5)', textDecorationThickness: '1.5px' }}>
+                        three.
+                      </span>
+                    </p>
+                  </motion.div>
+
+                  {/* 4-column comparative stats */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="relative w-full max-w-[600px] rounded overflow-hidden mb-4"
+                    style={{
+                      background: 'rgba(20,10,6,0.65)',
+                      backdropFilter: 'blur(8px)',
+                      border: '1px solid rgba(230,171,42,0.15)'
+                    }}
+                  >
+                    {/* Red gradient top bar */}
+                    <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[#8A0A0E] via-ha-red to-[#8A0A0E]" />
+
+                    <div className="grid grid-cols-4">
+                      {[
+                        { label: 'Army Rank', comp: 'US vs. World', us: '19th', them: '', note: 'behind Portugal' },
+                        { label: 'Active Troops', comp: 'US vs. Germany', us: '1.4M', them: '7.2M', note: '1-to-5 deficit' },
+                        { label: 'Tanks', comp: 'US vs. Germany', us: '300', them: '3,500', note: '11x behind' },
+                        { label: 'Carriers · Pacific', comp: 'US vs. Japan', us: '3', them: '10', note: 'out-numbered 3-to-1' },
+                      ].map((stat, i) => (
+                        <div key={i} className="py-3 px-2.5 text-center flex flex-col gap-0.5 border-r border-off-white/[0.08] last:border-r-0">
+                          <span className="font-mono text-[7.5px] tracking-[0.28em] text-off-white/50 uppercase font-semibold mb-1">{stat.label}</span>
+                          <span className="font-mono text-[8.5px] text-gold font-bold tracking-[0.12em] uppercase mb-1">{stat.comp}</span>
+                          <div className="font-playfair italic text-[18px] sm:text-[22px] font-bold leading-none flex justify-center items-baseline gap-1.5">
+                            <span className="text-ha-red">{stat.us}</span>
+                            {stat.them && (
+                              <>
+                                <span className="text-[10px] text-off-white/50 font-mono font-semibold tracking-[0.14em] not-italic">vs</span>
+                                <span className="text-gold">{stat.them}</span>
+                              </>
+                            )}
+                          </div>
+                          <span className="font-cormorant italic text-[10.5px] text-off-white/50 leading-tight mt-0.5">{stat.note}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+
+                  {/* Spacer for scroll */}
+                  <div className="h-8 flex-shrink-0" />
                 </div>
-
-                <p className="text-white/50 text-sm max-w-xs">
-                  Discover just how far behind America was — and what they did about it.
-                </p>
               </div>
 
-              <div className="space-y-3" style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))' }}>
-                <button
-                  onClick={nextScreen}
-                  className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors flex items-center justify-center gap-2"
-                >
-                  See the Numbers
-                  <ChevronRight size={20} />
-                </button>
+              {/* Bottom CTA - Fixed at bottom */}
+              <div className="relative z-20 px-6 pb-6 pt-4 bg-gradient-to-t from-[#080302] via-[#080302]/95 to-transparent backdrop-blur-sm border-t border-off-white/[0.06] flex-shrink-0">
+                <div className="flex flex-col items-center gap-3.5 max-w-sm mx-auto">
+                  {/* CTA Button */}
+                  <motion.button
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.35 }}
+                    onClick={nextScreen}
+                    className="relative w-full py-4 bg-ha-red hover:bg-ha-red/90 text-off-white font-oswald text-[13px] font-bold uppercase tracking-[0.2em] transition-colors flex items-center justify-center gap-3"
+                  >
+                    {/* Corner brackets */}
+                    <span className="absolute top-[-1px] left-[-1px] w-[11px] h-[11px] border-l-[1.5px] border-t-[1.5px] border-gold" />
+                    <span className="absolute bottom-[-1px] right-[-1px] w-[11px] h-[11px] border-r-[1.5px] border-b-[1.5px] border-gold" />
+                    See the Numbers
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <path d="M5 12h14M13 6l6 6-6 6" />
+                    </svg>
+                  </motion.button>
+                </div>
               </div>
             </motion.div>
           )}

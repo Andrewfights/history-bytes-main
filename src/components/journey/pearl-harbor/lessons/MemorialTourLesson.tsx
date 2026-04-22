@@ -243,7 +243,7 @@ export function MemorialTourLesson({ host, onComplete, onSkip, onBack }: Memoria
               className="flex-1 flex flex-col"
             >
               {/* Panorama simulation */}
-              <div className="flex-1 relative bg-gradient-to-b from-slate-800 to-slate-900 overflow-hidden">
+              <div className="flex-1 relative bg-gradient-to-b from-[#1a1a1a] to-black overflow-hidden">
                 {/* Background scene based on hotspot */}
                 <motion.div
                   key={currentHotspot.id}
