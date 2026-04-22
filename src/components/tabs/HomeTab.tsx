@@ -1,22 +1,17 @@
+/**
+ * HomeTab - Main home page
+ * Design: History Academy Dark v2 - Home Page
+ * Sections: Greeting, Hero (Continue), Today (Dispatch + TDIH), Declassified, Quick Access
+ */
+
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, ArrowRight, X } from 'lucide-react';
+import { ArrowRight, Play, Gamepad2, Trophy, X } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
-import { OrnamentalDivider } from '@/components/shared/OrnamentalDivider';
-import { DiceButton } from '@/components/shared/DiceButton';
-import { LuckyResultModal } from '@/components/shared/LuckyResultModal';
-import { ThisDayCard } from '@/components/home/ThisDayCard';
-import { GuideSection } from '@/components/home/GuideSection';
-import { GuideChatModal } from '@/components/home/GuideChatModal';
-import { JourneyResumeBanner } from '@/components/home/JourneyResumeBanner';
-import { FeaturedEraHero } from '@/components/home/FeaturedEraHero';
-import { EraCarousel } from '@/components/home/EraCarousel';
-import { RandomResult } from '@/lib/randomizer';
-import { getEraById, getComingSoonEras, HistoricalEra } from '@/data/historicalEras';
 import { usePearlHarborProgress } from '@/components/journey/pearl-harbor/hooks/usePearlHarborProgress';
-import { PEARL_HARBOR_LESSONS } from '@/data/pearlHarborLessons';
-import { subscribeToJourneyUIAssets, FirestoreJourneyUIAssets } from '@/lib/firestore';
-
+import { PEARL_HARBOR_LESSONS, getLessonById } from '@/data/pearlHarborLessons';
+import { subscribeToWW2ModuleAssets, FirestoreWW2ModuleAssets } from '@/lib/firestore';
+import { cn } from '@/lib/utils';
 
 interface HomeTabProps {
   onStartSession: () => void;
@@ -24,277 +19,690 @@ interface HomeTabProps {
   onSelectTopic: (topicId: string) => void;
 }
 
+// This Day in History data
+const thisDayEvents = [
+  {
+    year: '1915',
+    title: 'Second Battle of Ypres begins',
+    tag: 'WWI',
+    description: '168 tons of chlorine gas along a 6 km line in Belgium. The first large-scale use of poison gas in warfare.',
+  },
+  {
+    year: '1945',
+    title: 'U.S. troops liberate Flossenburg',
+    tag: 'WWII',
+    description: 'The 90th and 97th Infantry Divisions reach the concentration camp in Bavaria.',
+  },
+  {
+    year: '1970',
+    title: 'The first Earth Day',
+    tag: 'Cultural',
+    description: 'Twenty million Americans demonstrate for environmental protection.',
+  },
+];
+
+// Newly Declassified campaigns
+const newReleases = [
+  {
+    id: 'cold-war',
+    era: '1947 · Iron Curtain',
+    title: 'Berlin & the Wall',
+    description: 'The city split in two for forty years. Airlift, stand-off, fall.',
+    instructor: 'Col. Harding',
+    lessons: 12,
+    status: 'new' as const,
+    date: 'Available',
+    romanNum: 'VI',
+    bgClass: 'cold-war',
+  },
+  {
+    id: 'norman',
+    era: '1066 · Conquest',
+    title: 'The Norman Conquest',
+    description: 'One battle that rewrote an island\'s language, law, and bloodline for a thousand years.',
+    instructor: 'Brother Anselm',
+    lessons: 8,
+    status: 'soon' as const,
+    date: 'May 20',
+    romanNum: 'III',
+    bgClass: 'medieval-norm',
+  },
+  {
+    id: 'crusade',
+    era: '1095 · Holy War',
+    title: 'The First Crusade',
+    description: 'From Clermont to Jerusalem. Four years of faith, famine, and iron.',
+    instructor: 'Dr. Aleynikov',
+    lessons: 10,
+    status: 'soon' as const,
+    date: 'Jun 3',
+    romanNum: 'III',
+    bgClass: 'medieval-crus',
+  },
+  {
+    id: 'plague',
+    era: '1347 · The Plague',
+    title: 'The Black Death',
+    description: 'The century Europe lost a third of itself. Contagion, collapse, and recovery.',
+    instructor: 'Dr. Moretti',
+    lessons: 14,
+    status: 'soon' as const,
+    date: 'Jul 15',
+    romanNum: 'III',
+    bgClass: 'plague',
+  },
+];
+
 export function HomeTab({ onStartSession, onPlayDaily, onSelectTopic }: HomeTabProps) {
-  const { setActiveTab, setPendingLuckyNode, setPendingPearlHarbor, selectedGuideId } = useApp();
+  const { user, setActiveTab, setPendingPearlHarbor, selectedHost } = useApp();
 
-  // Get WW2 era data
-  const ww2Era = getEraById('ww2');
-  const comingSoonEras = getComingSoonEras();
-
-  // Get Pearl Harbor progress for featured hero
-  const { progress, totalXP } = usePearlHarborProgress();
+  // Pearl Harbor progress
+  const { progress, totalXP, checkpoint } = usePearlHarborProgress();
   const completedLessons = progress.completedActivities.filter(
     id => id.startsWith('ph-beat-')
   ).length;
   const totalLessons = PEARL_HARBOR_LESSONS.length;
+  const progressPercent = Math.round((completedLessons / totalLessons) * 100);
 
-  // Subscribe to Firebase Journey UI Assets (for Pearl Harbor artwork)
-  const [journeyUIAssets, setJourneyUIAssets] = useState<FirestoreJourneyUIAssets | null>(null);
+  // Get current lesson info
+  const currentLessonIndex = completedLessons;
+  const currentLesson = PEARL_HARBOR_LESSONS[currentLessonIndex];
+  const nextLesson = PEARL_HARBOR_LESSONS[currentLessonIndex + 1];
+
+  // WW2 Module assets from Firestore
+  const [ww2Assets, setWw2Assets] = useState<FirestoreWW2ModuleAssets | null>(null);
 
   useEffect(() => {
-    const unsubscribe = subscribeToJourneyUIAssets((assets) => {
-      setJourneyUIAssets(assets);
+    const unsubscribe = subscribeToWW2ModuleAssets((assets) => {
+      setWw2Assets(assets);
     });
     return () => unsubscribe();
   }, []);
 
+  // Get host name
+  const hostName = selectedHost?.name || 'Sgt. J. Mitchell';
+
+  // Current date
+  const today = new Date();
+  const dateOptions: Intl.DateTimeFormatOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+  const formattedDate = today.toLocaleDateString('en-US', dateOptions);
+  const shortDate = today.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
   // Handler to enter Pearl Harbor journey
-  const handleEnterJourney = () => {
+  const handleContinue = () => {
     setPendingPearlHarbor(true);
     setActiveTab('journey');
   };
 
-  // Coming Soon modal state
-  const [showComingSoon, setShowComingSoon] = useState<HistoricalEra | null>(null);
-
-  // Lucky dice state
-  const [luckyResult, setLuckyResult] = useState<RandomResult | null>(null);
-  const [showLuckyModal, setShowLuckyModal] = useState(false);
-  const [isRerolling, setIsRerolling] = useState(false);
-
-  // Guide chat modal
-  const [showChatModal, setShowChatModal] = useState(false);
-
-  const handleLuckyResult = (result: RandomResult) => {
-    setLuckyResult(result);
-    setShowLuckyModal(true);
-  };
-
-  const handleReroll = () => {
-    setIsRerolling(true);
-    setShowLuckyModal(false);
-    setTimeout(() => setIsRerolling(false), 100);
-  };
-
-  const handleStartLuckyChallenge = () => {
-    if (luckyResult) {
-      const chapterIndex = luckyResult.arc.chapters.findIndex(c => c.id === luckyResult.chapter.id);
-      setPendingLuckyNode({
-        arcId: luckyResult.arc.id,
-        chapterId: luckyResult.chapter.id,
-        nodeId: luckyResult.node.id,
-        chapterIndex: chapterIndex >= 0 ? chapterIndex : 0,
-      });
-      setShowLuckyModal(false);
-      setActiveTab('journey');
-    }
-  };
-
-  const handleSelectEra = (eraId: string) => {
-    if (eraId === 'ww2') {
-      handleEnterJourney();
-    } else {
-      const era = getEraById(eraId);
-      if (era) {
-        setShowComingSoon(era);
-      }
-    }
-  };
-
   return (
-    <div className="px-4 py-6 space-y-5 pb-24">
-      {/* Journey Resume Banner - Only shows when in progress */}
-      <JourneyResumeBanner onResume={handleEnterJourney} />
-
-      {/* FEATURED: WW2/Pearl Harbor Hero - Large key art */}
-      {ww2Era && (
-        <FeaturedEraHero
-          era={ww2Era}
-          progress={{
-            completed: completedLessons,
-            total: totalLessons,
-            xp: totalXP,
-          }}
-          onStart={handleEnterJourney}
-        />
-      )}
-
-      {/* Guide Section */}
-      {selectedGuideId && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.1 }}
-        >
-          <GuideSection
-            onOpenChat={() => setShowChatModal(true)}
-            onStartLesson={onStartSession}
-            onContinueJourney={() => setActiveTab('journey')}
-            onDailyChallenge={onPlayDaily}
-          />
-        </motion.div>
-      )}
-
-      <OrnamentalDivider variant="compass" />
-
-      {/* Coming Soon Eras Carousel */}
-      <EraCarousel
-        title="More Campaigns"
-        subtitle="Coming soon to History Academy"
-        eras={comingSoonEras}
-        onSelectEra={handleSelectEra}
-      />
-
-      <OrnamentalDivider variant="simple" />
-
-      {/* Daily Challenge & Lucky Dice Row */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.15, duration: 0.4 }}
-        className="space-y-3"
-      >
-        {/* Section header with red underline */}
-        <div>
-          <h2 className="font-serif text-xl text-off-white">Daily Challenge</h2>
-          <div className="w-12 h-0.5 bg-ha-red mt-1.5" />
-        </div>
-
-        <button
-          onClick={onPlayDaily}
-          className="w-full relative flex items-center gap-4 text-left p-4 rounded-xl bg-ink-lift border border-off-white/[0.06] hover:border-gold-2/20 active:scale-[0.99] transition-all touch-target"
-        >
-          {/* Left gold accent bar */}
-          <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-gold-2 rounded-l-xl" />
-
-          <div className="w-12 h-12 rounded-lg bg-gold-2/10 flex items-center justify-center border border-gold-2/20">
-            <Calendar size={22} className="text-gold-2" />
-          </div>
-          <div className="flex-1">
-            <h3 className="font-serif font-semibold text-sm text-off-white">Today's Challenge</h3>
-            <p className="font-mono text-[10px] tracking-wide text-off-white/50 mt-0.5 uppercase">
-              <span className="text-gold-2/70 normal-case italic">Issued at Dawn</span> · 15 Questions · Medium
+    <div className="min-h-screen bg-void pb-24">
+      {/* ═══════════ GREETING STRIP ═══════════ */}
+      <section className="px-4 md:px-10 pt-6 pb-3 max-w-[1280px] mx-auto">
+        <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-4">
+          {/* Left: Date + Welcome */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2.5 mb-1.5">
+              <span className="w-5 h-px bg-ha-red" />
+              <span className="font-mono text-[10px] tracking-[0.35em] text-ha-red uppercase font-bold">
+                {formattedDate}
+              </span>
+              <span className="font-mono text-[10px] tracking-[0.35em] text-text-3 uppercase font-semibold">
+                · Day {user.daysAtAcademy || 127} at the Academy
+              </span>
+            </div>
+            <h1 className="font-serif text-[32px] md:text-[42px] font-bold italic text-off-white leading-none tracking-[-0.01em]">
+              Welcome back, <em className="text-gold-2">{user.displayName || 'Historian'}.</em>
+            </h1>
+            <p className="font-calligraphy text-[14px] md:text-[16px] italic text-text-3 mt-2 leading-[1.45]">
+              You're {totalLessons - completedLessons} lessons from the Pearl Harbor diploma.
             </p>
           </div>
-          <ArrowRight size={16} className="text-off-white/40" />
-        </button>
 
-        {/* I'm Feeling Lucky Card */}
-        <DiceButton
-          variant="card"
-          size="md"
-          onResult={handleLuckyResult}
-        />
-      </motion.div>
-
-      {/* Lucky Result Modal */}
-      <LuckyResultModal
-        isOpen={showLuckyModal}
-        result={luckyResult}
-        onStartChallenge={handleStartLuckyChallenge}
-        onReroll={handleReroll}
-        onClose={() => setShowLuckyModal(false)}
-        isRerolling={isRerolling}
-      />
-
-      <OrnamentalDivider variant="simple" />
-
-      {/* This Day in History */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2, duration: 0.5 }}
-        className="space-y-3"
-      >
-        {/* Section header with red underline */}
-        <div>
-          <h2 className="font-serif text-xl text-off-white">This Day in History</h2>
-          <div className="w-12 h-0.5 bg-ha-red mt-1.5" />
+          {/* Right: Stat chips */}
+          <div className="flex gap-2.5 flex-shrink-0">
+            <StatChip label="Streak" value={`${user.streak}`} suffix="days" fire />
+            <StatChip label="XP This Week" value={`+${totalXP || 442}`} />
+            <StatChip label="Rank" value="Archive" suffix="Apprentice" small />
+          </div>
         </div>
-        <ThisDayCard />
-      </motion.div>
+      </section>
 
-      {/* Guide Chat Modal */}
-      <GuideChatModal
-        isOpen={showChatModal}
-        onClose={() => setShowChatModal(false)}
-      />
+      {/* ═══════════ HERO: CONTINUE WHERE YOU LEFT OFF ═══════════ */}
+      <section className="px-4 md:px-10 py-4 max-w-[1280px] mx-auto">
+        <div className="relative rounded-xl overflow-hidden border border-gold-2/30 min-h-[380px] md:min-h-[440px] flex shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
+          {/* Gold top bar */}
+          <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-gold-3 via-gold-1 to-gold-3 z-10" />
 
-      {/* Coming Soon Modal */}
-      <AnimatePresence>
-        {showComingSoon && (
-          <ComingSoonModal
-            era={showComingSoon}
-            onClose={() => setShowComingSoon(null)}
+          {/* Background */}
+          <div className="absolute inset-0 z-0">
+            {/* Atmospheric layers */}
+            <div
+              className="absolute inset-0"
+              style={{
+                background: `
+                  radial-gradient(ellipse at 65% 25%, rgba(220,80,30,0.35) 0%, transparent 42%),
+                  radial-gradient(ellipse at 25% 65%, rgba(120,80,40,0.4) 0%, transparent 55%),
+                  linear-gradient(180deg, #3a2818 0%, #1a1008 40%, #050302 100%)
+                `,
+              }}
+            />
+            {/* Ship silhouette */}
+            <div
+              className="absolute bottom-[22%] right-[8%] w-[36%] h-[22%] opacity-75"
+              style={{
+                background: 'linear-gradient(180deg, rgba(40,30,22,0.9) 0%, rgba(15,10,6,0.95) 60%, rgba(8,5,3,1) 100%)',
+                clipPath: 'polygon(0 65%, 12% 55%, 22% 35%, 28% 28%, 36% 25%, 55% 28%, 64% 30%, 70% 22%, 76% 35%, 84% 40%, 92% 42%, 100% 48%, 100% 100%, 0 100%)',
+              }}
+            />
+            {/* Smoke */}
+            <div
+              className="absolute top-[10%] right-[12%] w-[45%] h-[45%] blur-[18px]"
+              style={{
+                background: 'radial-gradient(ellipse at 50% 30%, rgba(40,30,25,0.5) 0%, transparent 60%)',
+              }}
+            />
+            {/* Flash */}
+            <div
+              className="absolute top-[24%] right-[14%] w-2 h-2 bg-[rgba(255,180,60,0.9)] rounded-full shadow-[0_0_30px_10px_rgba(255,140,40,0.55)]"
+              style={{ animation: 'flicker 3s infinite' }}
+            />
+            {/* Scrim */}
+            <div
+              className="absolute inset-0"
+              style={{
+                background: 'linear-gradient(90deg, rgba(10,6,4,0.88) 0%, rgba(10,6,4,0.72) 40%, rgba(10,6,4,0.45) 65%, rgba(10,6,4,0.2) 100%)',
+              }}
+            />
+          </div>
+
+          {/* ═══ LEFT CONTENT ═══ */}
+          <div className="flex-1 p-6 md:p-10 relative z-10 flex flex-col max-w-[720px]">
+            {/* Kick label */}
+            <div className="flex items-center gap-2.5 mb-3">
+              <span className="w-2 h-2 bg-ha-red rounded-full shadow-[0_0_10px_var(--ha-red)]" style={{ animation: 'pulse 2s infinite' }} />
+              <span className="font-mono text-[9px] tracking-[0.35em] text-ha-red uppercase font-bold">
+                Active Briefing
+              </span>
+              <span className="text-text-3">·</span>
+              <span className="font-mono text-[9px] tracking-[0.25em] text-gold-2 uppercase font-semibold">
+                Pearl Harbor · Day of Infamy
+              </span>
+            </div>
+
+            {/* Lesson number */}
+            <div className="font-mono text-[10px] tracking-[0.3em] text-text-3 uppercase font-semibold mb-2.5">
+              Lesson {currentLessonIndex + 1} of {totalLessons} · Beat {currentLesson?.beatNumber || 'V'}
+            </div>
+
+            {/* Title */}
+            <h2 className="font-serif text-[36px] md:text-[64px] font-bold italic text-off-white leading-[0.95] tracking-[-0.015em] mb-3 text-shadow-lg">
+              {currentLesson?.title || 'Voices from'} <em className="text-gold-2">{currentLesson?.subtitle || 'the Harbor.'}</em>
+            </h2>
+
+            {/* Description */}
+            <p className="font-calligraphy text-[15px] md:text-[19px] italic text-text-2 leading-[1.4] max-w-[520px] mb-5 text-shadow">
+              {currentLesson?.description || 'Three survivor testimonies from the morning of December 7. Firsthand accounts you won\'t find in the official record.'}
+            </p>
+
+            {/* Instructor chip */}
+            <div className="inline-flex items-center gap-2.5 px-3 py-2 bg-[rgba(20,14,8,0.7)] backdrop-blur-[10px] border border-gold-2/30 rounded-full mb-5 self-start">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[rgba(180,140,95,0.6)] to-[rgba(60,40,25,0.85)] border border-gold-2" />
+              <div className="flex flex-col gap-0.5">
+                <span className="font-mono text-[7.5px] tracking-[0.3em] text-text-3 uppercase font-bold">Your Guide</span>
+                <span className="font-serif text-[13px] font-bold italic text-off-white">{hostName}</span>
+              </div>
+            </div>
+
+            {/* Progress bar */}
+            <div className="max-w-[420px] mb-5">
+              <div className="flex justify-between font-mono text-[9px] text-text-3 uppercase tracking-[0.22em] font-bold mb-1.5">
+                <span>Pearl Harbor · <span className="text-gold-2">{completedLessons} of {totalLessons}</span></span>
+                <span>+{totalXP || 442} XP accumulated</span>
+              </div>
+              <div className="h-[3px] bg-off-white/15 rounded-sm overflow-hidden relative">
+                <motion.div
+                  className="h-full bg-gradient-to-r from-gold-3 to-gold-1 rounded-sm relative"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${progressPercent}%` }}
+                  transition={{ duration: 0.6, ease: 'easeOut' }}
+                >
+                  <span className="absolute -right-1 top-1/2 -translate-y-1/2 w-2 h-2 bg-gold-1 rounded-full shadow-[0_0_12px_var(--gold-1)]" />
+                </motion.div>
+              </div>
+            </div>
+
+            {/* CTA row */}
+            <div className="flex items-center gap-3 mt-auto">
+              <button
+                onClick={handleContinue}
+                className="btn-ha-red flex items-center gap-2.5"
+              >
+                Continue Lesson
+                <ArrowRight size={14} />
+              </button>
+              <div className="flex flex-col gap-0.5 pl-2">
+                <span className="font-mono text-[7.5px] tracking-[0.28em] text-text-3 uppercase font-bold">Time · Reward</span>
+                <span className="font-mono text-[11px] text-gold-2 font-bold tracking-[0.08em]">7 min · +65 XP</span>
+              </div>
+            </div>
+          </div>
+
+          {/* ═══ RIGHT SIDEBAR (Desktop) ═══ */}
+          <div className="hidden md:flex w-[280px] flex-shrink-0 p-10 pl-0 flex-col gap-3 relative z-10">
+            {/* Next up card */}
+            <div className="bg-[rgba(15,10,6,0.65)] backdrop-blur-[10px] border border-gold-2/15 rounded-xl p-4 relative">
+              <div className="absolute top-0 left-4 w-5 h-0.5 bg-gold-2" />
+              <div className="font-mono text-[8px] tracking-[0.3em] text-text-3 uppercase font-bold mt-1.5 mb-1">Next up after this</div>
+              <div className="font-serif text-[17px] font-bold italic text-off-white leading-tight mb-1.5">
+                {nextLesson?.title || 'Second Wave'}
+              </div>
+              <div className="font-mono text-[8px] tracking-[0.15em] text-gold-2 uppercase font-bold">
+                Ford Island · 09:00 · 6 min
+              </div>
+            </div>
+
+            {/* Stats card */}
+            <div className="bg-[rgba(15,10,6,0.65)] backdrop-blur-[10px] border border-gold-2/15 rounded-xl p-4">
+              <HeroStat label="Lessons Left" value={totalLessons - completedLessons} />
+              <HeroStat label="To Diploma" value={`${100 - progressPercent}%`} />
+              <HeroStat label="Accuracy" value="94%" />
+              <HeroStat label="Est. Finish" value="Apr 30" isLast />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════ TODAY: DAILY DISPATCH + THIS DAY ═══════════ */}
+      <section className="px-4 md:px-10 pt-6 max-w-[1280px] mx-auto">
+        {/* Section header */}
+        <div className="flex justify-between items-end border-b border-off-white/[0.08] pb-3 mb-5">
+          <div>
+            <div className="flex items-center gap-2.5 mb-1">
+              <span className="w-6 h-px bg-ha-red" />
+              <span className="font-mono text-[9px] tracking-[0.35em] text-ha-red uppercase font-bold">
+                03 · Today's Report
+              </span>
+            </div>
+            <h2 className="font-display text-[24px] font-bold text-off-white uppercase tracking-[-0.005em] leading-none">
+              The <em className="text-gold-2 font-serif italic normal-case font-bold">daily dispatch</em>.
+            </h2>
+          </div>
+          <span className="font-mono text-[9.5px] tracking-[0.2em] text-text-3 uppercase font-semibold">
+            Issued at Dawn · Expires in 11h 43m
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-[1.2fr_1fr] gap-4">
+          {/* Daily Dispatch Card */}
+          <div className="bg-ink-lift border border-gold-2/15 rounded-xl p-6 relative overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-gold-3 via-gold-1 to-gold-3" />
+
+            <div className="flex items-center gap-2 mb-4">
+              <span className="w-1.5 h-1.5 bg-ha-red rounded-full shadow-[0_0_6px_var(--ha-red)]" style={{ animation: 'pulse 2s infinite' }} />
+              <span className="font-mono text-[9px] tracking-[0.35em] text-ha-red uppercase font-bold">
+                Today's Challenge · {shortDate}
+              </span>
+            </div>
+
+            <h3 className="font-serif text-[26px] md:text-[30px] font-bold italic text-off-white leading-none mb-1 tracking-[-0.01em]">
+              Fifteen questions. <em className="text-gold-2">Any era.</em>
+            </h3>
+            <p className="font-calligraphy text-[14px] italic text-text-2 leading-[1.45] max-w-[480px] mb-5">
+              Today's dispatch draws from all fifteen eras — Egypt through Cold War. Medium difficulty. Answer twelve correctly to keep your streak alive.
+            </p>
+
+            {/* Meta strip */}
+            <div className="flex bg-ink border border-gold-2/15 rounded-lg overflow-hidden mb-5">
+              <MetaCell label="Questions" value="15" />
+              <MetaCell label="Difficulty" value="Medium" />
+              <MetaCell label="Time per Q" value="10s" />
+              <MetaCell label="Reward" value="+120 XP" />
+              <MetaCell label="Expires" value="11h 43m" isLast />
+            </div>
+
+            {/* CTAs */}
+            <div className="flex gap-2.5">
+              <button onClick={onPlayDaily} className="btn-ha-gold-outline flex items-center gap-2">
+                Begin Dispatch
+                <ArrowRight size={11} />
+              </button>
+              <button className="px-4 py-2.5 bg-ink border border-gold-2/15 rounded-full font-mono text-[10px] font-semibold tracking-[0.18em] text-off-white uppercase flex items-center gap-2 hover:text-gold-2 hover:border-gold-2/30 transition-all">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-[11px] h-[11px]">
+                  <circle cx="12" cy="12" r="9"/>
+                  <path d="M12 8v4l3 2"/>
+                </svg>
+                I'm Feeling Lucky
+              </button>
+            </div>
+          </div>
+
+          {/* This Day in History */}
+          <div className="bg-ink-lift border border-gold-2/15 rounded-xl relative overflow-hidden flex flex-col">
+            <div className="absolute top-0 left-0 right-0 h-0.5 bg-ha-red" />
+
+            <div className="flex justify-between items-center p-5 pb-3 border-b border-dashed border-gold-2/15">
+              <div>
+                <div className="font-mono text-[9px] tracking-[0.35em] text-ha-red uppercase font-bold mb-0.5">This Day in History</div>
+                <div className="font-serif text-[20px] font-bold italic text-off-white">Three moments.</div>
+              </div>
+              <span className="font-mono text-[9.5px] text-gold-2 font-bold tracking-[0.15em] uppercase px-2 py-1 bg-gold-2/[0.08] border border-gold-2/30 rounded">
+                {shortDate}
+              </span>
+            </div>
+
+            <div className="flex-1">
+              {thisDayEvents.map((event, i) => (
+                <div
+                  key={i}
+                  className={cn(
+                    'flex gap-3.5 px-5 py-3 cursor-pointer hover:bg-ink transition-colors',
+                    i < thisDayEvents.length - 1 && 'border-b border-dashed border-off-white/[0.05]'
+                  )}
+                >
+                  <div className="font-serif text-[20px] font-bold italic text-gold-2 leading-none flex-shrink-0 w-[72px] tracking-[-0.01em]">
+                    {event.year}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-body text-[13px] font-semibold text-off-white leading-tight mb-0.5">
+                      {event.title}
+                      <span className="inline-block font-mono text-[7.5px] tracking-[0.22em] text-gold-2 uppercase font-bold px-1.5 py-0.5 bg-gold-2/[0.08] border border-gold-2/15 rounded ml-1.5 align-middle">
+                        {event.tag}
+                      </span>
+                    </div>
+                    <div className="font-body text-[11.5px] text-text-3 leading-[1.4]">
+                      {event.description}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════ NEWLY DECLASSIFIED ═══════════ */}
+      <section className="px-4 md:px-10 pt-8 max-w-[1280px] mx-auto">
+        {/* Section header */}
+        <div className="flex justify-between items-end border-b border-off-white/[0.08] pb-3 mb-5">
+          <div>
+            <div className="flex items-center gap-2.5 mb-1">
+              <span className="w-6 h-px bg-ha-red" />
+              <span className="font-mono text-[9px] tracking-[0.35em] text-ha-red uppercase font-bold">
+                04 · Newly Declassified
+              </span>
+            </div>
+            <h2 className="font-display text-[24px] font-bold text-off-white uppercase tracking-[-0.005em] leading-none">
+              Opening <em className="text-gold-2 font-serif italic normal-case font-bold">this week</em>.
+            </h2>
+          </div>
+          <span className="font-mono text-[9.5px] tracking-[0.2em] text-text-3 uppercase font-semibold">
+            Four new campaigns · Full archive →
+          </span>
+        </div>
+
+        {/* Mobile: horizontal scroll / Desktop: 4-column grid */}
+        <div className="flex md:grid md:grid-cols-4 gap-3.5 overflow-x-auto md:overflow-visible pb-2 md:pb-0 -mx-4 px-4 md:mx-0 md:px-0 hide-scrollbar">
+          {newReleases.map((release) => (
+            <ReleaseCard key={release.id} release={release} />
+          ))}
+        </div>
+      </section>
+
+      {/* ═══════════ QUICK ACCESS ═══════════ */}
+      <section className="px-4 md:px-10 pt-8 pb-8 max-w-[1280px] mx-auto">
+        {/* Section header */}
+        <div className="flex justify-between items-end border-b border-off-white/[0.08] pb-3 mb-5">
+          <div>
+            <div className="flex items-center gap-2.5 mb-1">
+              <span className="w-6 h-px bg-ha-red" />
+              <span className="font-mono text-[9px] tracking-[0.35em] text-ha-red uppercase font-bold">
+                05 · Five Minutes or Less
+              </span>
+            </div>
+            <h2 className="font-display text-[24px] font-bold text-off-white uppercase tracking-[-0.005em] leading-none">
+              Quick <em className="text-gold-2 font-serif italic normal-case font-bold">hits</em>.
+            </h2>
+          </div>
+          <span className="font-mono text-[9.5px] tracking-[0.2em] text-text-3 uppercase font-semibold">
+            Small moments between the big ones
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+          <QuickCard
+            type="arcade"
+            label="Arcade · Today"
+            title="Guess the Year"
+            description="Today's portrait: Churchill at the window, September 1940. Ten guesses, ten seconds each."
+            meta="5 min"
+            metaHighlight="Live"
+            highlightColor="red"
+            icon={<Gamepad2 size={16} />}
+            onClick={onPlayDaily}
           />
-        )}
-      </AnimatePresence>
+          <QuickCard
+            type="watch"
+            label="Watch · 90 seconds"
+            title="The man who invented radar"
+            description="Robert Watson-Watt, 1935 — the ninety seconds that changed Pearl Harbor forever."
+            meta="1:28"
+            metaHighlight="Related"
+            highlightColor="gold"
+            icon={<Play size={16} fill="currentColor" />}
+          />
+          <QuickCard
+            type="trophy"
+            label="Within Reach"
+            title="Pearl Harbor Bronze"
+            description="One more lesson unlocks the bronze medal for Beat V. You're closer than you think."
+            meta="1 lesson away"
+            metaHighlight="+50 XP"
+            highlightColor="gold"
+            icon={<Trophy size={16} />}
+          />
+        </div>
+      </section>
     </div>
   );
 }
 
-// Coming Soon Modal Component
-function ComingSoonModal({
-  era,
-  onClose,
+// ═══════════════════════════════════════════════════════
+// SUBCOMPONENTS
+// ═══════════════════════════════════════════════════════
+
+function StatChip({
+  label,
+  value,
+  suffix,
+  fire,
+  small,
 }: {
-  era: HistoricalEra;
-  onClose: () => void;
+  label: string;
+  value: string;
+  suffix?: string;
+  fire?: boolean;
+  small?: boolean;
 }) {
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-void/80 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.9, opacity: 0 }}
-        className="relative w-[calc(100%-2rem)] sm:w-full sm:max-w-sm mx-auto bg-ink-lift rounded-2xl overflow-hidden border border-off-white/[0.06]"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Era Image/Gradient Background */}
-        <div
-          className="relative h-32 sm:h-40"
-          style={{
-            background: `linear-gradient(135deg, ${era.accentColor}60 0%, ${era.accentColor}20 100%)`,
-          }}
-        >
-          <div className="absolute inset-0 bg-gradient-to-t from-ink-lift via-transparent to-transparent" />
+    <div className={cn(
+      'bg-ink-lift border border-gold-2/15 rounded-xl px-3.5 py-2.5 relative min-w-[96px]',
+      fire && 'border-gold-2/30'
+    )}>
+      <div className={cn(
+        'absolute top-0 left-3.5 w-[18px] h-0.5',
+        fire ? 'bg-gradient-to-r from-ha-red to-gold-1' : 'bg-gold-2'
+      )} />
+      <div className="font-mono text-[7.5px] tracking-[0.25em] text-text-3 uppercase font-semibold mt-1 mb-0.5">
+        {label}
+      </div>
+      <div className={cn(
+        'font-serif font-bold italic leading-none tracking-[-0.01em]',
+        fire ? 'text-gold-1' : 'text-gold-2',
+        small ? 'text-[15px]' : 'text-[22px]'
+      )}>
+        {value}
+        {suffix && (
+          <span className={cn('text-text-3', small ? 'text-[11px] block mt-0.5' : 'text-[13px] ml-1')}>
+            {suffix}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
 
-          {/* Close Button */}
-          <button
-            onClick={onClose}
-            className="absolute top-2 sm:top-3 right-2 sm:right-3 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-void/50 flex items-center justify-center text-off-white/70 hover:text-off-white transition-colors"
-          >
-            <X size={16} className="sm:w-[18px] sm:h-[18px]" />
-          </button>
+function HeroStat({ label, value, isLast }: { label: string; value: string | number; isLast?: boolean }) {
+  return (
+    <div className={cn(
+      'flex justify-between items-center py-1.5 font-mono text-[9px] tracking-[0.15em] text-text-3 uppercase font-semibold',
+      !isLast && 'border-b border-dashed border-off-white/[0.08]'
+    )}>
+      <span>{label}</span>
+      <span className="text-gold-2 font-bold">{value}</span>
+    </div>
+  );
+}
+
+function MetaCell({ label, value, isLast }: { label: string; value: string; isLast?: boolean }) {
+  return (
+    <div className={cn(
+      'flex-1 py-2.5 px-3 text-center',
+      !isLast && 'border-r border-off-white/[0.08]'
+    )}>
+      <div className="font-mono text-[7.5px] tracking-[0.28em] text-text-3 uppercase font-semibold mb-1">{label}</div>
+      <div className="font-serif text-[18px] font-bold italic text-gold-2 leading-none">{value}</div>
+    </div>
+  );
+}
+
+const releaseBgs: Record<string, string> = {
+  'cold-war': 'radial-gradient(ellipse at 70% 40%, rgba(180,30,40,0.15), transparent 50%), linear-gradient(180deg, #1a1a22 0%, #050510 100%)',
+  'medieval-norm': 'radial-gradient(ellipse at 40% 40%, rgba(140,140,170,0.15), transparent 50%), linear-gradient(180deg, #1a1a28 0%, #0a0a14 100%)',
+  'medieval-crus': 'radial-gradient(ellipse at 60% 30%, rgba(180,120,40,0.2), transparent 50%), linear-gradient(180deg, #2a1810 0%, #0a0604 100%)',
+  'plague': 'radial-gradient(ellipse at 50% 60%, rgba(80,40,60,0.25), transparent 55%), linear-gradient(180deg, #1a1220 0%, #05020a 100%)',
+};
+
+function ReleaseCard({ release }: { release: typeof newReleases[0] }) {
+  const isNew = release.status === 'new';
+
+  return (
+    <div className="flex-shrink-0 w-[220px] md:w-auto bg-ink-lift border border-gold-2/15 rounded-xl overflow-hidden cursor-pointer hover:-translate-y-1 hover:border-gold-2/30 transition-all relative flex flex-col">
+      {/* Top bar */}
+      <div className={cn(
+        'absolute top-0 left-0 right-0 h-0.5 z-10',
+        isNew ? 'bg-ha-red' : 'bg-gradient-to-r from-gold-3 via-gold-1 to-gold-3'
+      )} />
+
+      {/* Media */}
+      <div className="aspect-[16/10] relative overflow-hidden" style={{ background: releaseBgs[release.bgClass] }}>
+        {/* Grain overlay */}
+        <div className="absolute inset-0 opacity-30 mix-blend-overlay" style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n3'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.3 0 0 0 0 0.1 0 0 0 0.3 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n3)'/%3E%3C/svg%3E")`,
+        }} />
+
+        {/* Stamp */}
+        <div className={cn(
+          'absolute top-2.5 right-2.5 px-2 py-1 font-mono text-[8px] tracking-[0.25em] uppercase font-bold rounded flex items-center gap-1 backdrop-blur-[6px]',
+          isNew
+            ? 'bg-ha-red/25 text-off-white border border-ha-red/50'
+            : 'bg-black/70 text-gold-2 border border-gold-2/30'
+        )}>
+          {isNew && <span className="w-1.5 h-1.5 bg-ha-red rounded-full shadow-[0_0_5px_var(--ha-red)]" style={{ animation: 'pulse 2s infinite' }} />}
+          {isNew ? 'Now Open' : 'Coming'}
         </div>
 
-        {/* Content */}
-        <div className="p-4 sm:p-5 text-center">
-          <h3 className="font-serif text-lg sm:text-xl font-bold text-off-white mb-1">{era.name}</h3>
-          <p className="font-mono text-off-white/50 text-[10px] sm:text-xs uppercase tracking-wider mb-3 sm:mb-4">{era.dateRange}</p>
+        {/* Date */}
+        <div className="absolute bottom-2.5 left-2.5 font-mono text-[9px] tracking-[0.2em] uppercase font-bold text-gold-2 px-2 py-0.5 bg-black/70 backdrop-blur-sm border border-gold-2/30 rounded">
+          {release.date}
+        </div>
 
-          <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-gold-2/15 rounded-lg mb-3 sm:mb-4 border border-gold-2/20">
-            <span className="font-mono text-gold-2 text-xs sm:text-sm font-medium uppercase tracking-wider">
-              Coming Soon
-            </span>
+        {/* Roman numeral */}
+        <div className="absolute bottom-2 right-3 font-serif text-[36px] font-bold italic text-gold-2/35 leading-none tracking-[-0.02em] text-shadow-lg">
+          {release.romanNum}
+        </div>
+      </div>
+
+      {/* Body */}
+      <div className="p-4 flex-1 flex flex-col">
+        <div className="font-mono text-[8px] tracking-[0.28em] text-gold-3 uppercase font-bold mb-1">{release.era}</div>
+        <div className="font-serif text-[19px] font-bold italic text-off-white leading-tight mb-1.5 tracking-[-0.005em]">{release.title}</div>
+        <div className="font-body text-[11.5px] text-text-2 leading-[1.45] flex-1 mb-2.5">{release.description}</div>
+        <div className="flex justify-between items-center pt-2.5 border-t border-dashed border-off-white/[0.08] font-mono text-[8px] tracking-[0.15em] text-text-3 uppercase font-semibold">
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded-full bg-gradient-to-br from-[#5a3a1a] to-[#2a1a08] border border-gold-3" />
+            {release.instructor}
           </div>
-
-          <p className="text-off-white/60 text-xs sm:text-sm mb-3 sm:mb-4">{era.subtitle}</p>
-
-          <button
-            onClick={onClose}
-            className="mt-4 sm:mt-5 w-full py-2.5 sm:py-3 bg-off-white/10 hover:bg-off-white/15 rounded-xl text-off-white text-sm sm:text-base font-medium transition-colors border border-off-white/[0.06]"
-          >
-            Got it
-          </button>
+          <span className="text-gold-2 font-bold">{release.lessons} lessons</span>
         </div>
-      </motion.div>
-    </motion.div>
+      </div>
+    </div>
+  );
+}
+
+function QuickCard({
+  type,
+  label,
+  title,
+  description,
+  meta,
+  metaHighlight,
+  highlightColor,
+  icon,
+  onClick,
+}: {
+  type: 'arcade' | 'watch' | 'trophy';
+  label: string;
+  title: string;
+  description: string;
+  meta: string;
+  metaHighlight: string;
+  highlightColor: 'red' | 'gold';
+  icon: React.ReactNode;
+  onClick?: () => void;
+}) {
+  const isArcade = type === 'arcade';
+
+  return (
+    <div
+      onClick={onClick}
+      className={cn(
+        'bg-ink-lift border border-gold-2/15 rounded-xl p-4 relative flex flex-col gap-2 min-h-[160px] cursor-pointer hover:-translate-y-1 hover:border-gold-2/30 hover:bg-ink transition-all',
+      )}
+    >
+      {/* Top bar */}
+      {type === 'arcade' && <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-ha-red to-gold-2" />}
+      {type === 'watch' && <div className="absolute top-0 left-5 w-5 h-0.5 bg-ha-red" />}
+      {type === 'trophy' && <div className="absolute top-0 left-0 right-0 h-0.5 bg-gold-2" />}
+
+      <div className="flex justify-between items-start gap-2.5">
+        <div className={cn(
+          'w-9 h-9 rounded-lg border flex items-center justify-center flex-shrink-0 mt-1.5',
+          isArcade
+            ? 'bg-ha-red/[0.08] border-ha-red/30 text-ha-red'
+            : 'bg-gold-2/[0.08] border-gold-2/30 text-gold-2'
+        )}>
+          {icon}
+        </div>
+        <div className="flex-1">
+          <div className={cn(
+            'font-mono text-[8.5px] tracking-[0.3em] uppercase font-bold mb-1',
+            isArcade ? 'text-ha-red' : 'text-gold-2'
+          )}>
+            {label}
+          </div>
+          <div className="font-serif text-[19px] font-bold italic text-off-white leading-tight mb-1">{title}</div>
+          <div className="font-body text-[11.5px] text-text-2 leading-[1.45]">{description}</div>
+        </div>
+      </div>
+
+      <div className="flex justify-between items-center pt-2.5 border-t border-dashed border-off-white/[0.08] mt-auto font-mono text-[8.5px] tracking-[0.18em] text-text-3 uppercase font-bold">
+        <span>
+          {meta} · <span className={highlightColor === 'red' ? 'text-ha-red' : 'text-gold-2'}>{metaHighlight}</span>
+        </span>
+        <div className="w-5 h-5 rounded-full bg-ink border border-gold-2/30 flex items-center justify-center text-gold-2">
+          <ArrowRight size={10} />
+        </div>
+      </div>
+    </div>
   );
 }

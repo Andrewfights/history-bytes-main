@@ -1,65 +1,25 @@
 /**
- * Header - Desktop navigation
- * Matches BottomNav: Home, Campaign, Learn, Arcade, Watch
- * Profile is accessed via avatar button (not in nav)
+ * Header - Desktop top navigation
+ * Design: History Academy Dark v2 - Home Nav
+ * H Logo | HOME CAMPAIGN LEARN ARCADE WATCH | Streak + Avatar
  */
 
-import { Flame, User } from 'lucide-react';
+import { Flame } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
-import { motion } from 'framer-motion';
 import { TabType } from '@/types';
-import { HistoryLogo } from '@/components/brand';
 
-// Custom SVG icons matching BottomNav (24x24 viewBox, 1.8 stroke)
-const HomeIcon = () => (
-  <svg viewBox="0 0 24 24" className="w-4 h-4 stroke-current fill-none" strokeWidth={1.8}>
-    <path d="M4 12L12 4L20 12M6 10V20H18V10" />
-  </svg>
-);
-
-const CampaignIcon = () => (
-  <svg viewBox="0 0 24 24" className="w-4 h-4 stroke-current fill-none" strokeWidth={1.8}>
-    <circle cx="12" cy="12" r="8" />
-    <path d="M9 9l6 6M9 15l6-6" />
-  </svg>
-);
-
-const LearnIcon = () => (
-  <svg viewBox="0 0 24 24" className="w-4 h-4 stroke-current fill-none" strokeWidth={1.8}>
-    <path d="M5 4L5 20L12 18L19 20L19 4L12 6Z" />
-    <path d="M12 6V18" />
-  </svg>
-);
-
-const ArcadeIcon = () => (
-  <svg viewBox="0 0 24 24" className="w-4 h-4 stroke-current fill-none" strokeWidth={1.8}>
-    <rect x="3" y="7" width="18" height="12" rx="2" />
-    <path d="M7 12h4M9 10v4" />
-    <circle cx="15" cy="11" r=".8" fill="currentColor" />
-    <circle cx="17" cy="13" r=".8" fill="currentColor" />
-  </svg>
-);
-
-const WatchIcon = () => (
-  <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current stroke-none">
-    <path d="M6 4V20L20 12Z" />
-  </svg>
-);
-
-// Nav configuration - matches BottomNav exactly
-// Order: Home | Campaign | Learn | Arcade | Watch
+// Nav configuration
 interface NavItem {
   id: TabType;
   label: string;
-  Icon: () => JSX.Element;
 }
 
 const navItems: NavItem[] = [
-  { id: 'home', label: 'Home', Icon: HomeIcon },
-  { id: 'journey', label: 'Campaign', Icon: CampaignIcon },
-  { id: 'learn', label: 'Learn', Icon: LearnIcon },
-  { id: 'arcade', label: 'Arcade', Icon: ArcadeIcon },
-  { id: 'watch', label: 'Watch', Icon: WatchIcon },
+  { id: 'home', label: 'Home' },
+  { id: 'journey', label: 'Campaign' },
+  { id: 'learn', label: 'Learn' },
+  { id: 'arcade', label: 'Arcade' },
+  { id: 'watch', label: 'Watch' },
 ];
 
 export function Header() {
@@ -67,60 +27,94 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-40 bg-ink/85 backdrop-blur-xl border-b border-off-white/[0.06]">
-      <div className="flex items-center justify-between px-4 h-14 max-w-5xl mx-auto">
-        {/* Logo */}
-        <HistoryLogo variant="full" size="md" withUnderline={true} className="shrink-0" />
+      <div className="flex items-center justify-between px-6 lg:px-10 h-[52px] max-w-[1400px] mx-auto">
+        {/* ═══ LEFT: Logo + Nav Links ═══ */}
+        <div className="flex items-center gap-8">
+          {/* H Logo with stacked text */}
+          <div className="flex items-center gap-2.5">
+            {/* H Icon with red bar */}
+            <div className="flex flex-col items-center gap-0.5">
+              <svg viewBox="0 0 280 280" className="w-[26px] h-[26px]">
+                <defs>
+                  <linearGradient id="gl-header" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#F6E355"/>
+                    <stop offset="100%" stopColor="#B2641F"/>
+                  </linearGradient>
+                  <linearGradient id="gr-header" x1="100%" y1="0%" x2="0%" y2="0%">
+                    <stop offset="0%" stopColor="#B2641F"/>
+                    <stop offset="100%" stopColor="#E6AB2A"/>
+                  </linearGradient>
+                  <linearGradient id="gc-header" x1="50%" y1="0%" x2="50%" y2="100%">
+                    <stop offset="0%" stopColor="#F6E355"/>
+                    <stop offset="100%" stopColor="#E6AB2A"/>
+                  </linearGradient>
+                </defs>
+                <polygon points="40,30 105,30 105,250 40,250" fill="url(#gl-header)"/>
+                <polygon points="40,30 105,30 120,15 55,15" fill="#F6E355"/>
+                <polygon points="105,30 105,250 120,235 120,15" fill="#B2641F"/>
+                <polygon points="175,30 240,30 240,250 175,250" fill="url(#gr-header)"/>
+                <polygon points="175,30 240,30 255,15 190,15" fill="#F6E355"/>
+                <polygon points="175,30 175,250 160,235 160,15 190,15 175,30" fill="#B2641F"/>
+                <polygon points="105,120 175,120 175,160 105,160" fill="url(#gc-header)"/>
+                <polygon points="105,120 175,120 160,105 120,105" fill="#F6E355"/>
+              </svg>
+              <div className="w-[26px] h-[2px] bg-ha-red" />
+            </div>
 
-        {/* Desktop nav - hidden on mobile */}
-        <nav className="hidden md:flex items-center gap-1">
-          {navItems.map(({ id, label, Icon }) => {
-            const isActive = activeTab === id;
-            return (
-              <button
-                key={id}
-                onClick={() => setActiveTab(id)}
-                className={`relative flex items-center gap-2 px-4 py-2 rounded-lg font-mono text-xs tracking-wider uppercase transition-all duration-200 ${
-                  isActive
-                    ? 'text-gold-2 bg-gold-2/10'
-                    : 'text-off-white/50 hover:text-off-white hover:bg-white/[0.04]'
-                }`}
-              >
-                <Icon />
-                <span>{label}</span>
-                {isActive && (
-                  <motion.div
-                    layoutId="desktop-nav-indicator"
-                    className="absolute bottom-0 left-2 right-2 h-[2px] bg-gold-2 rounded-full"
-                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                  />
-                )}
-              </button>
-            );
-          })}
-        </nav>
+            {/* Stacked text: HISTORY / ACADEMY */}
+            <div className="flex flex-col leading-none">
+              <span className="font-display text-[13px] font-bold text-off-white tracking-[0.02em] uppercase">
+                History
+              </span>
+              <span className="font-display text-[9px] font-semibold text-off-white tracking-[0.18em] uppercase mt-0.5">
+                Academy
+              </span>
+            </div>
+          </div>
 
-        {/* Right side - Streak badge + Profile avatar */}
-        <div className="flex items-center gap-3 shrink-0">
-          {/* Streak badge */}
-          <motion.div
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gold-2/10 border border-gold-2/20"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+          {/* Desktop nav links - hidden on mobile */}
+          <nav className="hidden md:flex items-center gap-7">
+            {navItems.map(({ id, label }) => {
+              const isActive = activeTab === id;
+              return (
+                <button
+                  key={id}
+                  onClick={() => setActiveTab(id)}
+                  className={`font-mono text-[11px] font-semibold tracking-[0.2em] uppercase transition-colors duration-150 ${
+                    isActive
+                      ? 'text-gold-2'
+                      : 'text-off-white/50 hover:text-off-white'
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+
+        {/* ═══ RIGHT: Streak chip + Avatar ═══ */}
+        <div className="flex items-center gap-2.5">
+          {/* Streak chip */}
+          <button
+            className="flex items-center gap-2 px-3 py-1.5 bg-ink-lift border border-gold-2/20 rounded-full"
           >
-            <Flame size={14} className="text-gold-2" />
-            <span className="font-mono text-xs font-semibold text-gold-2">{user.streak}</span>
-          </motion.div>
+            <Flame
+              size={12}
+              className="text-gold-2"
+              style={{ animation: 'flicker 3s infinite' }}
+            />
+            <span className="font-mono text-[10px] font-bold text-gold-2 tracking-[0.1em]">
+              {user.streak}
+            </span>
+          </button>
 
-          {/* Profile avatar button - NOT in nav per design spec */}
-          <motion.button
+          {/* Avatar button */}
+          <button
             onClick={() => setActiveTab('profile')}
-            className="w-8 h-8 rounded-full bg-ink-lift border border-off-white/10 flex items-center justify-center hover:border-gold-2/30 hover:bg-ink-lift/80 transition-all duration-200"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            className="w-8 h-8 rounded-full bg-gradient-to-br from-[#5a3a1a] to-[#2a1a08] border border-gold-2 shadow-[0_0_0_2px_rgba(230,171,42,0.15)]"
             aria-label="Profile"
-          >
-            <User size={16} className="text-off-white/60" />
-          </motion.button>
+          />
         </div>
       </div>
     </header>
