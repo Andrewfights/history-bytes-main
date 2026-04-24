@@ -101,12 +101,27 @@ export default function JourneyUIEditor() {
     try {
       let uploadUrl: string | null = null;
 
+      // Check if this is a rank badge upload
+      const isRankBadge = currentUploadTarget.startsWith('rank-');
+      const storagePath = isRankBadge ? 'journey-ui/ranks' : 'journey-ui';
+
       if (isFirebaseConfigured()) {
-        uploadUrl = await uploadToFirebaseStorage(file, 'journey-ui');
+        uploadUrl = await uploadToFirebaseStorage(file, storagePath);
       }
 
       if (uploadUrl) {
-        await saveAsset(currentUploadTarget, uploadUrl);
+        if (isRankBadge) {
+          // Handle rank badge upload - save to nested rankBadgeImages object
+          const tierId = currentUploadTarget.replace('rank-', '');
+          const currentBadges = assets?.rankBadgeImages || {};
+          await saveJourneyUIAssets({
+            ...assets,
+            rankBadgeImages: { ...currentBadges, [tierId]: uploadUrl },
+          });
+        } else {
+          // Handle regular asset upload
+          await saveAsset(currentUploadTarget, uploadUrl);
+        }
         toast.success('Image uploaded!', { id: 'upload' });
       } else {
         toast.error('Upload failed', { id: 'upload' });

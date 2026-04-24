@@ -718,7 +718,7 @@ export function ArcadeTab() {
         </div>
         <div className="flex gap-2.5 overflow-x-auto px-4 pb-2 hide-scrollbar">
           <GameCard game={ARCADE_GAMES.find(g => g.type === 'scramble-1940')!} colorTheme="red" badge="New" badgeType="new" onPlay={() => handleSelectGame('scramble-1940')} />
-          <GameCard game={ARCADE_GAMES.find(g => g.type === 'naval-engagement')!} colorTheme="teal" badge="New" badgeType="new" onPlay={() => handleSelectGame('naval-engagement')} />
+          <GameCard game={ARCADE_GAMES.find(g => g.type === 'naval-engagement')!} colorTheme="blue" badge="New" badgeType="new" onPlay={() => handleSelectGame('naval-engagement')} />
           <GameCard game={ARCADE_GAMES.find(g => g.type === 'guess-year')!} colorTheme="green" badge="Trending" badgeType="hot" onPlay={() => handleSelectGame('guess-year')} />
           <GameCard game={ARCADE_GAMES.find(g => g.type === 'geoguessr-where')!} colorTheme="red" badge="Top 3" onPlay={() => handleSelectGame('geoguessr-where')} />
           <GameCard game={ARCADE_GAMES.find(g => g.type === 'chrono')!} colorTheme="gold" onPlay={() => handleSelectGame('chrono')} />

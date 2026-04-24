@@ -31,7 +31,7 @@ export type GeoguessrMode = 'where' | 'when' | 'what';
 export const historicalScenes: HistoricalScene[] = [
   {
     id: 'bastille-1789',
-    imageUrl: '/scenes/bastille.jpg',
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Prise_de_la_Bastille.jpg/800px-Prise_de_la_Bastille.jpg',
     event: 'The Storming of the Bastille',
     year: 1789,
     location: 'Paris, France',
@@ -58,7 +58,7 @@ export const historicalScenes: HistoricalScene[] = [
   },
   {
     id: 'colosseum-80ad',
-    imageUrl: '/scenes/colosseum.jpg',
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/de/Colosseo_2020.jpg/800px-Colosseo_2020.jpg',
     event: 'Inauguration of the Colosseum',
     year: 80,
     location: 'Rome, Italy',
@@ -85,7 +85,7 @@ export const historicalScenes: HistoricalScene[] = [
   },
   {
     id: 'd-day-1944',
-    imageUrl: '/scenes/dday.jpg',
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Into_the_Jaws_of_Death_23-0455M_edit.jpg/800px-Into_the_Jaws_of_Death_23-0455M_edit.jpg',
     event: 'D-Day: Normandy Landings',
     year: 1944,
     location: 'Normandy, France',
@@ -112,7 +112,7 @@ export const historicalScenes: HistoricalScene[] = [
   },
   {
     id: 'berlin-wall-1989',
-    imageUrl: '/scenes/berlin-wall.jpg',
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5c/Berlin_Wall_1961-11-20.jpg/800px-Berlin_Wall_1961-11-20.jpg',
     event: 'Fall of the Berlin Wall',
     year: 1989,
     location: 'Berlin, Germany',
@@ -139,7 +139,7 @@ export const historicalScenes: HistoricalScene[] = [
   },
   {
     id: 'moon-landing-1969',
-    imageUrl: '/scenes/moon-landing.jpg',
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/98/Aldrin_Apollo_11_original.jpg/800px-Aldrin_Apollo_11_original.jpg',
     event: 'Apollo 11 Moon Landing',
     year: 1969,
     location: 'Sea of Tranquility, Moon',
@@ -166,7 +166,7 @@ export const historicalScenes: HistoricalScene[] = [
   },
   {
     id: 'great-fire-london-1666',
-    imageUrl: '/scenes/great-fire.jpg',
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/86/Great_Fire_London.jpg/800px-Great_Fire_London.jpg',
     event: 'Great Fire of London',
     year: 1666,
     location: 'London, England',
@@ -193,7 +193,7 @@ export const historicalScenes: HistoricalScene[] = [
   },
   {
     id: 'pompeii-79ad',
-    imageUrl: '/scenes/pompeii.jpg',
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Pompeii-street01.jpg/800px-Pompeii-street01.jpg',
     event: 'Eruption of Mount Vesuvius',
     year: 79,
     location: 'Pompeii, Italy',
@@ -220,7 +220,7 @@ export const historicalScenes: HistoricalScene[] = [
   },
   {
     id: 'boston-tea-party-1773',
-    imageUrl: '/scenes/boston-tea.jpg',
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/Boston_Tea_Party_Currier_colored.jpg/800px-Boston_Tea_Party_Currier_colored.jpg',
     event: 'Boston Tea Party',
     year: 1773,
     location: 'Boston, Massachusetts',
@@ -247,7 +247,7 @@ export const historicalScenes: HistoricalScene[] = [
   },
   {
     id: 'signing-magna-carta-1215',
-    imageUrl: '/scenes/magna-carta.jpg',
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f4/Magna_Carta_%28British_Library_Cotton_MS_Augustus_II.106%29.jpg/800px-Magna_Carta_%28British_Library_Cotton_MS_Augustus_II.106%29.jpg',
     event: 'Signing of the Magna Carta',
     year: 1215,
     location: 'Runnymede, England',
@@ -274,7 +274,7 @@ export const historicalScenes: HistoricalScene[] = [
   },
   {
     id: 'hiroshima-1945',
-    imageUrl: '/scenes/hiroshima.jpg',
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/54/Atomic_bombing_of_Japan.jpg/800px-Atomic_bombing_of_Japan.jpg',
     event: 'Atomic Bombing of Hiroshima',
     year: 1945,
     location: 'Hiroshima, Japan',
@@ -301,7 +301,7 @@ export const historicalScenes: HistoricalScene[] = [
   },
   {
     id: 'titanic-1912',
-    imageUrl: '/scenes/titanic.jpg',
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fd/RMS_Titanic_3.jpg/800px-RMS_Titanic_3.jpg',
     event: 'Sinking of the Titanic',
     year: 1912,
     location: 'North Atlantic Ocean',
@@ -328,7 +328,7 @@ export const historicalScenes: HistoricalScene[] = [
   },
   {
     id: 'waterloo-1815',
-    imageUrl: '/scenes/waterloo.jpg',
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/db/Battle_of_Waterloo_1815.PNG/800px-Battle_of_Waterloo_1815.PNG',
     event: 'Battle of Waterloo',
     year: 1815,
     location: 'Waterloo, Belgium',
