@@ -1,5 +1,5 @@
 /**
- * Beat 10: Mastery Run - Pearl Harbor Final Challenge
+ * Beat 13: Mastery Run - Pearl Harbor Final Challenge
  * Format: Timed Challenge (Quiz Gauntlet)
  * XP: 75 (max) | Duration: 6-8 min
  *
@@ -21,7 +21,7 @@ type Screen = 'pre-video' | 'intro' | 'quiz' | 'results' | 'post-video' | 'compl
 const SCREENS: Screen[] = ['pre-video', 'intro', 'quiz', 'results', 'post-video', 'completion'];
 
 const LESSON_DATA = {
-  id: 'ph-beat-12',
+  id: 'ph-beat-13',
   xpReward: 75, // Max XP for perfect score
 };
 

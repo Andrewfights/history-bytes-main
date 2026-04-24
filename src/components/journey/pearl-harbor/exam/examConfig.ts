@@ -22,7 +22,7 @@ export const FINAL_EXAM_CONFIG = {
   tiersInOrder: ['easy', 'medium', 'hard'] as const,
   shuffleWithinTiers: true,
   noPerQuestionTimer: false, // Changed: now has game show timer
-  lessonId: 'ph-beat-11',
+  lessonId: 'ph-beat-14',
   xpReward: 150, // Max XP for perfect score
 };
 

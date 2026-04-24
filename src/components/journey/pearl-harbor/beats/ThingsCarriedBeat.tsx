@@ -39,7 +39,7 @@ const SCREENS: Screen[] = [
 ];
 
 const LESSON_DATA = {
-  id: 'ph-beat-10',
+  id: 'ph-beat-11',
   xpReward: 45,
 };
 

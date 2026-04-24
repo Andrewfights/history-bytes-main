@@ -102,9 +102,12 @@ export function BreakingNewsBeat({ host, onComplete, onSkip, onBack, isPreview =
   const [stationMedia, setStationMedia] = useState<Record<string, BreakingNewsStationMedia>>({});
   const [currentStationVideoUrl, setCurrentStationVideoUrl] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const inlineVideoRef = useRef<HTMLVideoElement>(null);
   const [dialNeedlePosition, setDialNeedlePosition] = useState(50); // Center by default
   const [showBulletin, setShowBulletin] = useState(false);
   const bulletinTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const [videoEnded, setVideoEnded] = useState(false);
 
   const { saveCheckpoint, clearCheckpoint, getCheckpoint } = usePearlHarborProgress();
   const { getMediaUrl } = useWW2ModuleAssets();
@@ -248,26 +251,64 @@ export function BreakingNewsBeat({ host, onComplete, onSkip, onBack, isPreview =
     // Update dial needle position
     setDialNeedlePosition(station.dialPosition);
 
-    // Hide bulletin and show after delay
+    // Reset video state
+    setIsVideoPlaying(false);
+    setVideoEnded(false);
     setShowBulletin(false);
-    if (bulletinTimeoutRef.current) {
-      clearTimeout(bulletinTimeoutRef.current);
-    }
-    bulletinTimeoutRef.current = setTimeout(() => {
-      setShowBulletin(true);
-    }, 1800);
 
-    // Play audio if available from Firestore
+    // Stop any playing audio
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+      setIsPlaying(false);
+    }
+
+    // Check if this station has a video - if so, prepare it (will play on "Listen In" click)
     const media = stationMedia[station.id];
-    if (media?.audioUrl) {
+    if (media?.videoUrl) {
+      setCurrentStationVideoUrl(media.videoUrl);
+    } else {
+      setCurrentStationVideoUrl(null);
+      // No video, show bulletin after delay
+      if (bulletinTimeoutRef.current) {
+        clearTimeout(bulletinTimeoutRef.current);
+      }
+      bulletinTimeoutRef.current = setTimeout(() => {
+        setShowBulletin(true);
+      }, 1800);
+    }
+  };
+
+  // Handle "Listen In" button click - play the video inline
+  const handleListenIn = () => {
+    if (!selectedStation) return;
+
+    const media = stationMedia[selectedStation.id];
+    if (media?.videoUrl) {
+      setCurrentStationVideoUrl(media.videoUrl);
+      setIsVideoPlaying(true);
+      setVideoEnded(false);
+      // Video will auto-play via the autoPlay attribute
+    } else if (media?.audioUrl) {
+      // Fall back to audio if no video
       if (audioRef.current) {
         audioRef.current.pause();
       }
       audioRef.current = new Audio(media.audioUrl);
-      audioRef.current.onended = () => setIsPlaying(false);
+      audioRef.current.onended = () => {
+        setIsPlaying(false);
+        setShowBulletin(true);
+      };
       audioRef.current.play().catch(console.error);
       setIsPlaying(true);
     }
+  };
+
+  // Handle video end
+  const handleInlineVideoEnd = () => {
+    setIsVideoPlaying(false);
+    setVideoEnded(true);
+    setShowBulletin(true);
   };
 
   const handlePlayStationVideo = () => {
@@ -554,328 +595,74 @@ export function BreakingNewsBeat({ host, onComplete, onSkip, onBack, isPreview =
                 className="flex-1 flex flex-col gap-3 p-3.5 md:p-4 min-h-0 overflow-y-auto"
                 style={{ background: 'radial-gradient(ellipse at 50% 15%, rgba(60,30,8,0.25), transparent 60%)' }}
               >
-                {/* VIDEO AREA - The star, bigger now */}
+                {/* VIDEO AREA - 16:9 for video content */}
                 <div
-                  className="relative w-full overflow-hidden flex-shrink-0"
+                  className="relative w-full overflow-hidden flex-shrink-0 rounded-lg"
                   style={{
-                    aspectRatio: '9/16',
-                    maxHeight: '460px',
+                    aspectRatio: '16/9',
                     border: '1px solid rgba(230,171,42,0.22)',
                     boxShadow: '0 0 0 1px rgba(0,0,0,0.6), 0 12px 40px rgba(0,0,0,0.55)'
                   }}
                 >
-                    {/* Gold corner brackets */}
+                  {/* Gold corner brackets */}
                   <div className="absolute top-2 left-2 w-3.5 h-3.5 border-l-2 border-t-2 border-gold z-[12] pointer-events-none" />
                   <div className="absolute bottom-2 right-2 w-3.5 h-3.5 border-r-2 border-b-2 border-gold z-[12] pointer-events-none" />
 
-                  {/* ═══ EMPTY STATE: Art Deco Parchment Poster ═══ */}
+                  {/* ═══ EMPTY STATE: Placeholder Image ═══ */}
                   <div
-                    className={`absolute inset-0 flex flex-col items-center justify-between p-3.5 transition-opacity duration-500 ${selectedStation ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
-                    style={{
-                      background: 'radial-gradient(ellipse at 50% 40%, #f2e4bd 0%, #e8d49c 65%, #d6b478 100%)'
-                    }}
+                    className={`absolute inset-0 transition-opacity duration-500 ${(selectedStation && isVideoPlaying) ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
                   >
-                    {/* Aged paper texture */}
-                    <div
-                      className="absolute inset-0 mix-blend-multiply opacity-55 pointer-events-none"
-                      style={{
-                        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='3' stitchTiles='stitch' seed='3'/%3E%3CfeColorMatrix values='0 0 0 0 0.45 0 0 0 0 0.26 0 0 0 0 0.10 0 0 0 0.22 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E")`
-                      }}
+                    <img
+                      src="/assets/breaking-news/click-station-placeholder.png"
+                      alt="Please Click a Station"
+                      className="w-full h-full object-cover"
                     />
-                    {/* Warm stain patches */}
-                    <div
-                      className="absolute inset-0 pointer-events-none mix-blend-multiply"
-                      style={{
-                        background: `
-                          radial-gradient(ellipse at 15% 25%, rgba(150,90,40,0.25) 0%, transparent 40%),
-                          radial-gradient(ellipse at 85% 75%, rgba(140,80,30,0.22) 0%, transparent 45%),
-                          radial-gradient(ellipse at 30% 90%, rgba(170,100,50,0.18) 0%, transparent 35%)
-                        `
-                      }}
-                    />
-
-                    {/* Decorative border frame */}
-                    <div className="absolute inset-2.5 border-[1.5px] pointer-events-none z-[3]" style={{ borderColor: '#6b7040' }}>
-                      <div className="absolute inset-[3px] border-[0.5px] opacity-55" style={{ borderColor: '#6b7040' }} />
-                    </div>
-
-                    {/* 4 Art Deco corner ornaments */}
-                    {['tl', 'tr', 'bl', 'br'].map((corner) => (
-                      <svg
-                        key={corner}
-                        className="absolute w-[22px] h-[22px] z-[4]"
-                        style={{
-                          color: '#4d5026',
-                          top: corner.includes('t') ? '8px' : 'auto',
-                          bottom: corner.includes('b') ? '8px' : 'auto',
-                          left: corner.includes('l') ? '8px' : 'auto',
-                          right: corner.includes('r') ? '8px' : 'auto',
-                          transform: `${corner.includes('r') ? 'scaleX(-1)' : ''} ${corner.includes('b') ? 'scaleY(-1)' : ''}`
-                        }}
-                        viewBox="0 0 40 40"
-                        fill="currentColor"
-                      >
-                        <rect x="2" y="2" width="5" height="5"/>
-                        <path d="M2,14 L2,7 L14,7 L14,2 L22,2 L22,5 L16,5 L16,9 L5,9 L5,14 Z"/>
-                        <path d="M7,24 L7,20 L20,7 L24,7 L7,24 Z" opacity=".4"/>
-                      </svg>
-                    ))}
-
-                    {/* Top Art Deco fan ornament */}
-                    <div className="relative z-[5] mt-1 w-full flex justify-center" style={{ color: '#4d5026' }}>
-                      <svg viewBox="0 0 200 50" className="w-[88%] h-auto">
-                        <line x1="10" y1="18" x2="78" y2="18" stroke="currentColor" strokeWidth="1.2"/>
-                        <line x1="10" y1="22" x2="78" y2="22" stroke="currentColor" strokeWidth=".7" opacity=".6"/>
-                        <line x1="122" y1="18" x2="190" y2="18" stroke="currentColor" strokeWidth="1.2"/>
-                        <line x1="122" y1="22" x2="190" y2="22" stroke="currentColor" strokeWidth=".7" opacity=".6"/>
-                        <g fill="currentColor">
-                          <polygon points="100,0 96,20 104,20" opacity=".95"/>
-                          <polygon points="92,4 89,22 97,22" opacity=".85"/>
-                          <polygon points="108,4 111,22 103,22" opacity=".85"/>
-                          <polygon points="84,8 83,24 95,24" opacity=".75"/>
-                          <polygon points="116,8 117,24 105,24" opacity=".75"/>
-                          <polygon points="76,14 79,26 94,26" opacity=".55"/>
-                          <polygon points="124,14 121,26 106,26" opacity=".55"/>
-                        </g>
-                        <rect x="8" y="16" width="4" height="4" fill="currentColor"/>
-                        <rect x="188" y="16" width="4" height="4" fill="currentColor"/>
-                      </svg>
-                    </div>
-
-                    {/* Main text block */}
-                    <div className="relative z-[5] flex-1 flex flex-col items-center justify-center text-center leading-[0.96] tracking-[0.01em]" style={{ fontFamily: "'Playfair Display', serif", color: '#3a1e0a' }}>
-                      <span className="block text-[clamp(42px,9vw,58px)] font-bold" style={{ textShadow: '0 1px 0 rgba(245,230,200,0.3)' }}>Please</span>
-                      <span className="block text-[clamp(36px,7.5vw,48px)] font-bold">click a</span>
-                      <span className="block text-[clamp(42px,9vw,58px)] font-bold">station</span>
-                    </div>
-
-                    {/* Bottom Art Deco divider */}
-                    <div className="relative z-[5] mb-1 w-full flex justify-center" style={{ color: '#4d5026' }}>
-                      <svg viewBox="0 0 200 20" className="w-[68%] h-auto">
-                        <line x1="10" y1="6" x2="88" y2="6" stroke="currentColor" strokeWidth="1.2"/>
-                        <line x1="10" y1="10" x2="88" y2="10" stroke="currentColor" strokeWidth=".7" opacity=".6"/>
-                        <line x1="112" y1="6" x2="190" y2="6" stroke="currentColor" strokeWidth="1.2"/>
-                        <line x1="112" y1="10" x2="190" y2="10" stroke="currentColor" strokeWidth=".7" opacity=".6"/>
-                        <g fill="currentColor">
-                          <polygon points="92,4 100,10 92,10"/>
-                          <polygon points="108,4 100,10 108,10"/>
-                          <rect x="98" y="10" width="4" height="4"/>
-                        </g>
-                      </svg>
-                    </div>
-
-                    {/* "Tune In Below" hint */}
-                    <motion.div
-                      className="relative z-[5] mb-0.5 font-mono text-[8px] tracking-[0.35em] uppercase font-bold flex items-center gap-1.5"
-                      style={{ color: '#4d5026', opacity: 0.7 }}
-                      animate={{ opacity: [0.7, 0.4, 0.7] }}
-                      transition={{ duration: 2.4, repeat: Infinity }}
-                    >
-                      <span>▾</span>
-                      <span>Tune In Below</span>
-                      <span>▾</span>
-                    </motion.div>
                   </div>
 
-                  {/* ═══ ACTIVE STATE: 9:16 Archival Scene ═══ */}
-                  <div className={`absolute inset-0 transition-opacity duration-500 ${selectedStation ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-                    {/* The scene with Ken Burns effect */}
+                  {/* ═══ INLINE VIDEO PLAYER ═══ */}
+                  {currentStationVideoUrl && isVideoPlaying && (
                     <motion.div
-                      className="absolute inset-0"
-                      animate={selectedStation ? {
-                        scale: [1.02, 1.08, 1.02],
-                        x: ['0%', '-1%', '0%'],
-                        y: ['0%', '-1%', '0%']
-                      } : {}}
-                      transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
-                      style={{ transformOrigin: 'center 60%' }}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="absolute inset-0 z-[10]"
                     >
-                      {/* Wall */}
-                      <div
-                        className="absolute top-0 left-0 right-0 h-[58%]"
-                        style={{
-                          background: `
-                            repeating-linear-gradient(90deg, transparent 0, transparent 28px, rgba(120,70,40,0.08) 28px, rgba(120,70,40,0.08) 29px),
-                            linear-gradient(180deg, rgba(100,55,28,0.45) 0%, rgba(35,18,10,0.88) 100%)
-                          `
-                        }}
+                      <video
+                        ref={inlineVideoRef}
+                        src={currentStationVideoUrl}
+                        autoPlay
+                        playsInline
+                        className="w-full h-full object-contain bg-black"
+                        onEnded={handleInlineVideoEnd}
                       />
-
-                      {/* Picture frames on wall */}
-                      <div
-                        className="absolute top-[10%] left-[10%] w-[22%] h-[22%]"
-                        style={{
-                          border: '2px solid rgba(140,90,50,0.65)',
-                          background: 'linear-gradient(135deg, rgba(80,50,24,0.5), rgba(30,18,10,0.8))',
-                          boxShadow: '0 3px 6px rgba(0,0,0,0.6)'
-                        }}
-                      >
-                        <div className="absolute inset-1" style={{ background: 'radial-gradient(ellipse at 50% 40%, rgba(160,110,60,0.45), rgba(20,10,5,0.85))', border: '1px solid rgba(90,55,28,0.5)' }}>
-                          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[38%] h-[38%] rounded-full" style={{ background: 'radial-gradient(circle, rgba(200,150,90,0.55), rgba(60,30,15,0.9))' }} />
-                        </div>
-                      </div>
-
-                      <div
-                        className="absolute top-[14%] right-[12%] w-[14%] h-[16%]"
-                        style={{
-                          border: '1.5px solid rgba(130,85,45,0.55)',
-                          background: 'linear-gradient(135deg, rgba(70,40,20,0.5), rgba(25,14,8,0.8))',
-                          boxShadow: '0 2px 4px rgba(0,0,0,0.6)'
-                        }}
-                      >
-                        <div className="absolute inset-[3px]" style={{ background: 'rgba(45,28,15,0.85)' }} />
-                      </div>
-
-                      {/* Floor */}
-                      <div
-                        className="absolute bottom-0 left-0 right-0 h-[42%]"
-                        style={{
-                          background: `
-                            linear-gradient(180deg, rgba(55,30,14,0.7) 0%, rgba(25,14,8,0.98) 75%, rgba(8,4,2,1) 100%),
-                            repeating-linear-gradient(90deg, transparent 0, transparent 44px, rgba(80,50,24,0.1) 44px, rgba(80,50,24,0.1) 45px)
-                          `
-                        }}
-                      />
-
-                      {/* Console radio */}
-                      <div
-                        className="absolute bottom-[8%] left-1/2 -translate-x-1/2 w-[40%] h-[26%] rounded-t-[10px] rounded-b-[5px]"
-                        style={{
-                          background: 'radial-gradient(ellipse at 50% 20%, rgba(150,85,42,0.75) 0%, rgba(60,32,16,1) 55%, rgba(20,10,5,1) 100%)',
-                          boxShadow: 'inset 0 1px 2px rgba(255,180,120,0.22), inset 0 -3px 6px rgba(0,0,0,0.6), 0 5px 12px rgba(0,0,0,0.75)'
-                        }}
-                      >
-                        {/* Speaker grille */}
-                        <div className="absolute top-[14%] left-[9%] right-[9%] h-[48%] rounded-[3px] opacity-88" style={{ background: 'repeating-linear-gradient(0deg, rgba(0,0,0,0.7) 0, rgba(0,0,0,0.7) 2px, transparent 2px, transparent 4px)' }} />
-                        {/* Lit dial */}
-                        <motion.div
-                          className="absolute bottom-[8%] left-1/2 -translate-x-1/2 w-[62%] h-[18%] rounded-[2px]"
-                          style={{
-                            background: 'linear-gradient(180deg, rgba(245,229,184,0.9), rgba(200,170,100,0.75))',
-                            boxShadow: 'inset 0 1px 1px rgba(0,0,0,0.3)'
-                          }}
-                          animate={{ opacity: [1, 0.92, 1], filter: ['brightness(1)', 'brightness(1.08)', 'brightness(1)'] }}
-                          transition={{ duration: 3, repeat: Infinity }}
-                        />
-                      </div>
-
-                      {/* Silhouetted figures */}
-                      <div
-                        className="absolute bottom-[20%] left-[20%] w-[14%] h-[32%] z-[4]"
-                        style={{
-                          background: 'linear-gradient(180deg, rgba(38,24,14,0.95) 0%, rgba(14,8,4,1) 100%)',
-                          borderRadius: '50% 50% 4px 4px / 40% 40% 4px 4px'
-                        }}
-                      >
-                        <div className="absolute top-[-14%] left-1/2 -translate-x-1/2 w-[48%] aspect-square rounded-full" style={{ background: 'radial-gradient(ellipse at 50% 45%, rgba(60,38,20,0.95), rgba(15,8,4,1))' }} />
-                      </div>
-
-                      <div
-                        className="absolute bottom-[20%] right-[20%] w-[13%] h-[30%] z-[4]"
-                        style={{
-                          background: 'linear-gradient(180deg, rgba(38,24,14,0.95) 0%, rgba(14,8,4,1) 100%)',
-                          borderRadius: '50% 50% 4px 4px / 40% 40% 4px 4px'
-                        }}
-                      >
-                        <div className="absolute top-[-14%] left-1/2 -translate-x-1/2 w-[44%] aspect-square rounded-full" style={{ background: 'radial-gradient(ellipse at 50% 45%, rgba(60,38,20,0.95), rgba(15,8,4,1))' }} />
-                      </div>
-
-                      <div
-                        className="absolute bottom-[25%] left-1/2 -translate-x-1/2 w-[9%] h-[19%] z-[5]"
-                        style={{
-                          background: 'linear-gradient(180deg, rgba(38,24,14,0.95) 0%, rgba(14,8,4,1) 100%)',
-                          borderRadius: '50% 50% 4px 4px / 40% 40% 4px 4px'
-                        }}
-                      >
-                        <div className="absolute top-[-14%] left-1/2 -translate-x-1/2 w-[55%] aspect-square rounded-full" style={{ background: 'radial-gradient(ellipse at 50% 45%, rgba(60,38,20,0.95), rgba(15,8,4,1))' }} />
-                      </div>
-
-                      {/* Warm lamp glow */}
-                      <motion.div
-                        className="absolute top-[22%] left-[5%] w-[14%] h-[36%] z-[2]"
-                        style={{
-                          background: 'radial-gradient(ellipse at 50% 30%, rgba(255,180,80,0.25) 0%, rgba(200,120,40,0.09) 42%, transparent 70%)',
-                          filter: 'blur(5px)'
-                        }}
-                        animate={{ opacity: [0.88, 1, 0.88] }}
-                        transition={{ duration: 4, repeat: Infinity }}
-                      />
-
-                      {/* Dial light spill */}
-                      <motion.div
-                        className="absolute bottom-[26%] left-1/2 -translate-x-1/2 w-[52%] h-[22%] z-[5] pointer-events-none"
-                        style={{
-                          background: 'radial-gradient(ellipse at 50% 100%, rgba(246,197,96,0.4) 0%, rgba(246,150,60,0.18) 40%, transparent 70%)',
-                          filter: 'blur(7px)'
-                        }}
-                        animate={{ opacity: [0.75, 1, 0.75] }}
-                        transition={{ duration: 2.6, repeat: Infinity }}
-                      />
-                    </motion.div>
-
-                    {/* Video overlays */}
-                    <div className="absolute inset-0 z-10 flex flex-col justify-between p-3 pointer-events-none">
-                      {/* Top centered meta pill (LIVE + time code) */}
-                      <div className="flex justify-center">
-                        <div
-                          className="flex items-center gap-2 px-2.5 py-1.5 rounded-full backdrop-blur-md"
-                          style={{ background: 'rgba(0,0,0,0.55)', border: '1px solid rgba(230,171,42,0.25)' }}
-                        >
-                          <div className="flex items-center gap-1.5">
+                      {/* Video controls overlay */}
+                      <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
                             <motion.div
-                              className="w-1.5 h-1.5 rounded-full"
-                              style={{ background: 'var(--ha-red-br, #E84046)', boxShadow: '0 0 8px var(--ha-red-br, #E84046)' }}
-                              animate={{ opacity: [1, 0.55, 1] }}
-                              transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+                              className="w-2 h-2 rounded-full bg-ha-red"
+                              style={{ boxShadow: '0 0 8px var(--ha-red)' }}
+                              animate={{ opacity: [1, 0.5, 1] }}
+                              transition={{ duration: 1.5, repeat: Infinity }}
                             />
-                            <span className="font-mono text-[8px] tracking-[0.3em] uppercase font-bold" style={{ color: 'var(--ha-red-br, #E84046)' }}>
-                              Live
+                            <span className="font-mono text-[10px] tracking-[0.2em] text-white/80 uppercase">
+                              {selectedStation?.name} Broadcast
                             </span>
                           </div>
-                          <div className="w-px h-3 bg-gold/30" />
-                          <span className="font-mono text-[9px] tracking-[0.08em] font-semibold" style={{ color: DIAL_GOLD }}>
-                            0:42 / 2:18
-                          </span>
+                          <button
+                            onClick={() => {
+                              setIsVideoPlaying(false);
+                              setVideoEnded(true);
+                              setShowBulletin(true);
+                            }}
+                            className="text-[10px] font-mono tracking-wider text-white/60 hover:text-white transition-colors uppercase"
+                          >
+                            Skip →
+                          </button>
                         </div>
                       </div>
+                    </motion.div>
+                  )}
 
-                      {/* Bottom caption */}
-                      <div className="text-center px-3">
-                        <AnimatePresence>
-                          {showBulletin && selectedStation && (
-                            <motion.p
-                              initial={{ opacity: 0, y: 5 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0 }}
-                              className="font-cormorant italic text-[11px] md:text-[13px] leading-[1.25]"
-                              style={{ color: 'var(--cream, #FAF4E4)', textShadow: '0 2px 6px rgba(0,0,0,0.9)', opacity: 0.85 }}
-                            >
-                              — families gather around the set, 2:26 PM EST.
-                            </motion.p>
-                          )}
-                        </AnimatePresence>
-                      </div>
-                    </div>
-
-                    {/* Film effects */}
-                    <div
-                      className="absolute inset-0 z-[8] opacity-50 mix-blend-overlay pointer-events-none"
-                      style={{
-                        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='nv'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.4' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.55 0 0 0 0 0.32 0 0 0 0 0.12 0 0 0 0.38 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23nv)'/%3E%3C/svg%3E")`
-                      }}
-                    />
-                    {/* Vignette */}
-                    <div className="absolute inset-0 z-[9] pointer-events-none" style={{ background: 'radial-gradient(ellipse at 50% 50%, transparent 45%, rgba(0,0,0,0.78) 100%)' }} />
-                    {/* Scanlines */}
-                    <div className="absolute inset-0 z-[11] pointer-events-none mix-blend-multiply" style={{ background: 'repeating-linear-gradient(180deg, transparent 0, transparent 2px, rgba(0,0,0,0.22) 2px, rgba(0,0,0,0.22) 3px)' }} />
-                    {/* Scanline sweep */}
-                    <motion.div
-                      className="absolute left-0 right-0 h-[42px] z-[12] pointer-events-none mix-blend-screen"
-                      style={{ background: 'linear-gradient(180deg, transparent, rgba(246,197,96,0.12), transparent)' }}
-                      animate={{ y: ['-100%', '500%'] }}
-                      transition={{ duration: 5, repeat: Infinity, ease: 'linear' }}
-                    />
-                  </div>
                 </div>
 
                 {/* ═══ PHILCO RADIO (compact, v4 design) ═══ */}
@@ -1094,31 +881,64 @@ export function BreakingNewsBeat({ host, onComplete, onSkip, onBack, isPreview =
                   })}
                 </div>
 
-                {/* ═══ CONTINUE BUTTON ═══ */}
+                {/* ═══ LISTEN IN / CONTINUE BUTTON ═══ */}
                 <button
-                  onClick={handlePlayStationVideo}
-                  disabled={stationsListened.size === 0}
+                  onClick={() => {
+                    if (!selectedStation) return;
+                    if (videoEnded || showBulletin) {
+                      // Video finished or no video - continue to next screen
+                      handlePlayStationVideo();
+                    } else if (stationMedia[selectedStation.id]?.videoUrl && !isVideoPlaying) {
+                      // Has video and not playing - start playing
+                      handleListenIn();
+                    } else if (!stationMedia[selectedStation.id]?.videoUrl) {
+                      // No video - continue directly
+                      handlePlayStationVideo();
+                    }
+                  }}
+                  disabled={!selectedStation}
                   className="relative w-full py-3.5 md:py-4 rounded-[10px] font-oswald text-[12px] md:text-[13px] font-black tracking-[0.28em] md:tracking-[0.3em] uppercase flex items-center justify-center gap-2.5 flex-shrink-0 transition-all"
                   style={{
-                    background: stationsListened.size > 0
+                    background: selectedStation
                       ? 'linear-gradient(180deg, var(--gold-br, #F6E355) 0%, var(--gold, #E6AB2A) 45%, var(--gold-dp, #B2641F) 100%)'
                       : 'rgba(60,40,20,0.5)',
-                    color: stationsListened.size > 0 ? '#1a0b02' : 'rgba(242,238,230,0.5)',
-                    boxShadow: stationsListened.size > 0
+                    color: selectedStation ? '#1a0b02' : 'rgba(242,238,230,0.5)',
+                    boxShadow: selectedStation
                       ? '0 6px 18px rgba(230,171,42,0.3), inset 0 1px 0 rgba(255,255,255,0.3), inset 0 -2px 4px rgba(138,80,20,0.3)'
                       : 'none',
-                    cursor: stationsListened.size > 0 ? 'pointer' : 'not-allowed'
+                    cursor: selectedStation ? 'pointer' : 'not-allowed'
                   }}
                 >
                   {/* Corner brackets */}
                   <span className="absolute top-[-1px] left-[-1px] w-[9px] h-[9px] border-l-[1.5px] border-t-[1.5px] border-ha-red pointer-events-none" />
                   <span className="absolute bottom-[-1px] right-[-1px] w-[9px] h-[9px] border-r-[1.5px] border-b-[1.5px] border-ha-red pointer-events-none" />
 
-                  {stationsListened.size > 0 ? (showBulletin ? 'Continue the Broadcast' : 'Listening in…') : 'Tune In to Continue'}
-                  {stationsListened.size > 0 && showBulletin && (
-                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6">
-                      <path d="M5 12h14M13 5l7 7-7 7" />
-                    </svg>
+                  {!selectedStation ? (
+                    'Select a Station'
+                  ) : isVideoPlaying ? (
+                    <>
+                      <Radio size={16} className="animate-pulse" />
+                      Now Playing...
+                    </>
+                  ) : videoEnded || showBulletin ? (
+                    <>
+                      Continue
+                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6">
+                        <path d="M5 12h14M13 5l7 7-7 7" />
+                      </svg>
+                    </>
+                  ) : stationMedia[selectedStation.id]?.videoUrl ? (
+                    <>
+                      <Play size={16} />
+                      Listen In
+                    </>
+                  ) : (
+                    <>
+                      Continue
+                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6">
+                        <path d="M5 12h14M13 5l7 7-7 7" />
+                      </svg>
+                    </>
                   )}
                 </button>
               </div>
