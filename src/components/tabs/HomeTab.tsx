@@ -171,7 +171,7 @@ export function HomeTab({ onStartSession, onPlayDaily, onSelectTopic }: HomeTabP
               </span>
             </div>
             <h1 className="font-serif text-[32px] md:text-[42px] font-bold italic text-off-white leading-none tracking-[-0.01em]">
-              Welcome back, <em className="text-gold-2">{user.displayName || 'Historian'}.</em>
+              {user.xp > 0 || completedLessons > 0 ? 'Welcome back' : 'Welcome'}, <em className="text-gold-2">{user.displayName || 'Historian'}.</em>
             </h1>
           </div>
 

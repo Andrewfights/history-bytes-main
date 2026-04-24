@@ -746,7 +746,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       // Clear all localStorage for new users (including demo new user)
       clearAllStorage();
 
-      // For demo new user, explicitly set WW2 preferences to empty in localStorage
+      // For demo new user, explicitly set WW2 preferences and progress to empty in localStorage
       // This must happen SYNCHRONOUSLY before any hook can read from Firestore
       if (isDemoNewUser) {
         // Set explicit empty/default preferences in localStorage
@@ -758,7 +758,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
             hasSeenIntro: false,
             hasSeenWelcomeVideo: false,
           }));
-          // Set a flag so the hook knows to skip Firestore for this session
+          // Clear Pearl Harbor progress localStorage
+          localStorage.removeItem('hb_pearl_harbor_progress');
+          localStorage.removeItem('hb_pearl_harbor_checkpoint');
+          // Set a flag so hooks know to skip Firestore for this session
           localStorage.setItem('hb_demo_fresh_session', 'true');
         } catch (e) {
           console.warn('Failed to set demo user preferences:', e);

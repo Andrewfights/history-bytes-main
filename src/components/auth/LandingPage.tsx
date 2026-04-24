@@ -603,8 +603,48 @@ export function LandingPage({ onAuthSuccess }: LandingPageProps) {
                       ))}
                     </div>
 
+                    {/* Up Next section */}
+                    <div className="mt-3">
+                      <div className="flex justify-between items-center mb-1.5">
+                        <h4 className="font-mono text-[7px] tracking-[0.2em] text-off-white/50 uppercase">Up Next</h4>
+                        <ChevronRight size={10} className="text-off-white/30" />
+                      </div>
+                      <div className="flex gap-1.5">
+                        <div className="flex-1 bg-ink-lift border border-gold-2/15 rounded-lg p-2 flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-ha-red/30 to-ha-red-deep/30 flex items-center justify-center flex-shrink-0">
+                            <span className="text-[10px]">🎯</span>
+                          </div>
+                          <div className="min-w-0">
+                            <div className="font-serif text-[9px] font-bold text-off-white truncate">Radar Alert</div>
+                            <div className="font-mono text-[6px] text-gold-2/70">+35 XP</div>
+                          </div>
+                        </div>
+                        <div className="flex-1 bg-ink-lift border border-gold-2/15 rounded-lg p-2 flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-gold-2/20 to-gold-dp/20 flex items-center justify-center flex-shrink-0">
+                            <span className="text-[10px]">📻</span>
+                          </div>
+                          <div className="min-w-0">
+                            <div className="font-serif text-[9px] font-bold text-off-white truncate">Radio Room</div>
+                            <div className="font-mono text-[6px] text-gold-2/70">+40 XP</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Daily Challenge teaser */}
+                    <div className="mt-2 bg-gradient-to-r from-ha-red/20 to-ha-red-deep/10 border border-ha-red/30 rounded-lg p-2 flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-full bg-ha-red/30 flex items-center justify-center flex-shrink-0">
+                        <Sparkles size={12} className="text-ha-red" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-mono text-[7px] tracking-wider text-ha-red uppercase">Daily Challenge</div>
+                        <div className="font-serif text-[8px] font-bold text-off-white">Code Talkers Quiz</div>
+                      </div>
+                      <div className="font-mono text-[8px] text-gold-2 font-bold">+50 XP</div>
+                    </div>
+
                     {/* Bottom nav */}
-                    <div className="mt-auto pt-3 flex justify-around border-t border-off-white/10">
+                    <div className="mt-auto pt-2 flex justify-around border-t border-off-white/10">
                       {[
                         { name: 'Home', icon: Home },
                         { name: 'Journey', icon: Map },

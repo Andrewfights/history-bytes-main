@@ -10,6 +10,7 @@ import { getStoredWW2Hosts, loadWW2HostsFromFirestore, WW2_HOSTS } from '@/data/
 import { subscribeToWW2Hosts } from '@/lib/firestore';
 import { isFirebaseConfigured } from '@/lib/firebase';
 import { WW2Host } from '@/types';
+import { VideoPlayer916 } from '@/components/video/VideoPlayer916';
 
 // Helper to get default video URL for a host (fallback when Firestore doesn't have one)
 function getDefaultVideoUrl(hostId: string, type: 'intro' | 'welcome'): string | undefined {
@@ -357,33 +358,21 @@ export function WW2HostSelection({ onSelectHost, onClose }: WW2HostSelectionProp
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] bg-black flex flex-col"
+            className="fixed inset-0 z-[60] bg-void flex flex-col"
           >
-            {/* Video container - takes remaining space above button */}
-            <div className="flex-1 flex items-center justify-center p-4 min-h-0">
-              <video
+            {/* Video player with styled UI */}
+            <div className="flex-1 min-h-0">
+              <VideoPlayer916
                 src={moreInfoVideoUrl}
-                autoPlay
-                playsInline
-                controls
-                onEnded={handleCloseMoreInfo}
-                className="max-w-full max-h-full w-auto h-auto object-contain"
+                autoPlay={true}
+                initialMuted={false}
+                title={`About ${hosts[currentIndex]?.name || 'Your Guide'}`}
+                label="◆ Guide Introduction"
+                onComplete={handleCloseMoreInfo}
+                onSkip={handleCloseMoreInfo}
+                showSkipButton={true}
+                skipText="Back"
               />
-            </div>
-            {/* Back button - fixed height area at bottom, above the nav bar */}
-            <div
-              className="shrink-0 p-4 pb-24 bg-gradient-to-t from-black to-transparent"
-              style={{ paddingBottom: 'max(6rem, calc(env(safe-area-inset-bottom) + 5rem))' }}
-            >
-              <motion.button
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                onClick={handleCloseMoreInfo}
-                className="w-full max-w-md mx-auto block px-8 py-4 rounded-xl bg-white/20 backdrop-blur-sm text-white font-bold text-lg hover:bg-white/30 transition-all"
-              >
-                Back to Selection
-              </motion.button>
             </div>
           </motion.div>
         )}

@@ -89,6 +89,9 @@ export function usePearlHarborProgress() {
       setIsLoading(true);
 
       try {
+        // Check if this is a fresh demo session (flag set by AppContext.signIn)
+        const isDemoFreshSession = localStorage.getItem('hb_demo_fresh_session') === 'true';
+
         // Load main progress from localStorage
         let localProgress = DEFAULT_PROGRESS;
         const stored = localStorage.getItem(PROGRESS_KEY);
@@ -103,6 +106,16 @@ export function usePearlHarborProgress() {
           // Ensure unlockedLessons exists (for backwards compatibility)
           const unlockedLessons = parsed.unlockedLessons || [];
           localProgress = { ...parsed, masteryBuckets: mergedBuckets, unlockedLessons };
+        }
+
+        // If this is a fresh demo session, use localStorage only (skip Firestore)
+        // This prevents race conditions where Firestore hasn't been reset yet
+        if (isDemoFreshSession) {
+          console.log('[PearlHarborProgress] Fresh demo session - using localStorage, skipping Firestore');
+          setProgress(localProgress);
+          hasLoadedFromFirestore.current = true;
+          setIsLoading(false);
+          return;
         }
 
         // If user is logged in and Firebase is configured, try to load from Firestore

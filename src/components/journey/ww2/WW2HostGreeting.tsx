@@ -2,10 +2,11 @@
  * WW2HostGreeting - Welcome back screen for returning users
  */
 
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Play, RefreshCw } from 'lucide-react';
 import { WW2Host } from '@/types';
 import { useState } from 'react';
+import { VideoPlayer916 } from '@/components/video/VideoPlayer916';
 
 interface WW2HostGreetingProps {
   host: WW2Host;
@@ -72,21 +73,29 @@ export function WW2HostGreeting({ host, onContinue, onChangeGuide }: WW2HostGree
           </motion.button>
         )}
 
-        {isPlayingVideo && host.welcomeVideoUrl && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="mb-6 aspect-video rounded-xl overflow-hidden bg-black"
-          >
-            <video
-              src={host.welcomeVideoUrl}
-              autoPlay
-              controls
-              className="w-full h-full object-contain"
-              onEnded={() => setIsPlayingVideo(false)}
-            />
-          </motion.div>
-        )}
+        {/* Full-screen video overlay when playing */}
+        <AnimatePresence>
+          {isPlayingVideo && host.welcomeVideoUrl && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[60] bg-void"
+            >
+              <VideoPlayer916
+                src={host.welcomeVideoUrl}
+                autoPlay={true}
+                initialMuted={false}
+                title={`Welcome from ${host.name}`}
+                label="◆ Welcome Message"
+                onComplete={() => setIsPlayingVideo(false)}
+                onSkip={() => setIsPlayingVideo(false)}
+                showSkipButton={true}
+                skipText="Close"
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Action Buttons */}
         <motion.div

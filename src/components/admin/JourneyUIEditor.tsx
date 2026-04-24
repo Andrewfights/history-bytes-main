@@ -114,10 +114,13 @@ export default function JourneyUIEditor() {
           // Handle rank badge upload - save to nested rankBadgeImages object
           const tierId = currentUploadTarget.replace('rank-', '');
           const currentBadges = assets?.rankBadgeImages || {};
-          await saveJourneyUIAssets({
+          const updatedAssets = {
             ...assets,
             rankBadgeImages: { ...currentBadges, [tierId]: uploadUrl },
-          });
+          };
+          // Optimistically update local state
+          setAssets(updatedAssets as FirestoreJourneyUIAssets);
+          await saveJourneyUIAssets(updatedAssets);
         } else {
           // Handle regular asset upload
           await saveAsset(currentUploadTarget, uploadUrl);
@@ -223,10 +226,13 @@ export default function JourneyUIEditor() {
 
         if (uploadUrl) {
           const currentBadges = assets?.rankBadgeImages || {};
-          await saveJourneyUIAssets({
+          const updatedAssets = {
             ...assets,
             rankBadgeImages: { ...currentBadges, [tierId]: uploadUrl },
-          });
+          };
+          // Optimistically update local state
+          setAssets(updatedAssets as FirestoreJourneyUIAssets);
+          await saveJourneyUIAssets(updatedAssets);
           toast.success(`${tier.label} badge generated!`, { id: 'generate' });
         }
       } else {
@@ -243,10 +249,19 @@ export default function JourneyUIEditor() {
   const saveAsset = async (key: string, value: string) => {
     setIsSaving(true);
     try {
-      await saveJourneyUIAssets({
+      // Optimistically update local state immediately
+      const updatedAssets = {
         ...assets,
         [key]: value,
-      });
+      };
+      setAssets(updatedAssets as FirestoreJourneyUIAssets);
+
+      // Then save to Firestore
+      const success = await saveJourneyUIAssets(updatedAssets);
+      if (!success) {
+        console.error('[JourneyUIEditor] Failed to save asset to Firestore');
+        // Revert on failure (subscription will also update)
+      }
     } finally {
       setIsSaving(false);
     }
@@ -259,6 +274,8 @@ export default function JourneyUIEditor() {
     try {
       const updated = { ...assets };
       delete (updated as Record<string, unknown>)[key];
+      // Optimistically update local state
+      setAssets(updated as FirestoreJourneyUIAssets);
       await saveJourneyUIAssets(updated);
       toast.success('Image removed');
     } catch (error) {
@@ -274,10 +291,13 @@ export default function JourneyUIEditor() {
     setIsSaving(true);
     try {
       const { [tierId]: _, ...rest } = assets.rankBadgeImages;
-      await saveJourneyUIAssets({
+      const updatedAssets = {
         ...assets,
         rankBadgeImages: rest,
-      });
+      };
+      // Optimistically update local state
+      setAssets(updatedAssets as FirestoreJourneyUIAssets);
+      await saveJourneyUIAssets(updatedAssets);
       toast.success('Badge removed');
     } catch (error) {
       toast.error('Failed to remove');
