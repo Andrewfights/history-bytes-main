@@ -312,12 +312,28 @@ export function BreakingNewsBeat({ host, onComplete, onSkip, onBack, isPreview =
   };
 
   const handlePlayStationVideo = () => {
-    if (selectedStation && stationMedia[selectedStation.id]?.videoUrl) {
+    // If video was already watched inline, skip the station-video screen entirely
+    // Go directly to post-video or completion
+    if (videoEnded) {
+      if (postModuleVideoConfig?.enabled && postModuleVideoConfig?.videoUrl) {
+        setScreen('post-video');
+      } else {
+        setScreen('completion');
+      }
+      return;
+    }
+
+    // If there's a station video that hasn't been watched, play it
+    if (selectedStation && stationMedia[selectedStation.id]?.videoUrl && !isVideoPlaying) {
       setCurrentStationVideoUrl(stationMedia[selectedStation.id].videoUrl!);
       setScreen('station-video');
     } else {
-      // No video, skip to post-video
-      setScreen('post-video');
+      // No video - go directly to post-video or completion
+      if (postModuleVideoConfig?.enabled && postModuleVideoConfig?.videoUrl) {
+        setScreen('post-video');
+      } else {
+        setScreen('completion');
+      }
     }
   };
 
@@ -964,14 +980,28 @@ export function BreakingNewsBeat({ host, onComplete, onSkip, onBack, isPreview =
                       autoPlay
                       playsInline
                       className="w-full h-full object-contain"
-                      onEnded={() => setScreen('post-video')}
+                      onEnded={() => {
+                        // Go to post-video if configured, otherwise completion
+                        if (postModuleVideoConfig?.enabled && postModuleVideoConfig?.videoUrl) {
+                          setScreen('post-video');
+                        } else {
+                          setScreen('completion');
+                        }
+                      }}
                     />
                   </div>
 
                   {/* Skip button */}
                   <div className="p-4" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
                     <button
-                      onClick={() => setScreen('post-video')}
+                      onClick={() => {
+                        // Go to post-video if configured, otherwise completion
+                        if (postModuleVideoConfig?.enabled && postModuleVideoConfig?.videoUrl) {
+                          setScreen('post-video');
+                        } else {
+                          setScreen('completion');
+                        }
+                      }}
                       className="w-full py-3 bg-white/10 hover:bg-white/20 text-white font-medium rounded-xl transition-colors"
                     >
                       Skip Video
@@ -979,21 +1009,37 @@ export function BreakingNewsBeat({ host, onComplete, onSkip, onBack, isPreview =
                   </div>
                 </div>
               ) : (
-                // No video configured, auto-advance
-                <div className="flex-1 flex items-center justify-center">
+                // No video configured, auto-advance to completion
+                <motion.div
+                  className="flex-1 flex items-center justify-center"
+                  onAnimationComplete={() => setScreen('completion')}
+                >
                   <p className="text-white/50">Loading...</p>
-                </div>
+                </motion.div>
               )}
             </motion.div>
           )}
 
           {/* POST-MODULE VIDEO */}
-          {screen === 'post-video' && postModuleVideoConfig && (
-            <PostModuleVideoScreen
-              config={postModuleVideoConfig}
-              beatTitle="Breaking News"
-              onComplete={() => setScreen('completion')}
-            />
+          {screen === 'post-video' && (
+            postModuleVideoConfig?.enabled && postModuleVideoConfig?.videoUrl ? (
+              <PostModuleVideoScreen
+                config={postModuleVideoConfig}
+                beatTitle="Breaking News"
+                onComplete={() => setScreen('completion')}
+              />
+            ) : (
+              // No post-video configured, auto-advance to completion
+              <motion.div
+                key="post-video-skip"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                onAnimationComplete={() => setScreen('completion')}
+                className="flex-1 flex items-center justify-center"
+              >
+                <p className="text-white/50">Loading...</p>
+              </motion.div>
+            )
           )}
 
           {/* COMPLETION */}

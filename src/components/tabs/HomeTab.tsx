@@ -145,6 +145,9 @@ export function HomeTab({ onStartSession, onPlayDaily, onSelectTopic }: HomeTabP
   // Get host name
   const hostName = selectedHost?.name || 'Sgt. J. Mitchell';
 
+  // Determine if this is a brand new user (no lessons completed, no XP)
+  const isNewUser = completedLessons === 0 && user.xp === 0;
+
   // Current date
   const today = new Date();
   const dateOptions: Intl.DateTimeFormatOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
@@ -238,7 +241,7 @@ export function HomeTab({ onStartSession, onPlayDaily, onSelectTopic }: HomeTabP
             <div className="flex items-center gap-2.5 mb-3">
               <span className="w-2 h-2 bg-ha-red rounded-full shadow-[0_0_10px_var(--ha-red)]" style={{ animation: 'pulse 2s infinite' }} />
               <span className="font-mono text-[9px] tracking-[0.35em] text-ha-red uppercase font-bold">
-                Active Briefing
+                {isNewUser ? 'Featured Campaign' : 'Active Briefing'}
               </span>
               <span className="text-text-3">·</span>
               <span className="font-mono text-[9px] tracking-[0.25em] text-gold-2 uppercase font-semibold">
@@ -246,92 +249,155 @@ export function HomeTab({ onStartSession, onPlayDaily, onSelectTopic }: HomeTabP
               </span>
             </div>
 
-            {/* Title */}
-            <h2 className="font-serif text-[36px] md:text-[64px] font-bold italic text-off-white leading-[0.95] tracking-[-0.015em] mb-3 text-shadow-lg">
-              {currentLesson?.title || 'Voices from'} <em className="text-gold-2">{currentLesson?.subtitle || 'the Harbor.'}</em>
-            </h2>
+            {/* Title - Different for new users */}
+            {isNewUser ? (
+              <h2 className="font-serif text-[36px] md:text-[64px] font-bold italic text-off-white leading-[0.95] tracking-[-0.015em] mb-3 text-shadow-lg">
+                December 7, <em className="text-gold-2">1941.</em>
+              </h2>
+            ) : (
+              <h2 className="font-serif text-[36px] md:text-[64px] font-bold italic text-off-white leading-[0.95] tracking-[-0.015em] mb-3 text-shadow-lg">
+                {currentLesson?.title || 'Voices from'} <em className="text-gold-2">{currentLesson?.subtitle || 'the Harbor.'}</em>
+              </h2>
+            )}
 
-            {/* Description */}
+            {/* Description - Different for new users */}
             <p className="font-calligraphy text-[15px] md:text-[19px] italic text-text-2 leading-[1.4] max-w-[520px] mb-5 text-shadow">
-              {currentLesson?.description || 'Three survivor testimonies from the morning of December 7. Firsthand accounts you won\'t find in the official record.'}
+              {isNewUser
+                ? 'The attack that changed everything. Experience Pearl Harbor through survivor testimonies, declassified intelligence, and strategic decisions that shaped World War II.'
+                : currentLesson?.description || 'Three survivor testimonies from the morning of December 7. Firsthand accounts you won\'t find in the official record.'
+              }
             </p>
 
-            {/* Instructor chip - clickable for backstory */}
-            <button
-              onClick={() => setShowGuideModal(true)}
-              className="inline-flex items-center gap-2.5 px-3 py-2 bg-[rgba(20,14,8,0.7)] backdrop-blur-[10px] border border-gold-2/30 rounded-full mb-5 self-start hover:border-gold-2/60 hover:bg-[rgba(30,20,12,0.8)] transition-all group cursor-pointer"
-            >
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[rgba(180,140,95,0.6)] to-[rgba(60,40,25,0.85)] border border-gold-2 overflow-hidden group-hover:border-gold-1 transition-colors">
-                {selectedHost?.imageUrl && (
-                  <img
-                    src={selectedHost.imageUrl}
-                    alt={hostName}
-                    className="w-full h-full object-cover"
-                  />
-                )}
+            {/* Show guide chip for returning users, campaign info for new users */}
+            {isNewUser ? (
+              <div className="flex items-center gap-3 mb-5">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[rgba(20,14,8,0.7)] backdrop-blur-[10px] border border-gold-2/30 rounded-full">
+                  <span className="font-mono text-[9px] tracking-[0.25em] text-gold-2 uppercase font-bold">{totalLessons} Lessons</span>
+                </div>
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[rgba(20,14,8,0.7)] backdrop-blur-[10px] border border-gold-2/30 rounded-full">
+                  <span className="font-mono text-[9px] tracking-[0.25em] text-gold-2 uppercase font-bold">~45 min</span>
+                </div>
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[rgba(20,14,8,0.7)] backdrop-blur-[10px] border border-gold-2/30 rounded-full">
+                  <span className="font-mono text-[9px] tracking-[0.25em] text-gold-2 uppercase font-bold">+442 XP</span>
+                </div>
               </div>
-              <div className="flex flex-col gap-0.5">
-                <span className="font-mono text-[7.5px] tracking-[0.3em] text-text-3 uppercase font-bold">Your Guide</span>
-                <span className="font-serif text-[13px] font-bold italic text-off-white group-hover:text-gold-2 transition-colors">{hostName}</span>
-              </div>
-              <ChevronRight size={14} className="text-gold-2/50 group-hover:text-gold-2 transition-colors ml-1" />
-            </button>
+            ) : (
+              <button
+                onClick={() => setShowGuideModal(true)}
+                className="inline-flex items-center gap-2.5 px-3 py-2 bg-[rgba(20,14,8,0.7)] backdrop-blur-[10px] border border-gold-2/30 rounded-full mb-5 self-start hover:border-gold-2/60 hover:bg-[rgba(30,20,12,0.8)] transition-all group cursor-pointer"
+              >
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[rgba(180,140,95,0.6)] to-[rgba(60,40,25,0.85)] border border-gold-2 overflow-hidden group-hover:border-gold-1 transition-colors">
+                  {selectedHost?.imageUrl && (
+                    <img
+                      src={selectedHost.imageUrl}
+                      alt={hostName}
+                      className="w-full h-full object-cover"
+                    />
+                  )}
+                </div>
+                <div className="flex flex-col gap-0.5">
+                  <span className="font-mono text-[7.5px] tracking-[0.3em] text-text-3 uppercase font-bold">Your Guide</span>
+                  <span className="font-serif text-[13px] font-bold italic text-off-white group-hover:text-gold-2 transition-colors">{hostName}</span>
+                </div>
+                <ChevronRight size={14} className="text-gold-2/50 group-hover:text-gold-2 transition-colors ml-1" />
+              </button>
+            )}
 
-            {/* Progress bar */}
-            <div className="max-w-[420px] mb-5">
-              <div className="flex justify-between font-mono text-[9px] text-text-3 uppercase tracking-[0.22em] font-bold mb-1.5">
-                <span>Pearl Harbor · <span className="text-gold-2">{completedLessons} of {totalLessons}</span></span>
-                <span>+{totalXP || 442} XP accumulated</span>
+            {/* Progress bar - Only show for returning users */}
+            {!isNewUser && (
+              <div className="max-w-[420px] mb-5">
+                <div className="flex justify-between font-mono text-[9px] text-text-3 uppercase tracking-[0.22em] font-bold mb-1.5">
+                  <span>Pearl Harbor · <span className="text-gold-2">{completedLessons} of {totalLessons}</span></span>
+                  <span>+{totalXP || 442} XP accumulated</span>
+                </div>
+                <div className="h-[3px] bg-off-white/15 rounded-sm overflow-hidden relative">
+                  <motion.div
+                    className="h-full bg-gradient-to-r from-gold-3 to-gold-1 rounded-sm relative"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${progressPercent}%` }}
+                    transition={{ duration: 0.6, ease: 'easeOut' }}
+                  >
+                    <span className="absolute -right-1 top-1/2 -translate-y-1/2 w-2 h-2 bg-gold-1 rounded-full shadow-[0_0_12px_var(--gold-1)]" />
+                  </motion.div>
+                </div>
               </div>
-              <div className="h-[3px] bg-off-white/15 rounded-sm overflow-hidden relative">
-                <motion.div
-                  className="h-full bg-gradient-to-r from-gold-3 to-gold-1 rounded-sm relative"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${progressPercent}%` }}
-                  transition={{ duration: 0.6, ease: 'easeOut' }}
-                >
-                  <span className="absolute -right-1 top-1/2 -translate-y-1/2 w-2 h-2 bg-gold-1 rounded-full shadow-[0_0_12px_var(--gold-1)]" />
-                </motion.div>
-              </div>
-            </div>
+            )}
 
-            {/* CTA row */}
+            {/* CTA row - Different button text for new users */}
             <div className="flex items-center gap-3 mt-auto">
               <button
                 onClick={handleContinue}
                 className="btn-ha-red flex items-center gap-2.5"
               >
-                Continue Lesson
+                {isNewUser ? 'Start Pearl Harbor' : 'Continue Lesson'}
                 <ArrowRight size={14} />
               </button>
               <div className="flex flex-col gap-0.5 pl-2">
-                <span className="font-mono text-[7.5px] tracking-[0.28em] text-text-3 uppercase font-bold">Time · Reward</span>
-                <span className="font-mono text-[11px] text-gold-2 font-bold tracking-[0.08em]">7 min · +65 XP</span>
+                <span className="font-mono text-[7.5px] tracking-[0.28em] text-text-3 uppercase font-bold">
+                  {isNewUser ? 'First Lesson' : 'Time · Reward'}
+                </span>
+                <span className="font-mono text-[11px] text-gold-2 font-bold tracking-[0.08em]">
+                  {isNewUser ? 'Why Pearl Harbor?' : '7 min · +65 XP'}
+                </span>
               </div>
             </div>
           </div>
 
           {/* ═══ RIGHT SIDEBAR (Desktop) ═══ */}
           <div className="hidden md:flex w-[280px] flex-shrink-0 p-10 pl-0 flex-col gap-3 relative z-10">
-            {/* Next up card */}
-            <div className="bg-[rgba(15,10,6,0.65)] backdrop-blur-[10px] border border-gold-2/15 rounded-xl p-4 relative">
-              <div className="absolute top-0 left-4 w-5 h-0.5 bg-gold-2" />
-              <div className="font-mono text-[8px] tracking-[0.3em] text-text-3 uppercase font-bold mt-1.5 mb-1">Next up after this</div>
-              <div className="font-serif text-[17px] font-bold italic text-off-white leading-tight mb-1.5">
-                {nextLesson?.title || 'Second Wave'}
-              </div>
-              <div className="font-mono text-[8px] tracking-[0.15em] text-gold-2 uppercase font-bold">
-                Ford Island · 09:00 · 6 min
-              </div>
-            </div>
+            {isNewUser ? (
+              <>
+                {/* What you'll experience card for new users */}
+                <div className="bg-[rgba(15,10,6,0.65)] backdrop-blur-[10px] border border-gold-2/15 rounded-xl p-4 relative">
+                  <div className="absolute top-0 left-4 w-5 h-0.5 bg-ha-red" />
+                  <div className="font-mono text-[8px] tracking-[0.3em] text-ha-red uppercase font-bold mt-1.5 mb-2">What You'll Experience</div>
+                  <div className="space-y-2">
+                    <div className="flex items-start gap-2">
+                      <span className="w-1 h-1 bg-gold-2 rounded-full mt-1.5 flex-shrink-0" />
+                      <span className="font-body text-[12px] text-text-2">Survivor testimonies from the attack</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="w-1 h-1 bg-gold-2 rounded-full mt-1.5 flex-shrink-0" />
+                      <span className="font-body text-[12px] text-text-2">Declassified intelligence reports</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="w-1 h-1 bg-gold-2 rounded-full mt-1.5 flex-shrink-0" />
+                      <span className="font-body text-[12px] text-text-2">Strategic decisions that shaped WWII</span>
+                    </div>
+                  </div>
+                </div>
 
-            {/* Stats card */}
-            <div className="bg-[rgba(15,10,6,0.65)] backdrop-blur-[10px] border border-gold-2/15 rounded-xl p-4">
-              <HeroStat label="Lessons Left" value={totalLessons - completedLessons} />
-              <HeroStat label="To Diploma" value={`${100 - progressPercent}%`} />
-              <HeroStat label="Accuracy" value="94%" />
-              <HeroStat label="Est. Finish" value="Apr 30" isLast />
-            </div>
+                {/* Campaign info card for new users */}
+                <div className="bg-[rgba(15,10,6,0.65)] backdrop-blur-[10px] border border-gold-2/15 rounded-xl p-4">
+                  <HeroStat label="Total Lessons" value={totalLessons} />
+                  <HeroStat label="Campaign XP" value="+442" />
+                  <HeroStat label="Difficulty" value="Beginner" />
+                  <HeroStat label="Est. Time" value="45 min" isLast />
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Next up card for returning users */}
+                <div className="bg-[rgba(15,10,6,0.65)] backdrop-blur-[10px] border border-gold-2/15 rounded-xl p-4 relative">
+                  <div className="absolute top-0 left-4 w-5 h-0.5 bg-gold-2" />
+                  <div className="font-mono text-[8px] tracking-[0.3em] text-text-3 uppercase font-bold mt-1.5 mb-1">Next up after this</div>
+                  <div className="font-serif text-[17px] font-bold italic text-off-white leading-tight mb-1.5">
+                    {nextLesson?.title || 'Second Wave'}
+                  </div>
+                  <div className="font-mono text-[8px] tracking-[0.15em] text-gold-2 uppercase font-bold">
+                    Ford Island · 09:00 · 6 min
+                  </div>
+                </div>
+
+                {/* Stats card for returning users */}
+                <div className="bg-[rgba(15,10,6,0.65)] backdrop-blur-[10px] border border-gold-2/15 rounded-xl p-4">
+                  <HeroStat label="Lessons Left" value={totalLessons - completedLessons} />
+                  <HeroStat label="To Diploma" value={`${100 - progressPercent}%`} />
+                  <HeroStat label="Accuracy" value="94%" />
+                  <HeroStat label="Est. Finish" value="Apr 30" isLast />
+                </div>
+              </>
+            )}
           </div>
         </div>
       </section>
