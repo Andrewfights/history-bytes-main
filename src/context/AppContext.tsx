@@ -850,6 +850,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         id: userId,
       }));
 
+      // Always go to home tab on sign in
+      setActiveTab('home');
+
       // Sync API keys from Firestore for existing users
       syncApiKeysFromFirestore(userId);
     }

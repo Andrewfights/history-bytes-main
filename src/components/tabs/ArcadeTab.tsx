@@ -31,6 +31,8 @@ import { MapMysteryGame } from '@/components/arcade/MapMysteryGame';
 import { ArtifactGame } from '@/components/arcade/ArtifactGame';
 import { CauseEffectGame } from '@/components/arcade/CauseEffectGame';
 import { GeoguessrGame } from '@/components/arcade/GeoguessrGame';
+import { Scramble1940Game } from '@/components/arcade/Scramble1940Game';
+import { NavalEngagementGame } from '@/components/arcade/NavalEngagementGame';
 
 // ============================================
 // GAME DATA (preserved from original)
@@ -626,7 +628,7 @@ function AchievementCard({ name, desc, icon, locked }: { name: string; desc: str
 // MAIN ARCADE TAB
 // ============================================
 
-type ActiveGame = null | 'chrono' | 'who-am-i' | 'quote-or-fake' | 'wordle' | 'guess-year' | 'two-truths' | 'anachronism' | 'connections' | 'map-mystery' | 'artifact' | 'cause-effect' | 'geoguessr-where' | 'geoguessr-when' | 'geoguessr-what' | { type: string; xp: number };
+type ActiveGame = null | 'chrono' | 'who-am-i' | 'quote-or-fake' | 'wordle' | 'guess-year' | 'two-truths' | 'anachronism' | 'connections' | 'map-mystery' | 'artifact' | 'cause-effect' | 'geoguessr-where' | 'geoguessr-when' | 'geoguessr-what' | 'scramble-1940' | 'naval-engagement' | { type: string; xp: number };
 
 export function ArcadeTab() {
   const { user, addXP, getArcadePlaysToday, recordArcadePlay } = useApp();
@@ -669,6 +671,8 @@ export function ArcadeTab() {
   if (activeGame === 'geoguessr-where') return <GeoguessrGame mode="where" onBack={() => setActiveGame(null)} onComplete={(xp) => handleGameComplete('geoguessr-where', 'Where in History?', xp)} />;
   if (activeGame === 'geoguessr-when') return <GeoguessrGame mode="when" onBack={() => setActiveGame(null)} onComplete={(xp) => handleGameComplete('geoguessr-when', 'When in History?', xp)} />;
   if (activeGame === 'geoguessr-what') return <GeoguessrGame mode="what" onBack={() => setActiveGame(null)} onComplete={(xp) => handleGameComplete('geoguessr-what', 'What Happened Here?', xp)} />;
+  if (activeGame === 'scramble-1940') return <Scramble1940Game onBack={() => setActiveGame(null)} onComplete={(xp) => handleGameComplete('scramble-1940', 'Scramble 1940', xp)} />;
+  if (activeGame === 'naval-engagement') return <NavalEngagementGame onBack={() => setActiveGame(null)} onComplete={(xp) => handleGameComplete('naval-engagement', 'Naval Engagement', xp)} />;
 
   return (
     <div className="pb-24">
@@ -709,14 +713,16 @@ export function ArcadeTab() {
             <div className="font-display text-lg font-bold text-off-white uppercase">The Cabinet</div>
           </div>
           <button className="font-mono text-[9px] tracking-[0.18em] text-gold-2 uppercase font-semibold flex items-center gap-1">
-            All 12 <ChevronRight size={10} />
+            All 16 <ChevronRight size={10} />
           </button>
         </div>
         <div className="flex gap-2.5 overflow-x-auto px-4 pb-2 hide-scrollbar">
+          <GameCard game={ARCADE_GAMES.find(g => g.type === 'scramble-1940')!} colorTheme="red" badge="New" badgeType="new" onPlay={() => handleSelectGame('scramble-1940')} />
+          <GameCard game={ARCADE_GAMES.find(g => g.type === 'naval-engagement')!} colorTheme="teal" badge="New" badgeType="new" onPlay={() => handleSelectGame('naval-engagement')} />
           <GameCard game={ARCADE_GAMES.find(g => g.type === 'guess-year')!} colorTheme="green" badge="Trending" badgeType="hot" onPlay={() => handleSelectGame('guess-year')} />
           <GameCard game={ARCADE_GAMES.find(g => g.type === 'geoguessr-where')!} colorTheme="red" badge="Top 3" onPlay={() => handleSelectGame('geoguessr-where')} />
           <GameCard game={ARCADE_GAMES.find(g => g.type === 'chrono')!} colorTheme="gold" onPlay={() => handleSelectGame('chrono')} />
-          <GameCard game={ARCADE_GAMES.find(g => g.type === 'who-am-i')!} colorTheme="blue" badge="New" badgeType="new" onPlay={() => handleSelectGame('who-am-i')} />
+          <GameCard game={ARCADE_GAMES.find(g => g.type === 'who-am-i')!} colorTheme="blue" onPlay={() => handleSelectGame('who-am-i')} />
           <GameCard game={ARCADE_GAMES.find(g => g.type === 'artifact')!} colorTheme="brown" onPlay={() => handleSelectGame('artifact')} />
         </div>
       </div>

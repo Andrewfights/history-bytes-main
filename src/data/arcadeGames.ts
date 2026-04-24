@@ -11,7 +11,7 @@ import {
   type GameThumbnailData,
 } from '@/lib/database';
 
-export type GameCategory = 'word' | 'timeline' | 'geography' | 'trivia' | 'visual';
+export type GameCategory = 'word' | 'timeline' | 'geography' | 'trivia' | 'visual' | 'action';
 
 export interface ArcadeGame {
   id: string;
@@ -199,6 +199,28 @@ export const ARCADE_GAMES: ArcadeGame[] = [
     accentColor: '#059669', // emerald-600
     defaultImageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b0/Raising_the_Flag_on_Iwo_Jima%2C_larger_-_edit1.jpg/800px-Raising_the_Flag_on_Iwo_Jima%2C_larger_-_edit1.jpg',
   },
+  {
+    id: 'g15',
+    title: 'Scramble 1940',
+    description: 'Defend London as an RAF Spitfire pilot during the Battle of Britain.',
+    type: 'scramble-1940',
+    icon: '✈️',
+    xpReward: 75,
+    category: 'action',
+    accentColor: '#CD0E14', // ha-red
+    defaultImageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/Spitfire_mk2a_p7350_arp.jpg/800px-Spitfire_mk2a_p7350_arp.jpg',
+  },
+  {
+    id: 'g16',
+    title: 'Naval Engagement',
+    description: 'Command your fleet in a Pacific Theater battleship duel.',
+    type: 'naval-engagement',
+    icon: '⚓',
+    xpReward: 60,
+    category: 'action',
+    accentColor: '#14b8a6', // teal
+    defaultImageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/USS_Missouri_%28BB-63%29_at_sea%2C_1944_%28cropped%29.jpg/800px-USS_Missouri_%28BB-63%29_at_sea%2C_1944_%28cropped%29.jpg',
+  },
 ];
 
 // XP cap per day (plays that award XP)
@@ -359,6 +381,7 @@ export function getCategoryDisplayName(category: GameCategory): string {
     geography: 'Geography',
     trivia: 'Trivia',
     visual: 'Visual',
+    action: 'Action',
   };
   return names[category];
 }

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, Trophy, Flame, TrendingUp, Clock, Globe, Map, ArrowRight } from 'lucide-react';
+import { ChevronRight, Trophy, Flame, TrendingUp, Clock, Globe, Map, ArrowRight, Lock } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { arcs, getArcById } from '@/data/journeyData';
 import { getEraImageUrl } from '@/data/historicalEras';
@@ -1061,11 +1061,47 @@ export function JourneyTab() {
 
             {/* All Eras */}
             <div>
-              <div className="mb-3 relative pb-1.5">
-                <h2 className="font-serif italic font-bold text-xl sm:text-[28px] text-off-white leading-none tracking-[-0.015em]">
-                  All <em className="text-gold-2">Eras</em>
-                </h2>
-                <div className="absolute bottom-0 left-0 w-9 sm:w-12 h-[2px] bg-ha-red" />
+              <div className="mb-4 relative pb-3 border-b border-off-white/10">
+                {/* Red accent line */}
+                <div className="absolute bottom-0 left-0 w-16 sm:w-20 h-[2px] bg-ha-red" />
+
+                <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
+                  <div className="flex flex-col gap-1">
+                    {/* Kicker */}
+                    <div className="flex items-center gap-2 font-mono text-[8px] sm:text-[9px] tracking-[0.35em] text-ha-red font-bold uppercase">
+                      <span className="w-3 sm:w-4 h-[1px] bg-ha-red" />
+                      Campaign · {arcs.length} Historical Arcs
+                    </div>
+                    {/* Title */}
+                    <h2 className="font-serif italic font-bold text-xl sm:text-[28px] text-off-white leading-none tracking-[-0.015em]">
+                      All <em className="text-gold-2">Eras</em>
+                    </h2>
+                  </div>
+
+                  {/* Stats */}
+                  <div className="flex items-center gap-2 sm:gap-3 font-mono text-[8px] sm:text-[9px] tracking-[0.25em] uppercase font-semibold">
+                    {/* Available stat */}
+                    <div className="flex items-center gap-1.5 text-gold-2">
+                      <span
+                        className="w-[6px] h-[6px] sm:w-[7px] sm:h-[7px] rounded-full animate-pulse"
+                        style={{
+                          background: '#E6AB2A',
+                          boxShadow: '0 0 8px rgba(230,171,42,0.7)'
+                        }}
+                      />
+                      1 Available
+                    </div>
+                    <span className="text-off-white/30">·</span>
+                    {/* Sealed stat */}
+                    <div className="flex items-center gap-1.5 text-off-white/50">
+                      <span
+                        className="w-[6px] h-[6px] sm:w-[7px] sm:h-[7px] rounded-full opacity-65"
+                        style={{ background: '#8A0A0E' }}
+                      />
+                      {arcs.length - 1} Sealed
+                    </div>
+                  </div>
+                </div>
               </div>
               <div className="flex flex-col gap-2 sm:gap-2.5">
                 {arcs
@@ -1266,8 +1302,8 @@ function ArcCard({ arc, onSelect, isContinue, isRecent, isHighlighted, thumbnail
   );
   const host = getHostById(arc.hostId);
   const totalChapters = arc.chapters.length;
-  const hasContent = totalChapters > 0;
-  const isLocked = !hasContent;
+  // Lock ALL eras except WW2 - only WW2 is available
+  const isLocked = arc.id !== 'world-war-2';
 
   // Era-specific background gradients for circular thumbnails
   const eraBackgrounds: Record<string, string> = {
@@ -1290,29 +1326,140 @@ function ArcCard({ arc, onSelect, isContinue, isRecent, isHighlighted, thumbnail
 
   const defaultBackground = 'radial-gradient(ellipse at 50% 40%, rgba(230,171,42,0.25) 0%, transparent 60%), linear-gradient(135deg, #1a1608 0%, #080604 100%)';
 
+  // LOCKED ERA (sealed) - all eras except WW2
+  if (isLocked) {
+    return (
+      <div
+        className="relative w-full flex items-center gap-3 sm:gap-4 p-3 sm:p-3.5 rounded-xl text-left cursor-not-allowed overflow-hidden"
+        style={{
+          background: 'rgba(15,15,18,0.6)',
+          border: '1px solid rgba(242,238,230,0.08)',
+        }}
+      >
+        {/* Dim red rail on left */}
+        <div
+          className="absolute left-0 top-0 bottom-0 w-[2px] rounded-l-xl"
+          style={{ background: 'rgba(138,10,14,0.45)' }}
+        />
+
+        {/* Thumbnail with grayscale + CLASSIFIED stamp */}
+        <div className="relative flex-shrink-0">
+          <div
+            className="w-11 h-11 sm:w-14 sm:h-14 rounded-full overflow-hidden"
+            style={{
+              border: '1.5px solid rgba(178,100,31,0.2)',
+              boxShadow: 'inset 0 1px 2px rgba(255,220,170,0.15), 0 3px 6px rgba(0,0,0,0.5)',
+              background: eraBackgrounds[arc.id] || defaultBackground,
+              filter: 'grayscale(100%) brightness(0.5) contrast(1.1)',
+            }}
+          >
+            {hasValidThumbnail && (
+              <img
+                src={thumbnailUrl}
+                alt={arc.title}
+                className="w-full h-full object-cover"
+                onError={() => setImageError(true)}
+              />
+            )}
+            {/* Darkening overlay */}
+            <div className="absolute inset-0" style={{ background: 'radial-gradient(circle, transparent 0%, rgba(0,0,0,0.4) 100%)' }} />
+          </div>
+
+          {/* CLASSIFIED stamp - positioned over thumbnail */}
+          <div
+            className="absolute z-10 pointer-events-none whitespace-nowrap"
+            style={{
+              left: '50%',
+              top: '50%',
+              transform: 'translate(-50%, -50%) rotate(-16deg)',
+              fontFamily: "'Oswald', sans-serif",
+              fontSize: '6px',
+              fontWeight: 900,
+              letterSpacing: '0.18em',
+              color: 'rgba(255,60,60,0.95)',
+              textTransform: 'uppercase',
+              padding: '1.5px 3px',
+              border: '1px solid rgba(255,60,60,0.85)',
+              background: 'rgba(20,0,0,0.35)',
+              textShadow: '0 0 4px rgba(138,10,14,0.6)',
+              boxShadow: '0 0 0 1px rgba(255,60,60,0.15), inset 0 0 4px rgba(138,10,14,0.3)',
+            }}
+          >
+            Classified
+          </div>
+        </div>
+
+        {/* Body content - dimmed */}
+        <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+          <h3 className="font-serif italic font-bold text-sm sm:text-[17px] leading-[1.1] truncate" style={{ color: 'rgba(242,238,230,0.48)' }}>
+            {arc.title}
+          </h3>
+          <p className="text-[10px] sm:text-[12px] leading-[1.35] line-clamp-1" style={{ color: 'rgba(242,238,230,0.32)' }}>
+            {arc.description}
+          </p>
+          <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5">
+            {host && (
+              <>
+                <div className="flex items-center gap-1" style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '7px', letterSpacing: '0.22em', color: 'rgba(230,171,42,0.35)', textTransform: 'uppercase', fontWeight: 700 }}>
+                  <svg viewBox="0 0 24 24" className="w-[9px] h-[9px]" fill="currentColor">
+                    <circle cx="12" cy="8" r="4"/>
+                    <path d="M4 20c0-4 4-6 8-6s8 2 8 6" fill="none" stroke="currentColor" strokeWidth="2"/>
+                  </svg>
+                  {host.name}
+                </div>
+                <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '6px', color: 'rgba(242,238,230,0.2)' }}>·</span>
+              </>
+            )}
+            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '7px', letterSpacing: '0.22em', color: 'rgba(242,238,230,0.25)', textTransform: 'uppercase', fontWeight: 600 }}>
+              {totalChapters > 0 ? `${totalChapters} Chapters` : 'Coming Soon'}
+            </span>
+          </div>
+        </div>
+
+        {/* SEALED badge */}
+        <div
+          className="relative flex items-center gap-1 px-2 py-1.5 flex-shrink-0"
+          style={{
+            background: 'rgba(20,5,5,0.7)',
+            border: '1px solid rgba(138,10,14,0.5)',
+            borderRadius: '2px',
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: '6px',
+            letterSpacing: '0.25em',
+            color: 'rgba(255,100,100,0.8)',
+            textTransform: 'uppercase',
+            fontWeight: 700,
+          }}
+        >
+          {/* Corner brackets */}
+          <div className="absolute -top-[1px] -left-[1px] w-[4px] h-[4px] border-t border-l" style={{ borderColor: 'rgba(255,60,60,0.5)' }} />
+          <div className="absolute -bottom-[1px] -right-[1px] w-[4px] h-[4px] border-b border-r" style={{ borderColor: 'rgba(255,60,60,0.5)' }} />
+          <Lock size={8} strokeWidth={2} />
+          <span className="hidden sm:inline">Sealed</span>
+        </div>
+      </div>
+    );
+  }
+
+  // AVAILABLE ERA (WW2)
   return (
     <motion.button
-      onClick={isLocked ? undefined : onSelect}
-      disabled={isLocked}
-      className={`w-full text-left py-3 px-3.5 sm:py-3.5 sm:px-4 rounded-xl border transition-all group min-h-[70px] sm:min-h-[80px] ${
-        isLocked
-          ? 'bg-card/50 border-gold-2/10 cursor-not-allowed opacity-55'
-          : 'bg-card border-gold-2/20 hover:bg-[#1C1C1C] hover:border-gold-2/30'
-      }`}
-      whileHover={isLocked ? {} : { scale: 1.005 }}
-      whileTap={isLocked ? {} : { scale: 0.995 }}
+      onClick={onSelect}
+      className="w-full text-left py-3 px-3.5 sm:py-3.5 sm:px-4 rounded-xl border border-gold-2/20 bg-card hover:bg-[#1C1C1C] hover:border-gold-2/30 transition-all group min-h-[70px] sm:min-h-[80px]"
+      whileHover={{ scale: 1.005 }}
+      whileTap={{ scale: 0.995 }}
     >
       <div className="flex items-center gap-3 sm:gap-4">
         {/* Circular Era Thumbnail */}
         <div
-          className={`w-11 h-11 sm:w-14 sm:h-14 rounded-full flex-shrink-0 relative overflow-hidden border border-gold-2/30 ${isLocked ? 'opacity-50' : ''}`}
+          className="w-11 h-11 sm:w-14 sm:h-14 rounded-full flex-shrink-0 relative overflow-hidden border border-gold-2/30"
           style={{ background: eraBackgrounds[arc.id] || defaultBackground }}
         >
           {hasValidThumbnail && (
             <img
               src={thumbnailUrl}
               alt={arc.title}
-              className={`w-full h-full object-cover ${isLocked ? 'grayscale' : ''}`}
+              className="w-full h-full object-cover"
               onError={() => setImageError(true)}
             />
           )}
@@ -1322,13 +1469,13 @@ function ArcCard({ arc, onSelect, isContinue, isRecent, isHighlighted, thumbnail
 
         {/* Content */}
         <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-          <h3 className={`font-serif italic font-bold text-sm sm:text-[19px] leading-[1.1] tracking-[-0.005em] truncate ${isLocked ? 'text-off-white/40' : 'text-off-white'}`}>
+          <h3 className="font-serif italic font-bold text-sm sm:text-[19px] leading-[1.1] tracking-[-0.005em] truncate text-off-white">
             {arc.title}
           </h3>
-          <p className={`text-[10.5px] sm:text-[12.5px] leading-[1.35] line-clamp-1 ${isLocked ? 'text-off-white/30' : 'text-off-white/70'}`}>
+          <p className="text-[10.5px] sm:text-[12.5px] leading-[1.35] line-clamp-1 text-off-white/70">
             {arc.description}
           </p>
-          <div className={`flex items-center gap-1.5 sm:gap-2 mt-0.5 font-mono text-[7.5px] sm:text-[9px] tracking-[0.18em] uppercase font-bold ${isLocked ? 'text-off-white/30' : 'text-gold-dp'}`}>
+          <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5 font-mono text-[7.5px] sm:text-[9px] tracking-[0.18em] uppercase font-bold text-gold-dp">
             {host && (
               <>
                 <svg viewBox="0 0 24 24" className="w-[9px] h-[9px] sm:w-[11px] sm:h-[11px]" fill="currentColor">
@@ -1339,26 +1486,18 @@ function ArcCard({ arc, onSelect, isContinue, isRecent, isHighlighted, thumbnail
                 <span className="text-off-white/30">·</span>
               </>
             )}
-            {isLocked ? (
-              <span className="text-gold-2/50 font-semibold">Coming Soon</span>
-            ) : (
-              <span className="text-off-white/50 font-semibold">
-                {`${totalChapters} Chapter${totalChapters !== 1 ? 's' : ''}`}
-              </span>
-            )}
+            <span className="text-off-white/50 font-semibold">
+              {`${totalChapters} Chapter${totalChapters !== 1 ? 's' : ''}`}
+            </span>
           </div>
         </div>
 
         {/* Circular Arrow Button */}
-        {isLocked ? (
-          <span className="text-off-white/30 text-base">🔒</span>
-        ) : (
-          <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-gold-2/10 border border-gold-2/30 flex items-center justify-center flex-shrink-0 transition-all group-hover:bg-gold-2 group-hover:border-gold-2">
-            <svg viewBox="0 0 24 24" className="w-[9px] h-[9px] sm:w-[11px] sm:h-[11px] text-gold-2 group-hover:text-void" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M9 6l6 6-6 6"/>
-            </svg>
-          </div>
-        )}
+        <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-gold-2/10 border border-gold-2/30 flex items-center justify-center flex-shrink-0 transition-all group-hover:bg-gold-2 group-hover:border-gold-2">
+          <svg viewBox="0 0 24 24" className="w-[9px] h-[9px] sm:w-[11px] sm:h-[11px] text-gold-2 group-hover:text-void" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M9 6l6 6-6 6"/>
+          </svg>
+        </div>
       </div>
     </motion.button>
   );
