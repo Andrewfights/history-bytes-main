@@ -32,11 +32,25 @@ export function useWW2Preferences() {
       setIsLoading(true);
 
       try {
+        // Check if this is a fresh demo session (flag set by AppContext.signIn)
+        const isDemoFreshSession = localStorage.getItem('hb_demo_fresh_session') === 'true';
+
         // First, load from localStorage (always available)
         let localPrefs = DEFAULT_PREFERENCES;
         const stored = localStorage.getItem(WW2_PREFERENCES_KEY);
         if (stored) {
           localPrefs = JSON.parse(stored) as UserWW2Preferences;
+        }
+
+        // If this is a fresh demo session, clear the flag and use localStorage only
+        // This prevents race conditions where Firestore hasn't been reset yet
+        if (isDemoFreshSession) {
+          localStorage.removeItem('hb_demo_fresh_session');
+          console.log('[WW2Preferences] Fresh demo session - using localStorage, skipping Firestore');
+          setPreferences(localPrefs);
+          setIsLoading(false);
+          hasLoadedFromFirestore.current = true; // Mark as "loaded" to prevent future Firestore fetch
+          return;
         }
 
         // For authenticated users, Firestore is the source of truth

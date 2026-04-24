@@ -746,8 +746,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
       // Clear all localStorage for new users (including demo new user)
       clearAllStorage();
 
-      // For demo new user, also reset Firestore data to ensure fresh experience
+      // For demo new user, explicitly set WW2 preferences to empty in localStorage
+      // This must happen SYNCHRONOUSLY before any hook can read from Firestore
       if (isDemoNewUser) {
+        // Set explicit empty/default preferences in localStorage
+        // This ensures useWW2Preferences sees "no host selected" immediately
+        try {
+          localStorage.setItem('hb_ww2_preferences', JSON.stringify({
+            selectedHostId: null,
+            lastVisitDate: '',
+            hasSeenIntro: false,
+            hasSeenWelcomeVideo: false,
+          }));
+          // Set a flag so the hook knows to skip Firestore for this session
+          localStorage.setItem('hb_demo_fresh_session', 'true');
+        } catch (e) {
+          console.warn('Failed to set demo user preferences:', e);
+        }
+
+        // Also reset Firestore data (async, but localStorage is already set correctly)
         resetUserWW2Preferences(userId);
         resetUserPearlHarborProgress(userId);
       }
