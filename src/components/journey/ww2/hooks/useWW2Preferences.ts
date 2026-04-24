@@ -167,6 +167,16 @@ export function useWW2Preferences() {
     savePreferences({ selectedHostId: null });
   }, [savePreferences]);
 
+  // Reset entire campaign (for "Start from Beginning" feature)
+  const resetCampaign = useCallback(() => {
+    savePreferences({
+      selectedHostId: null,
+      hasSeenWelcomeVideo: false,
+      hasSeenIntro: false,
+      lastVisitDate: '',
+    });
+  }, [savePreferences]);
+
   // Check if this is a returning user (visited within last 30 days)
   const isReturningUser = useCallback(() => {
     if (!preferences.lastVisitDate || !preferences.selectedHostId) return false;
@@ -190,5 +200,6 @@ export function useWW2Preferences() {
     markWelcomeVideoSeen,
     updateLastVisit,
     clearHostSelection,
+    resetCampaign,
   };
 }

@@ -80,7 +80,7 @@ import { WW2TheaterSelection } from '@/components/journey/ww2-theaters';
 import { TrophyRoom } from '@/components/journey/trophy-room';
 import { PantheonRoom } from '@/components/journey/pantheon';
 import { getWW2HostById } from '@/data/ww2Hosts';
-import { Play, Target } from 'lucide-react';
+import { Play, Target, RotateCcw } from 'lucide-react';
 
 type JourneyView = 'landing' | 'arc' | 'node' | 'world-map' | 'ww2-entry' | 'ww2-theaters' | 'pearl-harbor' | 'pearl-harbor-journey' | 'pearl-harbor-lesson' | 'trophy-room' | 'pantheon';
 
@@ -134,6 +134,7 @@ export function JourneyTab() {
     hasResumableCheckpoint,
     getOverallProgress: getPearlHarborProgress,
     progress: pearlHarborProgress,
+    resetAllProgress: resetPearlHarborProgress,
   } = usePearlHarborProgress();
 
   const selectedArc = selectedArcId ? getArcById(selectedArcId) : null;
@@ -203,6 +204,7 @@ export function JourneyTab() {
     clearHostSelection,
     updateLastVisit,
     markWelcomeVideoSeen,
+    resetCampaign,
   } = useWW2Preferences();
   const [showWW2HostSelection, setShowWW2HostSelection] = useState(false);
   const [showWW2HostGreeting, setShowWW2HostGreeting] = useState(false);
@@ -210,6 +212,7 @@ export function JourneyTab() {
   const [showWW2WelcomeVideo, setShowWW2WelcomeVideo] = useState(false);
   const [welcomeVideoEnded, setWelcomeVideoEnded] = useState(false);
   const [pendingHostId, setPendingHostId] = useState<string | null>(null);
+  const [showResetConfirmation, setShowResetConfirmation] = useState(false);
 
   // Note: Auto-resume of Ghost Army disabled - user should explicitly select it
 
@@ -428,6 +431,18 @@ export function JourneyTab() {
     clearHostSelection();
     // This will trigger the guard that shows WW2HostSelection
     // when view is 'ww2-theaters' but no host is selected
+  };
+
+  // Handler for "Start Campaign from Beginning"
+  const handleResetCampaign = async () => {
+    // Reset all WW2 preferences (host, welcome video, etc.)
+    resetCampaign();
+    // Reset all Pearl Harbor progress
+    await resetPearlHarborProgress();
+    // Close confirmation modal
+    setShowResetConfirmation(false);
+    // Show host selection to start fresh
+    setShowWW2HostSelection(true);
   };
 
   const handleWW2SelectMap = () => {
@@ -837,17 +852,21 @@ export function JourneyTab() {
                     setShowWW2HostSelection(true);
                   }
                 }}
-                className="w-full relative overflow-hidden rounded-xl border border-gold-2/20 text-left group min-h-[190px] sm:min-h-[240px]"
+                className="w-full relative overflow-hidden rounded-xl text-left group min-h-[220px] sm:min-h-[320px]"
                 style={{
                   background: `
                     radial-gradient(ellipse at 65% 35%, rgba(200,60,20,0.3) 0%, transparent 50%),
                     radial-gradient(ellipse at 30% 70%, rgba(100,60,30,0.3) 0%, transparent 55%),
                     linear-gradient(180deg, #2a1810 0%, #0a0604 60%, #050302 100%)
-                  `
+                  `,
+                  boxShadow: '0 16px 40px rgba(0,0,0,0.5), 0 0 40px rgba(230,171,42,0.1)'
                 }}
               >
-                {/* Top gold accent bar */}
-                <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-gold-dp via-gold-br to-gold-dp z-10" />
+                {/* Corner brackets - art deco style */}
+                <div className="absolute top-3 left-3 w-4 h-4 border-t-2 border-l-2 border-gold-2 z-20 pointer-events-none" />
+                <div className="absolute top-3 right-3 w-4 h-4 border-t-2 border-r-2 border-gold-2 z-20 pointer-events-none" />
+                <div className="absolute bottom-3 left-3 w-4 h-4 border-b-2 border-l-2 border-gold-2 z-20 pointer-events-none" />
+                <div className="absolute bottom-3 right-3 w-4 h-4 border-b-2 border-r-2 border-gold-2 z-20 pointer-events-none" />
 
                 {/* Ship silhouette effect */}
                 <div className="absolute right-[5%] bottom-[22%] w-[60%] h-[35%] opacity-50 z-[1]">
@@ -860,58 +879,89 @@ export function JourneyTab() {
                   style={{ background: 'radial-gradient(ellipse, rgba(246,100,30,0.85), rgba(205,60,20,0.3) 50%, transparent)' }}
                 />
 
-                {/* Scrim overlay */}
-                <div className="absolute inset-0 bg-gradient-to-b from-[rgba(5,3,2,0.4)] via-[rgba(5,3,2,0.6)] to-[rgba(5,3,2,0.95)] z-[4]" />
-
-                {/* Grain texture */}
-                <div className="absolute inset-0 opacity-35 mix-blend-overlay pointer-events-none z-[5]"
-                  style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='nmf'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.3 0 0 0 0 0.1 0 0 0 0.3 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23nmf)'/%3E%3C/svg%3E")` }}
+                {/* Gradient overlay */}
+                <div className="absolute inset-0 z-[4] pointer-events-none"
+                  style={{ background: 'linear-gradient(180deg, rgba(10,8,5,0.2) 0%, rgba(10,8,5,0.35) 40%, rgba(10,8,5,0.8) 75%, rgba(10,8,5,0.98) 100%)' }}
                 />
 
-                <div className="relative z-10 p-4 sm:p-6 flex flex-col min-h-[190px] sm:min-h-[240px]">
-                  {/* Featured badge */}
-                  <div className="inline-flex items-center gap-1.5 self-start px-2 py-1 mb-3 border border-gold-2 rounded-sm bg-[rgba(20,14,8,0.55)] backdrop-blur-sm">
-                    <span className="text-gold-2 text-[6px]">◆</span>
-                    <span className="font-mono text-gold-2 text-[7.5px] sm:text-[9px] font-bold uppercase tracking-[0.28em]">Featured</span>
+                {/* Film grain texture */}
+                <div className="absolute inset-0 opacity-40 mix-blend-overlay pointer-events-none z-[5]"
+                  style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='hg'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch' seed='14'/%3E%3CfeColorMatrix values='0 0 0 0 0.6 0 0 0 0 0.4 0 0 0 0 0.15 0 0 0 0.08 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23hg)'/%3E%3C/svg%3E")` }}
+                />
+
+                <div className="relative z-10 p-5 sm:p-7 flex flex-col min-h-[220px] sm:min-h-[320px]">
+                  {/* Top row: Featured badge + Era badge */}
+                  <div className="flex items-start justify-between mb-4">
+                    {/* Featured badge */}
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 border border-gold-2/40 rounded-sm bg-[rgba(10,8,5,0.75)] backdrop-blur-sm">
+                      <span className="text-gold-2 text-[6px]">◆</span>
+                      <span className="font-mono text-gold-br text-[8px] sm:text-[10px] font-bold uppercase tracking-[0.32em]">Featured</span>
+                    </div>
+
+                    {/* Era/Date badge */}
+                    <div className="flex flex-col items-end gap-0.5 px-2.5 py-1.5 bg-[rgba(10,8,5,0.75)] border border-gold-2/30 rounded-sm backdrop-blur-sm">
+                      <span className="font-mono text-[7px] sm:text-[8px] tracking-[0.35em] text-off-white/50 uppercase font-bold">World War II</span>
+                      <span className="font-serif italic text-[11px] sm:text-[13px] text-gold-2 leading-none">Dec 7, 1941</span>
+                    </div>
                   </div>
 
-                  <h2 className="font-serif italic text-2xl sm:text-[44px] font-bold text-off-white leading-[0.95] tracking-[-0.018em] mb-1.5 sm:mb-2 drop-shadow-[0_3px_16px_rgba(0,0,0,0.8)]">
+                  <h2 className="font-serif italic text-[32px] sm:text-[56px] font-black text-off-white leading-[0.95] tracking-[-0.02em] mb-2 sm:mb-3 drop-shadow-[0_2px_20px_rgba(0,0,0,0.6)]">
                     Pearl Harbor
                   </h2>
-                  <p className="text-off-white/70 text-[11.5px] sm:text-sm leading-[1.35] mb-auto max-w-[280px] sm:max-w-[540px] drop-shadow-[0_1px_6px_rgba(0,0,0,0.6)]">
-                    December 7, 1941 — Experience the day that changed history
+                  <p className="font-serif italic text-[13px] sm:text-[16px] text-off-white/70 leading-[1.4] mb-auto max-w-[320px] sm:max-w-[520px]">
+                    Experience the day that changed history forever
                   </p>
 
                   {/* Progress section */}
-                  <div className="mt-4 sm:mt-6">
-                    {/* Progress labels */}
-                    <div className="flex justify-between items-center font-mono text-[8px] sm:text-[10px] tracking-[0.18em] text-off-white/50 uppercase font-semibold mb-1.5 sm:mb-2">
-                      <span>{pearlHarborProgress.completedActivities.filter(id => id.startsWith('ph-beat-')).length} of {PEARL_HARBOR_LESSONS.length} lessons</span>
-                      <span className="text-gold-2 font-bold text-[10px] sm:text-xs">{getPearlHarborProgress()}%</span>
+                  <div className="mt-4 sm:mt-6 pt-4 border-t border-off-white/10">
+                    {/* Progress row */}
+                    <div className="flex items-center justify-between gap-4 mb-4">
+                      <span className="font-mono text-[9px] sm:text-[10px] tracking-[0.26em] text-off-white/50 uppercase font-bold">
+                        <span className="text-gold-br">{pearlHarborProgress.completedActivities.filter(id => id.startsWith('ph-beat-')).length}</span> of {PEARL_HARBOR_LESSONS.length} Lessons
+                      </span>
+                      <div className="flex-1 h-[4px] bg-gold-2/20 rounded-sm overflow-hidden max-w-[180px] sm:max-w-[260px]">
+                        <div
+                          className="h-full bg-gradient-to-r from-gold-dp via-gold-2 to-gold-br rounded-sm transition-all duration-500"
+                          style={{
+                            width: `${Math.max(getPearlHarborProgress(), 3)}%`,
+                            boxShadow: '0 0 8px rgba(230,171,42,0.4)'
+                          }}
+                        />
+                      </div>
+                      <span className="font-serif italic text-[18px] sm:text-[22px] text-gold-br leading-none"
+                        style={{ textShadow: '0 0 12px rgba(230,171,42,0.35)' }}>
+                        {getPearlHarborProgress()}%
+                      </span>
                     </div>
 
-                    {/* Progress bar */}
-                    <div className="h-[3px] bg-off-white/15 rounded-sm overflow-visible mb-3 sm:mb-4">
-                      <div
-                        className="h-full bg-gradient-to-r from-gold-dp to-gold-br rounded-sm relative transition-all duration-500"
-                        style={{ width: `${Math.max(getPearlHarborProgress(), 3)}%` }}
-                      >
-                        <div className="absolute right-[-3px] top-1/2 -translate-y-1/2 w-[7px] h-[7px] bg-gold-br rounded-full shadow-[0_0_10px_var(--gold)]" />
+                    {/* Footer with meta + CTA */}
+                    <div className="flex items-center justify-between gap-4 flex-wrap">
+                      <div className="flex items-center gap-3 sm:gap-4 font-mono text-[9px] sm:text-[10px] tracking-[0.18em] text-off-white/60 uppercase font-bold">
+                        <span className="flex items-center gap-1.5">
+                          <svg viewBox="0 0 24 24" className="w-3 h-3 opacity-75" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M12 6v6l4 2"/>
+                            <circle cx="12" cy="12" r="10"/>
+                          </svg>
+                          <span className="text-gold-2">~45</span> Min
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                          <svg viewBox="0 0 24 24" className="w-3 h-3 opacity-75" fill="none" stroke="currentColor" strokeWidth="2">
+                            <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
+                          </svg>
+                          <span className="text-gold-2">+865</span> XP
+                        </span>
                       </div>
-                    </div>
 
-                    {/* Footer with meta + continue */}
-                    <div className="flex justify-between items-center pt-2 sm:pt-3 border-t border-dashed border-off-white/10 gap-2 flex-wrap">
-                      <div className="flex items-center gap-2 sm:gap-3 font-mono text-[8px] sm:text-[10px] tracking-[0.14em] text-off-white/50 uppercase font-semibold">
-                        <span><span className="text-gold-2 font-bold">7</span> Lessons</span>
-                        <span className="text-off-white/30">·</span>
-                        <span><span className="text-gold-2 font-bold">~45</span> Min</span>
-                        <span className="text-off-white/30">·</span>
-                        <span><span className="text-gold-2 font-bold">+280</span> XP</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 font-display text-[10px] sm:text-xs tracking-[0.18em] text-gold-2 uppercase font-bold group-hover:gap-3 transition-all">
+                      {/* CTA Button */}
+                      <div className="relative inline-flex items-center gap-2.5 px-5 py-3 bg-gradient-to-b from-ha-red via-ha-red to-ha-red-deep rounded-md font-display text-[11px] sm:text-[12px] font-black tracking-[0.3em] text-off-white uppercase"
+                        style={{
+                          boxShadow: '0 6px 18px rgba(205,14,20,0.4), inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -2px 4px rgba(80,0,0,0.4)'
+                        }}>
+                        {/* CTA corner brackets */}
+                        <div className="absolute -top-[1px] -left-[1px] w-2 h-2 border-t border-l border-gold-2" />
+                        <div className="absolute -bottom-[1px] -right-[1px] w-2 h-2 border-b border-r border-gold-2" />
                         {getPearlHarborProgress() > 0 ? 'Continue' : 'Begin'}
-                        <svg viewBox="0 0 24 24" className="w-[11px] h-[11px] sm:w-[14px] sm:h-[14px]" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <svg viewBox="0 0 24 24" className="w-3 h-3 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" strokeWidth="2.6">
                           <path d="M5 12h14M13 6l6 6-6 6"/>
                         </svg>
                       </div>
@@ -919,6 +969,22 @@ export function JourneyTab() {
                   </div>
                 </div>
               </button>
+
+              {/* Start from Beginning button - only show if progress > 0 */}
+              {getPearlHarborProgress() > 0 && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowResetConfirmation(true);
+                  }}
+                  className="mt-2 w-full py-2 px-3 rounded-lg bg-ink-lift/50 border border-off-white/10 hover:border-ha-red/30 hover:bg-ha-red/5 transition-all flex items-center justify-center gap-2 group"
+                >
+                  <RotateCcw size={12} className="text-off-white/50 group-hover:text-ha-red transition-colors" />
+                  <span className="font-mono text-[9px] sm:text-[10px] tracking-[0.2em] text-off-white/50 group-hover:text-off-white/70 uppercase font-semibold transition-colors">
+                    Start from Beginning
+                  </span>
+                </button>
+              )}
             </motion.div>
 
             {/* Progress Overview Section */}
@@ -1277,6 +1343,74 @@ export function JourneyTab() {
               setView('arc');
             }}
           />
+        )}
+      </AnimatePresence>
+
+      {/* Reset Campaign Confirmation Modal */}
+      <AnimatePresence>
+        {showResetConfirmation && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={() => setShowResetConfirmation(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="relative bg-ink border border-ha-red/30 rounded-xl p-6 max-w-sm w-full shadow-2xl"
+            >
+              {/* Corner brackets */}
+              <div className="absolute top-2 left-2 w-3 h-3 border-t-2 border-l-2 border-ha-red" />
+              <div className="absolute top-2 right-2 w-3 h-3 border-t-2 border-r-2 border-ha-red" />
+              <div className="absolute bottom-2 left-2 w-3 h-3 border-b-2 border-l-2 border-ha-red" />
+              <div className="absolute bottom-2 right-2 w-3 h-3 border-b-2 border-r-2 border-ha-red" />
+
+              {/* Icon */}
+              <div className="flex justify-center mb-4">
+                <div className="w-14 h-14 rounded-full bg-ha-red/10 border border-ha-red/30 flex items-center justify-center">
+                  <RotateCcw size={24} className="text-ha-red" />
+                </div>
+              </div>
+
+              {/* Title */}
+              <h3 className="font-display text-xl font-bold text-off-white text-center mb-2 uppercase tracking-wide">
+                Start from Beginning?
+              </h3>
+
+              {/* Description */}
+              <p className="text-off-white/60 text-sm text-center mb-6 leading-relaxed">
+                This will reset all your Pearl Harbor progress, including completed lessons, quiz scores, and checkpoint data. You'll need to select a guide again.
+              </p>
+
+              {/* Warning */}
+              <div className="bg-ha-red/10 border border-ha-red/20 rounded-lg p-3 mb-6">
+                <p className="font-mono text-[10px] text-ha-red text-center uppercase tracking-wider font-semibold">
+                  This action cannot be undone
+                </p>
+              </div>
+
+              {/* Buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowResetConfirmation(false)}
+                  className="flex-1 py-3 px-4 rounded-lg bg-ink-lift border border-off-white/10 hover:border-off-white/20 transition-colors font-mono text-xs uppercase tracking-wider text-off-white/70 hover:text-off-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleResetCampaign}
+                  className="flex-1 py-3 px-4 rounded-lg bg-ha-red hover:bg-ha-red/90 transition-colors font-mono text-xs uppercase tracking-wider text-off-white font-bold flex items-center justify-center gap-2"
+                >
+                  <RotateCcw size={12} />
+                  Reset
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

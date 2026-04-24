@@ -17,13 +17,13 @@ import type {
 // ---- Exam Configuration ----
 
 export const FINAL_EXAM_CONFIG = {
-  totalQuestions: 15,
-  questionsPerTier: 5,
+  totalQuestions: 10,
+  questionsPerTier: { easy: 4, medium: 4, hard: 2 },
   tiersInOrder: ['easy', 'medium', 'hard'] as const,
   shuffleWithinTiers: true,
   noPerQuestionTimer: false, // Changed: now has game show timer
   lessonId: 'ph-beat-14',
-  xpReward: 150, // Max XP for perfect score
+  xpReward: 100, // Max XP for perfect score
 };
 
 // ---- Game Show Mode Configuration ----
@@ -40,34 +40,34 @@ export const GAME_SHOW_CONFIG: GameShowConfig = {
 
 export const FINAL_EXAM_SCORING: Record<ScoreTier, ScoreTierConfig> = {
   perfect: {
-    minCorrect: 15,
-    xp: 150,
+    minCorrect: 10,
+    xp: 100,
     badge: 'pearl-harbor-scholar',
     tier: 'Perfect Score',
     goldStar: true,
   },
   expert: {
-    minCorrect: 12,
-    xp: 120,
+    minCorrect: 8,
+    xp: 80,
     badge: 'pearl-harbor-expert',
     tier: 'Expert',
   },
   historian: {
-    minCorrect: 9,
-    xp: 90,
+    minCorrect: 6,
+    xp: 60,
     badge: 'pearl-harbor-historian',
     tier: 'Passing',
   },
   review: {
-    minCorrect: 6,
-    xp: 60,
+    minCorrect: 4,
+    xp: 40,
     badge: null,
     tier: 'Needs Review',
     promptRevisit: true,
   },
   retry: {
     minCorrect: 0,
-    xp: 30,
+    xp: 20,
     badge: null,
     tier: 'Retry Recommended',
     promptRetry: true,
@@ -153,11 +153,11 @@ export function shuffleQuestionsWithinTiers(questions: ExamQuestion[]): ExamQues
 }
 
 /**
- * Get the difficulty tier for a given question index (0-14)
+ * Get the difficulty tier for a given question index (0-9)
  */
 export function getTierForIndex(index: number): ExamDifficulty {
-  if (index < 5) return 'easy';
-  if (index < 10) return 'medium';
+  if (index < 4) return 'easy';
+  if (index < 8) return 'medium';
   return 'hard';
 }
 
@@ -175,13 +175,13 @@ export const EXAM_HOST_DIALOGUES: ExamHostDialogue = {
     "Welcome to the Final Exam! This is HQ Trivia style - you have 10 seconds per question. Lock in your answer before time runs out. You won't see if you're right or wrong until the end. Ready to test your knowledge?",
 
   easyTierIntro:
-    "Let's start with the fundamentals. These first five questions cover the basics you should know.",
+    "Let's start with the fundamentals. These first four questions cover the basics you should know.",
 
   mediumTierIntro:
-    "Moving to the next level. These questions require you to connect concepts and think about why things happened.",
+    "Moving to the next level. These four questions require you to connect concepts and think about why things happened.",
 
   hardTierIntro:
-    "Final stretch - the challenging questions. These test your deeper understanding of Pearl Harbor history.",
+    "Final stretch - two challenging questions. These test your deeper understanding of Pearl Harbor and WW2 history.",
 
   correctFeedback: [
     'Excellent!',
@@ -203,8 +203,8 @@ export const EXAM_HOST_DIALOGUES: ExamHostDialogue = {
   tierTransition: {
     easy: "Nice work on the basics. Now let's see how well you can connect the dots.",
     medium:
-      "You're doing great. These last five are the real challenge - they're about deeper patterns and what-ifs.",
-    hard: "That's it - you've completed the Pearl Harbor chapter. Let's see how you did.",
+      "You're doing great. These last two are the real challenge - they're about deeper understanding.",
+    hard: "That's it - you've completed the WW2 module exam. Let's see how you did.",
   },
 
   results: {

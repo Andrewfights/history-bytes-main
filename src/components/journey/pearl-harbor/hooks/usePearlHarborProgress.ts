@@ -423,6 +423,31 @@ export function usePearlHarborProgress() {
     return Math.min(progress.currentStreak * 10, 50);
   }, [progress.currentStreak]);
 
+  // Reset all progress (for "Start Campaign from Beginning" feature)
+  const resetAllProgress = useCallback(async () => {
+    // Clear localStorage
+    localStorage.removeItem(PROGRESS_KEY);
+    localStorage.removeItem(CHECKPOINT_KEY);
+
+    // Reset state
+    setProgress(DEFAULT_PROGRESS);
+    setCheckpoint(null);
+
+    // Clear from Firestore if logged in
+    if (user && isFirebaseConfigured()) {
+      try {
+        const docRef = doc(db, FIRESTORE_COLLECTION, user.uid);
+        await setDoc(docRef, {
+          pearlHarborProgress: DEFAULT_PROGRESS,
+          updatedAt: serverTimestamp(),
+        }, { merge: true });
+        console.log('[PearlHarborProgress] Reset synced to Firestore');
+      } catch (error) {
+        console.error('[PearlHarborProgress] Firestore reset failed:', error);
+      }
+    }
+  }, [user]);
+
   return {
     progress,
     isLoading,
@@ -445,5 +470,7 @@ export function usePearlHarborProgress() {
     getCheckpoint,
     getCheckpointForLesson,
     hasResumableCheckpoint,
+    // Reset function
+    resetAllProgress,
   };
 }
