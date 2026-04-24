@@ -1,7 +1,7 @@
 /**
  * DossierJourneyMap - Mission briefing style lesson journey
  * Intelligence file aesthetic with declassified/classified states
- * Option B design system with brass fasteners and dossier cards
+ * Option B design system with brass fasteners, desktop sidebar, and dossier cards
  */
 
 import { ArrowLeft } from 'lucide-react';
@@ -40,11 +40,14 @@ export function DossierJourneyMap({
 
   // Calculate estimated time
   const completedMinutes = lessons
-    .filter(l => completedLessons.has(l.id))
+    .filter((l) => completedLessons.has(l.id))
     .reduce((sum, l) => sum + parseInt(l.duration || '0'), 0);
   const remainingMinutes = lessons
-    .filter(l => !completedLessons.has(l.id))
+    .filter((l) => !completedLessons.has(l.id))
     .reduce((sum, l) => sum + parseInt(l.duration || '0'), 0);
+
+  // Total runtime
+  const totalMinutes = lessons.reduce((sum, l) => sum + parseInt(l.duration || '0'), 0);
 
   // Determine lesson states with 4 states: done, cur, upcoming, lock
   const getLessonState = (lessonId: string, index: number): DossierState => {
@@ -52,7 +55,7 @@ export function DossierJourneyMap({
     if (lessonId === currentLessonId) return 'cur';
 
     // Find the first incomplete lesson
-    const firstIncompleteIndex = lessons.findIndex(l => !completedLessons.has(l.id));
+    const firstIncompleteIndex = lessons.findIndex((l) => !completedLessons.has(l.id));
 
     // If this is the first incomplete, it's current
     if (!currentLessonId && index === firstIncompleteIndex) return 'cur';
@@ -62,7 +65,7 @@ export function DossierJourneyMap({
 
     // Check if all previous lessons are complete
     const previousLessons = lessons.slice(0, index);
-    const allPreviousComplete = previousLessons.every(l => completedLessons.has(l.id));
+    const allPreviousComplete = previousLessons.every((l) => completedLessons.has(l.id));
 
     // If all previous complete and this is not current, it's upcoming
     if (allPreviousComplete) return 'upcoming';
@@ -74,137 +77,147 @@ export function DossierJourneyMap({
   return (
     <div className="min-h-screen bg-void flex flex-col">
       {/* Classification header strip */}
-      <div className="flex items-center justify-between px-4 py-2.5 bg-black/40 border-b border-ha-red/30 border-t border-ha-red/30">
-        <div className="flex items-center gap-2 font-mono text-[9px] tracking-[0.38em] text-[#E84046] uppercase font-bold">
-          <span className="w-[7px] h-[7px] rounded-full bg-ha-red shadow-[0_0_8px_var(--ha-red)] animate-pulse" />
+      <div className="brf-header-top">
+        <div className="brf-classif">
+          <span className="brf-classif-dot" />
           Briefing · Active
         </div>
-        <div className="font-mono text-[9px] tracking-[0.28em] text-off-white/50 uppercase font-semibold">
-          File · <span className="text-gold-2">{fileCode}</span>
+        <div className="brf-file">
+          File · <em>{fileCode}</em> · Rev. 07
         </div>
       </div>
 
-      {/* Intel header */}
-      <div className="relative px-4 py-4 text-center bg-gradient-to-b from-[#131009] to-[#0a0805]">
-        <button
-          onClick={onBack}
-          className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-off-white/50 hover:text-gold-2 transition-colors font-mono text-[10px] tracking-[0.28em] uppercase font-semibold"
-        >
-          <ArrowLeft size={14} strokeWidth={2.2} />
-          <span className="hidden sm:inline">Back</span>
-        </button>
+      {/* Desktop: 2-column layout | Mobile: Single column */}
+      <div className="brf-desktop-layout lg:grid flex flex-col flex-1">
+        {/* LEFT SIDEBAR (Desktop) / HEADER SECTION (Mobile) */}
+        <aside className="brf-side">
+          <button onClick={onBack} className="brf-side-back">
+            <ArrowLeft size={12} strokeWidth={2.2} />
+            All Campaigns
+          </button>
 
-        <div className="font-mono text-[8.5px] tracking-[0.36em] text-off-white/50 uppercase font-semibold mb-1.5">
-          Chapter · World Wars
-        </div>
-        <h1 className="font-playfair italic font-bold text-[24px] sm:text-[28px] text-off-white leading-none tracking-[-0.015em] mb-1">
-          {moduleTitle.split(' ')[0]} <span className="text-gold-2">{moduleTitle.split(' ').slice(1).join(' ') || 'Harbor'}</span>
-        </h1>
-        <p className="font-dm-serif italic text-[13px] text-gold-2">
-          December 7, 1941
-        </p>
-      </div>
+          <div className="brf-side-chapter">Chapter 07 · World Wars</div>
 
-      {/* Progress bar section */}
-      <div className="px-4 py-3 bg-black/30 border-t border-off-white/[0.06] border-b border-off-white/[0.06]">
-        {/* Labels */}
-        <div className="flex justify-between font-mono text-[8.5px] text-off-white/50 tracking-[0.18em] uppercase font-bold mb-2">
-          <span>Declassified</span>
-          <span className="text-gold-2 font-bold">{completedCount}/{totalCount}</span>
-        </div>
+          <h1 className="brf-side-title">
+            {moduleTitle.split(' ')[0]}{' '}
+            <em>{moduleTitle.split(' ').slice(1).join(' ') || 'Harbor'}</em>
+          </h1>
 
-        {/* Progress bar */}
-        <div className="h-[4px] bg-gold-2/15 rounded-sm overflow-hidden mb-3">
-          <motion.div
-            className="h-full bg-gradient-to-r from-gold-dp via-gold-2 to-gold-br rounded-sm"
-            style={{ boxShadow: '0 0 8px rgba(230,171,42,0.4)' }}
-            initial={{ width: 0 }}
-            animate={{ width: `${progressPercent}%` }}
-            transition={{ duration: 0.5, ease: 'easeOut' }}
-          />
-        </div>
+          <p className="brf-side-subtitle">
+            December 7, 1941 · The day that changed the course of history.{' '}
+            {totalCount} lessons, declassified one by one.
+          </p>
 
-        {/* Stats row */}
-        <div className="grid grid-cols-3 gap-2">
-          <div className="text-center p-2 bg-black/35 rounded border border-off-white/[0.06]">
-            <div className="font-dm-serif italic text-[18px] text-gold-br leading-none">{totalXp}</div>
-            <div className="font-mono text-[7.5px] tracking-[0.25em] text-off-white/40 uppercase font-bold mt-1">XP Earned</div>
+          {/* File card (metadata strip) */}
+          <div className="brf-file-card">
+            <div className="brf-file-rows">
+              <div className="brf-file-row">
+                <div className="brf-file-row-k">Operation</div>
+                <div className="brf-file-row-v">{moduleSubtitle}</div>
+              </div>
+              <div className="brf-file-row">
+                <div className="brf-file-row-k">Theater</div>
+                <div className="brf-file-row-v">Pacific</div>
+              </div>
+              <div className="brf-file-row">
+                <div className="brf-file-row-k">Era</div>
+                <div className="brf-file-row-v">World Wars</div>
+              </div>
+              <div className="brf-file-row">
+                <div className="brf-file-row-k">Date</div>
+                <div className="brf-file-row-v">
+                  <em>7.Dec.1941</em>
+                </div>
+              </div>
+              <div className="brf-file-row">
+                <div className="brf-file-row-k">Total Runtime</div>
+                <div className="brf-file-row-v">
+                  <em>{totalMinutes}</em> min
+                </div>
+              </div>
+              <div className="brf-file-row">
+                <div className="brf-file-row-k">Classification</div>
+                <div className="brf-file-row-v">Active</div>
+              </div>
+            </div>
           </div>
-          <div className="text-center p-2 bg-black/35 rounded border border-off-white/[0.06]">
-            <div className="font-dm-serif italic text-[18px] text-gold-br leading-none">{completedMinutes}m</div>
-            <div className="font-mono text-[7.5px] tracking-[0.25em] text-off-white/40 uppercase font-bold mt-1">Completed</div>
-          </div>
-          <div className="text-center p-2 bg-black/35 rounded border border-off-white/[0.06]">
-            <div className="font-dm-serif italic text-[18px] text-gold-br leading-none">{remainingMinutes}m</div>
-            <div className="font-mono text-[7.5px] tracking-[0.25em] text-off-white/40 uppercase font-bold mt-1">Remaining</div>
-          </div>
-        </div>
-      </div>
 
-      {/* Main feed header */}
-      <div className="flex items-baseline justify-between px-4 py-3 border-b border-dashed border-off-white/[0.08]">
-        <div className="flex items-center gap-2">
-          <span className="w-[7px] h-[7px] rounded-full bg-ha-red shadow-[0_0_8px_var(--ha-red)] animate-pulse" />
-          <span className="font-mono text-[9.5px] tracking-[0.4em] text-[#E84046] uppercase font-bold">
-            Case File · {totalCount} Dossiers
-          </span>
-        </div>
-        <span className="font-mono text-[9px] tracking-[0.28em] text-gold-2 uppercase font-bold">
-          File {fileCode}
-        </span>
-      </div>
-
-      {/* Dossier cards list */}
-      <div
-        className="flex-1 px-4 py-4 overflow-y-auto relative"
-        style={{
-          background: 'linear-gradient(180deg, #0f0a05 0%, #0a0805 100%)'
-        }}
-      >
-        {/* Grid background pattern */}
-        <div
-          className="absolute inset-0 opacity-70 pointer-events-none"
-          style={{
-            backgroundImage: `
-              repeating-linear-gradient(90deg, transparent 0, transparent 29px, rgba(230,171,42,0.025) 29px, rgba(230,171,42,0.025) 30px),
-              repeating-linear-gradient(0deg, transparent 0, transparent 29px, rgba(230,171,42,0.025) 29px, rgba(230,171,42,0.025) 30px)
-            `
-          }}
-        />
-
-        {/* Red dashed thread connecting cards */}
-        <div
-          className="absolute left-[50px] sm:left-[60px] top-4 bottom-4 w-0.5 z-0 pointer-events-none opacity-50"
-          style={{
-            background: 'repeating-linear-gradient(180deg, var(--ha-red) 0, var(--ha-red) 4px, transparent 4px, transparent 8px)'
-          }}
-        />
-
-        {/* Lesson cards */}
-        <div className="relative z-10 space-y-3.5">
-          {lessons.map((lesson, index) => {
-            const state = getLessonState(lesson.id, index);
-            return (
-              <DossierCard
-                key={lesson.id}
-                lesson={lesson}
-                state={state}
-                index={index}
-                onClick={() => onLessonClick(lesson.id)}
+          {/* Progress card */}
+          <div className="brf-progress-card">
+            <div className="brf-prog-head">
+              <div className="brf-prog-head-lbl">Declassified</div>
+              <div className="brf-prog-head-val">
+                <em>{completedCount}</em>/{totalCount}
+              </div>
+            </div>
+            <div className="brf-prog-bar-lg">
+              <motion.div
+                className="brf-prog-bar-fill"
+                initial={{ width: 0 }}
+                animate={{ width: `${progressPercent}%` }}
+                transition={{ duration: 0.5, ease: 'easeOut' }}
               />
-            );
-          })}
-        </div>
+            </div>
+            <div className="brf-prog-stats">
+              <div className="brf-prog-stat">
+                <div className="brf-prog-stat-v">{totalXp}</div>
+                <div className="brf-prog-stat-l">XP Earned</div>
+              </div>
+              <div className="brf-prog-stat">
+                <div className="brf-prog-stat-v">{completedMinutes}m</div>
+                <div className="brf-prog-stat-l">Completed</div>
+              </div>
+              <div className="brf-prog-stat">
+                <div className="brf-prog-stat-v">{remainingMinutes}m</div>
+                <div className="brf-prog-stat-l">Remaining</div>
+              </div>
+            </div>
+          </div>
+        </aside>
 
-        {/* XP total at bottom */}
-        <div className="relative z-10 mt-6 pt-4 border-t border-off-white/10 text-center">
-          <div className="font-mono text-[8px] tracking-[0.2em] text-off-white/40 uppercase mb-1">
-            Total Intelligence
+        {/* RIGHT MAIN: Dossier feed */}
+        <main className="brf-main flex-1">
+          {/* Main header */}
+          <div className="brf-main-header">
+            <div className="brf-main-kick">
+              <span className="brf-main-kick-dot" />
+              Case File · {totalCount} Dossiers
+            </div>
+            <div className="brf-main-file">
+              Internal Use Only · <em>File {fileCode}</em>
+            </div>
           </div>
-          <div className="font-dm-serif italic text-lg font-bold text-gold-2">
-            {totalXp} <span className="text-off-white/40 text-sm">/ {maxXp} XP</span>
+
+          {/* Red thread */}
+          <div className="brf-thread" />
+
+          {/* Dossier cards list */}
+          <div className="brf-dossier-list">
+            {lessons.map((lesson, index) => {
+              const state = getLessonState(lesson.id, index);
+              return (
+                <DossierCard
+                  key={lesson.id}
+                  lesson={lesson}
+                  state={state}
+                  index={index}
+                  onClick={() => onLessonClick(lesson.id)}
+                  showRightColumn={true}
+                />
+              );
+            })}
           </div>
-        </div>
+
+          {/* XP total at bottom */}
+          <div className="relative z-10 mt-6 pt-4 border-t border-off-white/10 text-center">
+            <div className="font-mono text-[8px] tracking-[0.2em] text-off-white/40 uppercase mb-1">
+              Total Intelligence
+            </div>
+            <div className="font-dm-serif italic text-lg font-bold text-gold-2">
+              {totalXp} <span className="text-off-white/40 text-sm">/ {maxXp} XP</span>
+            </div>
+          </div>
+        </main>
       </div>
     </div>
   );

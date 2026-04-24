@@ -1,6 +1,7 @@
 /**
  * FinalExamBeat - Main component for Pearl Harbor Final Exam (Beat 11)
  * HQ-style game show trivia with 10-second timer per question
+ * Redesigned with 4 states: Commission Briefing, Live Question, Final Verdict, Commendation
  */
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
@@ -18,6 +19,10 @@ import { ExamProgressBar } from './ExamProgressBar';
 import { ExamQuestionRenderer } from './ExamQuestionRenderer';
 import { ExamResults } from './ExamResults';
 import { GameShowQuestionWrapper } from './GameShowQuestionWrapper';
+import { ExamIntroScreen } from './ExamIntroScreen';
+import { ExamQuestionScreen } from './ExamQuestionScreen';
+import { ExamVerdictScreen } from './ExamVerdictScreen';
+import { ExamCommendationScreen } from './ExamCommendationScreen';
 import { FINAL_EXAM_QUESTIONS } from './examQuestions';
 import {
   FINAL_EXAM_CONFIG,
@@ -38,6 +43,7 @@ import {
   type ExamQuestionVideo,
   type ExamQuestionHostVideos,
 } from '@/lib/firestore';
+import { useAuth } from '@/context/AuthContext';
 
 /**
  * Evaluate an answer for a given question
@@ -144,6 +150,13 @@ export function FinalExamBeat({
   onSkip,
   onBack,
 }: FinalExamBeatProps) {
+  // Use new redesigned UI
+  const useNewDesign = true;
+
+  // Get user info for certificate
+  const { user } = useAuth();
+  const userName = user?.displayName || user?.email?.split('@')[0] || 'Cadet';
+
   // State machine
   const [screen, setScreen] = useState<ExamScreen>('intro');
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -471,6 +484,159 @@ export function FinalExamBeat({
     );
   }
 
+  // Handle view commendation
+  const handleViewCommendation = () => {
+    setScreen('commendation');
+  };
+
+  // Handle return to campaign from commendation
+  const handleReturnToCampaign = () => {
+    onComplete(examResult.xp);
+  };
+
+  // New Redesigned UI
+  if (useNewDesign) {
+    // Intro Screen
+    if (screen === 'intro') {
+      return (
+        <ExamIntroScreen
+          host={host}
+          questionCount={FINAL_EXAM_CONFIG.totalQuestions}
+          timePerQuestion={GAME_SHOW_CONFIG.questionTimeLimit}
+          passPercentage={70}
+          totalXp={100}
+          onStart={handleIntroStart}
+          onClose={onSkip}
+        />
+      );
+    }
+
+    // Question Screen (game show mode)
+    if (screen === 'question_active' && currentQuestion) {
+      const currentScore = pendingAnswers.filter((_, i) => {
+        const q = shuffledQuestions[i];
+        const pending = pendingAnswers[i];
+        if (!q || !pending) return false;
+        return evaluateAnswer(q, pending.value);
+      }).length;
+
+      return (
+        <ExamQuestionScreen
+          question={currentQuestion}
+          questionNumber={currentIndex + 1}
+          totalQuestions={shuffledQuestions.length}
+          currentScore={currentScore}
+          host={host}
+          videoUrl={getQuestionVideo(currentQuestion.id)?.videoUrl || currentQuestion.visualAsset}
+          onQuestionComplete={handleGameShowQuestionComplete}
+          onClose={onSkip}
+        />
+      );
+    }
+
+    // Results / Verdict Screen
+    if (screen === 'results') {
+      return (
+        <ExamVerdictScreen
+          host={host}
+          result={examResult}
+          videoUrl={getCurrentMilestoneVideoUrl() || undefined}
+          onViewCommendation={handleViewCommendation}
+          onReviewAnswers={handleReviewLessons}
+          onClose={onSkip}
+        />
+      );
+    }
+
+    // Commendation / Certificate Screen
+    if (screen === 'commendation') {
+      return (
+        <ExamCommendationScreen
+          host={host}
+          userName={userName}
+          result={examResult}
+          onReturnToCampaign={handleReturnToCampaign}
+          onClose={onSkip}
+        />
+      );
+    }
+
+    // Milestone video screen (tier transitions)
+    if (screen === 'milestone_video' && currentMilestone) {
+      return (
+        <div className="fixed inset-0 z-[60] flex flex-col bg-void">
+          <div className="relative flex-1 flex items-center justify-center bg-black">
+            {getCurrentMilestoneVideoUrl() ? (
+              <video
+                src={getCurrentMilestoneVideoUrl()!}
+                className="w-full h-full object-contain"
+                autoPlay
+                playsInline
+                onEnded={handleMilestoneVideoEnd}
+                onError={handleMilestoneVideoEnd}
+              />
+            ) : (
+              <div className="text-off-white/60">Loading...</div>
+            )}
+            <button
+              onClick={handleMilestoneVideoEnd}
+              className="absolute bottom-8 left-1/2 -translate-x-1/2 px-6 py-2 bg-white/10 hover:bg-white/20 text-off-white/70 hover:text-off-white text-sm rounded-full transition-colors"
+            >
+              Skip Video
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // Tier transition screen
+    if (screen === 'transition') {
+      return (
+        <div className="fixed inset-0 z-[60] flex flex-col bg-void">
+          <div className="exam-header">
+            <div className="exam-header-top">
+              <div className="exam-header-kick">
+                <span className="exam-header-kick-dot" />
+                Tier Transition
+              </div>
+              <div className="exam-header-file">
+                File · <em>PH-1941-EX</em>
+              </div>
+            </div>
+            <div className="exam-header-title-wrap">
+              <div className="exam-header-title">
+                Final <em>Exam</em>
+              </div>
+            </div>
+          </div>
+          <div className="exam-body flex-1 flex items-center justify-center">
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="text-center"
+            >
+              <div className={`text-4xl font-bold mb-4 ${
+                currentTier === 'medium' ? 'text-gold-2' : 'text-ha-red'
+              }`}>
+                {currentTier === 'medium' ? 'Operational' : 'Hard'} Tier
+              </div>
+              <div className="text-off-white/60 mb-6 font-mono text-sm tracking-widest uppercase">
+                Questions {currentTier === 'medium' ? '5-8' : '9-10'}
+              </div>
+              <div className="max-w-md bg-ink border border-border-gold rounded-lg p-4">
+                <p className="text-off-white/50 text-xs mb-1 font-mono">{host.name}</p>
+                <p className="text-off-white/90 text-sm leading-relaxed font-serif italic">
+                  {getTierIntro(currentTier)}
+                </p>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      );
+    }
+  }
+
+  // Legacy UI (fallback)
   return (
     <div className="fixed inset-0 z-[60] pt-safe flex flex-col bg-slate-950">
       {/* Header */}

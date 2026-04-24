@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, Map, BookOpen, Gamepad2, ArrowLeft, Image, Mic, Wand2, Users, HelpCircle, Compass, Shield, Trophy, Grid3X3, MousePointer2, X, Palette, Target, Tv, Star, Settings, Radio, Mail } from 'lucide-react';
+import { LayoutDashboard, Map, BookOpen, Gamepad2, ArrowLeft, Image, Mic, Wand2, Users, HelpCircle, Compass, Shield, Trophy, Grid3X3, MousePointer2, X, Palette, Target, Tv, Star, Settings, Radio, Mail, Volume2 } from 'lucide-react';
 
 const navItems = [
   { path: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -11,6 +11,7 @@ const navItems = [
   { path: '/admin/mid-test-videos', label: 'Mid-Test Videos', icon: Tv, end: false },
   { path: '/admin/breaking-news', label: 'Breaking News Media', icon: Radio, end: false },
   { path: '/admin/letters-home', label: 'Letters Home Audio', icon: Mail, end: false },
+  { path: '/admin/ambient-audio', label: 'Ambient Audio', icon: Volume2, end: false },
   { path: '/admin/journey-management', label: 'Journey Builder', icon: Compass, end: false },
   { path: '/admin/journeys', label: 'Arc Editor', icon: Map, end: false },
   { path: '/admin/journey-ui', label: 'Journey Artwork', icon: Palette, end: false },

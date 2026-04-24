@@ -38,6 +38,7 @@ const ExamVideoManager = lazy(() => import('./components/admin/ExamVideoManager'
 const MidModuleTestVideoManager = lazy(() => import('./components/admin/MidModuleTestVideoManager'));
 const BreakingNewsStationEditor = lazy(() => import('./components/admin/BreakingNewsStationEditor'));
 const LettersHomeAudioEditor = lazy(() => import('./components/admin/LettersHomeAudioEditor'));
+const AmbientAudioEditor = lazy(() => import('./components/admin/AmbientAudioEditor'));
 const FeaturedSectionEditor = lazy(() => import('./components/admin/FeaturedSectionEditor'));
 const AppSettingsEditor = lazy(() => import('./components/admin/AppSettingsEditor').then(m => ({ default: m.AppSettingsEditor })));
 
@@ -101,6 +102,7 @@ const App = () => (
                 <Route path="mid-test-videos" element={<Suspense fallback={<AdminLoadingFallback />}><MidModuleTestVideoManager /></Suspense>} />
                 <Route path="breaking-news" element={<Suspense fallback={<AdminLoadingFallback />}><BreakingNewsStationEditor /></Suspense>} />
                 <Route path="letters-home" element={<Suspense fallback={<AdminLoadingFallback />}><LettersHomeAudioEditor /></Suspense>} />
+                <Route path="ambient-audio" element={<Suspense fallback={<AdminLoadingFallback />}><AmbientAudioEditor /></Suspense>} />
                 <Route path="featured-section" element={<Suspense fallback={<AdminLoadingFallback />}><FeaturedSectionEditor /></Suspense>} />
                 <Route path="app-settings" element={<Suspense fallback={<AdminLoadingFallback />}><AppSettingsEditor /></Suspense>} />
               </Route>

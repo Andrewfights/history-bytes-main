@@ -217,7 +217,8 @@ export type ExamScreen =
   | 'results'
   | 'question_active'  // Game show mode: question with active timer
   | 'locked_in'        // Game show mode: answer locked, brief pause
-  | 'time_up';         // Game show mode: timer expired
+  | 'time_up'          // Game show mode: timer expired
+  | 'commendation';    // Certificate/award screen after passing
 
 export interface ExamState {
   screen: ExamScreen;
