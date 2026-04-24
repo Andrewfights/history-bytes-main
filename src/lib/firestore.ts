@@ -2096,3 +2096,124 @@ export function subscribeToWW2ModuleAssets(callback: (assets: FirestoreWW2Module
     }
   );
 }
+
+// ============ Demo User Reset Operations ============
+
+/**
+ * Reset WW2 preferences for a user (clears host selection, intro seen, etc.)
+ * Used for demo-new-user to ensure fresh experience
+ */
+export async function resetUserWW2Preferences(userId: string): Promise<boolean> {
+  if (!isFirebaseConfigured()) return false;
+
+  try {
+    const docRef = doc(db, 'userProgress', userId);
+    await setDoc(docRef, {
+      ww2Preferences: {
+        selectedHostId: null,
+        lastVisitDate: '',
+        hasSeenIntro: false,
+        hasSeenWelcomeVideo: false,
+      },
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+    console.log('[Firestore] Reset WW2 preferences for user:', userId);
+    return true;
+  } catch (error) {
+    console.error('[Firestore] Failed to reset WW2 preferences:', error);
+    return false;
+  }
+}
+
+/**
+ * Set WW2 preferences for a user (pre-select host, mark videos seen, etc.)
+ * Used for demo-existing-user to set up returning user experience
+ */
+export async function setUserWW2Preferences(
+  userId: string,
+  prefs: {
+    selectedHostId: string | null;
+    lastVisitDate?: string;
+    hasSeenIntro?: boolean;
+    hasSeenWelcomeVideo?: boolean;
+  }
+): Promise<boolean> {
+  if (!isFirebaseConfigured()) return false;
+
+  try {
+    const docRef = doc(db, 'userProgress', userId);
+    await setDoc(docRef, {
+      ww2Preferences: {
+        selectedHostId: prefs.selectedHostId,
+        lastVisitDate: prefs.lastVisitDate || new Date().toISOString(),
+        hasSeenIntro: prefs.hasSeenIntro ?? true,
+        hasSeenWelcomeVideo: prefs.hasSeenWelcomeVideo ?? true,
+      },
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+    console.log('[Firestore] Set WW2 preferences for user:', userId, prefs.selectedHostId);
+    return true;
+  } catch (error) {
+    console.error('[Firestore] Failed to set WW2 preferences:', error);
+    return false;
+  }
+}
+
+/**
+ * Reset Pearl Harbor progress for a user (clears completed beats)
+ * Used for demo-new-user to ensure fresh experience
+ */
+export async function resetUserPearlHarborProgress(userId: string): Promise<boolean> {
+  if (!isFirebaseConfigured()) return false;
+
+  try {
+    const docRef = doc(db, 'userProgress', userId);
+    await setDoc(docRef, {
+      pearlHarborProgress: {
+        completedBeatIds: [],
+        currentBeatId: null,
+        totalXp: 0,
+        lastPlayedAt: null,
+      },
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+    console.log('[Firestore] Reset Pearl Harbor progress for user:', userId);
+    return true;
+  } catch (error) {
+    console.error('[Firestore] Failed to reset Pearl Harbor progress:', error);
+    return false;
+  }
+}
+
+/**
+ * Set Pearl Harbor progress for a user (pre-complete some beats)
+ * Used for demo-existing-user to set up returning user experience
+ */
+export async function setUserPearlHarborProgress(
+  userId: string,
+  progress: {
+    completedBeatIds: string[];
+    currentBeatId?: string | null;
+    totalXp?: number;
+  }
+): Promise<boolean> {
+  if (!isFirebaseConfigured()) return false;
+
+  try {
+    const docRef = doc(db, 'userProgress', userId);
+    await setDoc(docRef, {
+      pearlHarborProgress: {
+        completedBeatIds: progress.completedBeatIds,
+        currentBeatId: progress.currentBeatId || null,
+        totalXp: progress.totalXp || 0,
+        lastPlayedAt: serverTimestamp(),
+      },
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+    console.log('[Firestore] Set Pearl Harbor progress for user:', userId, progress.completedBeatIds.length, 'beats');
+    return true;
+  } catch (error) {
+    console.error('[Firestore] Failed to set Pearl Harbor progress:', error);
+    return false;
+  }
+}

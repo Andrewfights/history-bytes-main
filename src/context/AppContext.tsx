@@ -4,7 +4,15 @@ import { mockUser } from '@/data/mockData';
 import { courses as defaultCourses, units as defaultUnits, lessons as defaultLessons } from '@/data/courseData';
 import { loadStoredCourses, loadStoredUnits, loadStoredLessons, STORAGE_KEYS as ADMIN_STORAGE_KEYS } from '@/lib/adminStorage';
 import { isFirebaseConfigured } from '@/lib/firebase';
-import { subscribeToCourses, subscribeToUnits, subscribeToLessons } from '@/lib/firestore';
+import {
+  subscribeToCourses,
+  subscribeToUnits,
+  subscribeToLessons,
+  resetUserWW2Preferences,
+  setUserWW2Preferences,
+  resetUserPearlHarborProgress,
+  setUserPearlHarborProgress,
+} from '@/lib/firestore';
 import { loadCourses, loadUnits, loadLessons } from '@/lib/database';
 import {
   STORAGE_KEYS,
@@ -738,6 +746,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       // Clear all localStorage for new users (including demo new user)
       clearAllStorage();
 
+      // For demo new user, also reset Firestore data to ensure fresh experience
+      if (isDemoNewUser) {
+        resetUserWW2Preferences(userId);
+        resetUserPearlHarborProgress(userId);
+      }
+
       // Reset to blank state with new user ID
       setUser({
         ...mockUser,
@@ -780,6 +794,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
       // Demo returning user - set up predetermined progress
       clearAllStorage();
 
+      // Set up WW2 preferences in Firestore (host selection)
+      setUserWW2Preferences(userId, {
+        selectedHostId: 'sergeant',
+        lastVisitDate: new Date().toISOString(),
+        hasSeenIntro: true,
+        hasSeenWelcomeVideo: true,
+      });
+
+      // Set up Pearl Harbor progress in Firestore
+      setUserPearlHarborProgress(userId, {
+        completedBeatIds: ['ph-beat-1', 'ph-beat-2', 'ph-beat-3'],
+        currentBeatId: 'ph-beat-4',
+        totalXp: 245,
+      });
+
       // Set up user with some XP and streak
       setUser({
         ...mockUser,
@@ -813,6 +842,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
       // Set selected guide (sergeant)
       saveSelectedGuideId('sergeant');
       setSelectedGuideIdState('sergeant');
+
+      // Also set WW2 preferences in localStorage for useWW2Preferences hook
+      try {
+        localStorage.setItem('hb_ww2_preferences', JSON.stringify({
+          selectedHostId: 'sergeant',
+          lastVisitDate: new Date().toISOString(),
+          hasSeenIntro: true,
+          hasSeenWelcomeVideo: true,
+        }));
+      } catch (e) {
+        console.warn('Failed to set WW2 preferences in localStorage:', e);
+      }
 
       // Set up some badge progress
       setEarnedBadges([]);
