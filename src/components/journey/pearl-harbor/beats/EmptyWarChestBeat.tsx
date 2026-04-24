@@ -11,9 +11,9 @@
  * XP: 50 | Duration: 5-6 min
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, X, Sparkles, ChevronRight, ChevronDown, AlertTriangle, Target, Users, Zap, Check } from 'lucide-react';
+import { ArrowLeft, X, Sparkles, ChevronRight, ChevronDown, AlertTriangle, Target, Users, Zap, Check, Volume2, VolumeX, Radio } from 'lucide-react';
 import { WW2Host } from '@/types';
 import { PreModuleVideoScreen, PostModuleVideoScreen } from '../shared';
 import {
@@ -114,6 +114,12 @@ export function EmptyWarChestBeat({ host, onComplete, onSkip, onBack, isPreview 
   const [postModuleVideoConfig, setPostModuleVideoConfig] = useState<PostModuleVideoConfig | null>(null);
   const [hasLoadedConfig, setHasLoadedConfig] = useState(false);
 
+  // Ambient audio state
+  const [ambientAudioUrl, setAmbientAudioUrl] = useState<string | null>(null);
+  const [isAmbientPlaying, setIsAmbientPlaying] = useState(false);
+  const [isAmbientMuted, setIsAmbientMuted] = useState(false);
+  const ambientAudioRef = useRef<HTMLAudioElement | null>(null);
+
   const { saveCheckpoint, clearCheckpoint, getCheckpoint } = usePearlHarborProgress();
 
   // Restore checkpoint on mount
@@ -149,7 +155,7 @@ export function EmptyWarChestBeat({ host, onComplete, onSkip, onBack, isPreview 
     }
   }, [hasLoadedConfig, screen, viewedStats, viewedFacts, saveCheckpoint]);
 
-  // Subscribe to Firestore for pre/post module videos
+  // Subscribe to Firestore for pre/post module videos and ambient audio
   useEffect(() => {
     const unsubscribe = subscribeToWW2ModuleAssets((assets) => {
       const preModuleVideo = assets?.preModuleVideos?.[LESSON_DATA.id];
@@ -166,10 +172,68 @@ export function EmptyWarChestBeat({ host, onComplete, onSkip, onBack, isPreview 
         setPostModuleVideoConfig(null);
       }
 
+      // Ambient audio track
+      const ambientAudio = assets?.ambientAudio?.[LESSON_DATA.id];
+      if (ambientAudio?.enabled && ambientAudio?.audioUrl) {
+        setAmbientAudioUrl(ambientAudio.audioUrl);
+      }
+
       setHasLoadedConfig(true);
     });
     return () => unsubscribe();
   }, []);
+
+  // Ambient audio playback management
+  useEffect(() => {
+    if (!ambientAudioUrl) return;
+
+    // Create audio element if it doesn't exist
+    if (!ambientAudioRef.current) {
+      ambientAudioRef.current = new Audio(ambientAudioUrl);
+      ambientAudioRef.current.loop = true;
+      ambientAudioRef.current.volume = 0.3; // Lower volume for ambient
+    }
+
+    return () => {
+      // Cleanup on unmount
+      if (ambientAudioRef.current) {
+        ambientAudioRef.current.pause();
+        ambientAudioRef.current = null;
+      }
+    };
+  }, [ambientAudioUrl]);
+
+  // Handle ambient audio play/pause
+  const toggleAmbientAudio = useCallback(() => {
+    if (!ambientAudioRef.current) return;
+
+    if (isAmbientPlaying) {
+      ambientAudioRef.current.pause();
+      setIsAmbientPlaying(false);
+    } else {
+      ambientAudioRef.current.play().catch(() => {});
+      setIsAmbientPlaying(true);
+    }
+  }, [isAmbientPlaying]);
+
+  // Handle ambient audio mute/unmute
+  const toggleAmbientMute = useCallback(() => {
+    if (!ambientAudioRef.current) return;
+
+    ambientAudioRef.current.muted = !isAmbientMuted;
+    setIsAmbientMuted(!isAmbientMuted);
+  }, [isAmbientMuted]);
+
+  // Pause ambient audio during video screens
+  useEffect(() => {
+    if (screen === 'pre-video' || screen === 'post-video' || screen === 'completion') {
+      if (ambientAudioRef.current && isAmbientPlaying) {
+        ambientAudioRef.current.pause();
+      }
+    } else if (ambientAudioRef.current && isAmbientPlaying && !isAmbientMuted) {
+      ambientAudioRef.current.play().catch(() => {});
+    }
+  }, [screen, isAmbientPlaying, isAmbientMuted]);
 
   // Set initial screen based on pre-module video availability
   useEffect(() => {
@@ -252,6 +316,78 @@ export function EmptyWarChestBeat({ host, onComplete, onSkip, onBack, isPreview 
           animate={{ width: `${((SCREENS.indexOf(screen) + 1) / SCREENS.length) * 100}%` }}
         />
       </div>
+
+      {/* Floating Ambient Audio Control */}
+      {ambientAudioUrl && screen !== 'pre-video' && screen !== 'post-video' && screen !== 'completion' && (
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="fixed bottom-24 right-4 z-50"
+        >
+          <div className="relative flex flex-col items-center gap-1.5">
+            {/* Label */}
+            <AnimatePresence>
+              {!isAmbientPlaying && (
+                <motion.div
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 5 }}
+                  className="absolute -top-8 right-0 whitespace-nowrap font-mono text-[8px] tracking-[0.2em] text-gold-2/70 uppercase font-bold bg-black/60 px-2 py-1 rounded backdrop-blur-sm"
+                >
+                  Ambient Audio
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Main button */}
+            <motion.button
+              onClick={toggleAmbientAudio}
+              whileTap={{ scale: 0.95 }}
+              className={`relative w-12 h-12 rounded-full flex items-center justify-center transition-all ${
+                isAmbientPlaying
+                  ? 'bg-gradient-to-br from-gold-2 to-gold-dp shadow-[0_0_20px_rgba(230,171,42,0.3)]'
+                  : 'bg-ink-lift border border-gold-2/30 hover:border-gold-2/50'
+              }`}
+            >
+              {/* Sound wave animation when playing */}
+              {isAmbientPlaying && (
+                <div className="absolute inset-0 rounded-full overflow-hidden">
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-t from-gold-dp/30 to-transparent"
+                    animate={{ opacity: [0.3, 0.6, 0.3] }}
+                    transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                  />
+                </div>
+              )}
+
+              {isAmbientPlaying ? (
+                <Radio size={18} className="text-[#1a0b02] relative z-10" />
+              ) : (
+                <Radio size={18} className="text-gold-2/70" />
+              )}
+            </motion.button>
+
+            {/* Mute toggle (only when playing) */}
+            <AnimatePresence>
+              {isAmbientPlaying && (
+                <motion.button
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  onClick={toggleAmbientMute}
+                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+                    isAmbientMuted
+                      ? 'bg-ha-red/20 border border-ha-red/40 text-ha-red'
+                      : 'bg-black/40 border border-off-white/10 text-off-white/50 hover:text-off-white'
+                  }`}
+                >
+                  {isAmbientMuted ? <VolumeX size={12} /> : <Volume2 size={12} />}
+                </motion.button>
+              )}
+            </AnimatePresence>
+          </div>
+        </motion.div>
+      )}
 
       {/* Content */}
       <div className="flex-1 overflow-hidden">

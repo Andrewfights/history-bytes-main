@@ -1688,6 +1688,8 @@ export interface FirestoreWW2ModuleAssets {
   montageVideos?: Record<string, Record<string, string>>;  // Key: beat ID -> { videoKey: videoUrl }
   // Letters Home audio recordings (Beat 10)
   lettersHomeAudio?: Record<string, LettersHomeAudioConfig>;  // Key: letterId -> audio config
+  // Ambient audio tracks for beat backgrounds (looping ambient audio while user interacts)
+  ambientAudio?: Record<string, { enabled: boolean; audioUrl: string }>;  // Key: beat ID
   updatedAt?: Timestamp;
 }
 
@@ -2008,6 +2010,34 @@ export async function getLettersHomeAudio(): Promise<Record<string, LettersHomeA
 export async function getLetterAudio(letterId: string): Promise<LettersHomeAudioConfig | null> {
   const assets = await getWW2ModuleAssets();
   return assets?.lettersHomeAudio?.[letterId] || null;
+}
+
+// ============ Ambient Audio Operations ============
+
+export async function updateAmbientAudio(
+  beatId: string,
+  config: { enabled: boolean; audioUrl: string } | null
+): Promise<boolean> {
+  const current = await getWW2ModuleAssets();
+  const ambientAudio = current?.ambientAudio || {};
+
+  if (config) {
+    ambientAudio[beatId] = config;
+  } else {
+    delete ambientAudio[beatId];
+  }
+
+  return saveWW2ModuleAssets({ ambientAudio });
+}
+
+export async function getAmbientAudio(): Promise<Record<string, { enabled: boolean; audioUrl: string }>> {
+  const assets = await getWW2ModuleAssets();
+  return assets?.ambientAudio || {};
+}
+
+export async function getBeatAmbientAudio(beatId: string): Promise<{ enabled: boolean; audioUrl: string } | null> {
+  const assets = await getWW2ModuleAssets();
+  return assets?.ambientAudio?.[beatId] || null;
 }
 
 // ============ Theater Media Operations ============
