@@ -18,7 +18,7 @@ import { isAdminUser } from '@/components/admin/AdminRoute';
 import { cn } from '@/lib/utils';
 import { StudyNotes } from '@/components/profile/StudyNotes';
 import { ApiKeySettings } from '@/components/profile/ApiKeySettings';
-import { uploadToFirebaseStorage } from '@/lib/firebaseStorage';
+import { uploadFile, isFirebaseConfigured } from '@/lib/firebaseStorage';
 
 // Rank data
 const RANKS = [
@@ -105,11 +105,18 @@ export function ProfileTab() {
 
     setIsUploadingPhoto(true);
     try {
-      const url = await uploadToFirebaseStorage(file, 'avatars');
-      updateUser({ avatarUrl: url });
+      // Use uploadFile which has localStorage fallback if Firebase isn't configured
+      const result = await uploadFile(file);
+      if (result?.url) {
+        updateUser({ avatarUrl: result.url });
+        console.log('[ProfileTab] Avatar updated:', result.url.substring(0, 50) + '...');
+      } else {
+        throw new Error('No URL returned from upload');
+      }
     } catch (error) {
       console.error('Failed to upload photo:', error);
-      alert('Failed to upload photo. Please try again.');
+      const errMsg = error instanceof Error ? error.message : 'Unknown error';
+      alert(`Failed to upload photo: ${errMsg}`);
     } finally {
       setIsUploadingPhoto(false);
     }

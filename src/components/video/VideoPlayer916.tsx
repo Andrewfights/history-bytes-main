@@ -114,24 +114,45 @@ export function VideoPlayer916({
     }
   }, [autoPlay]);
 
+  // Track last interaction time for hiding controls
+  const lastInteractionRef = useRef<number>(Date.now());
+  const hideControlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Hide controls after inactivity
   useEffect(() => {
+    // Clear any existing timeout
+    if (hideControlsTimeoutRef.current) {
+      clearTimeout(hideControlsTimeoutRef.current);
+      hideControlsTimeoutRef.current = null;
+    }
+
     if (!isPlaying) {
       setShowControls(true);
       return;
     }
 
-    const timeout = setTimeout(() => {
-      setShowControls(false);
-    }, 3000);
+    // Set timeout to hide controls after 2.5 seconds of no interaction
+    hideControlsTimeoutRef.current = setTimeout(() => {
+      const timeSinceInteraction = Date.now() - lastInteractionRef.current;
+      if (timeSinceInteraction >= 2400) {
+        setShowControls(false);
+      }
+    }, 2500);
 
-    return () => clearTimeout(timeout);
-  }, [isPlaying, currentTime]);
+    return () => {
+      if (hideControlsTimeoutRef.current) {
+        clearTimeout(hideControlsTimeoutRef.current);
+      }
+    };
+  }, [isPlaying, showControls]);
 
-  // Show controls on interaction
-  const handleInteraction = () => {
-    setShowControls(true);
-  };
+  // Show controls on interaction (works for both mouse and touch)
+  const handleInteraction = useCallback(() => {
+    lastInteractionRef.current = Date.now();
+    if (!showControls) {
+      setShowControls(true);
+    }
+  }, [showControls]);
 
   // Seek on progress bar click
   const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -147,6 +168,8 @@ export function VideoPlayer916({
       className="relative w-full h-full bg-void flex items-center justify-center overflow-hidden"
       onClick={handleInteraction}
       onMouseMove={handleInteraction}
+      onTouchStart={handleInteraction}
+      onTouchMove={handleInteraction}
     >
       {/* Video element - centered for 9:16 aspect ratio */}
       <div className="relative w-full max-w-[450px] aspect-[9/16]">

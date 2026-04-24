@@ -3,7 +3,7 @@
  * Features auto-play, fade-in, and completion callbacks
  */
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Pause, Volume2, VolumeX, SkipForward, Maximize, Loader2 } from 'lucide-react';
 
@@ -40,15 +40,29 @@ export function VideoPlayer({
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [showControls, setShowControls] = useState(true);
-  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastInteractionRef = useRef<number>(Date.now());
 
-  // Auto-hide controls after 3 seconds
+  // Auto-hide controls after inactivity when playing
   useEffect(() => {
-    if (isPlaying && showControls) {
-      controlsTimeoutRef.current = setTimeout(() => {
-        setShowControls(false);
-      }, 3000);
+    // Clear any existing timeout
+    if (controlsTimeoutRef.current) {
+      clearTimeout(controlsTimeoutRef.current);
+      controlsTimeoutRef.current = null;
     }
+
+    if (!isPlaying) {
+      setShowControls(true);
+      return;
+    }
+
+    // Set timeout to hide controls after 2.5 seconds of no interaction
+    controlsTimeoutRef.current = setTimeout(() => {
+      const timeSinceInteraction = Date.now() - lastInteractionRef.current;
+      if (timeSinceInteraction >= 2400) {
+        setShowControls(false);
+      }
+    }, 2500);
 
     return () => {
       if (controlsTimeoutRef.current) {
@@ -137,9 +151,13 @@ export function VideoPlayer({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handleContainerClick = () => {
-    setShowControls(true);
-  };
+  // Handle any user interaction (mouse or touch)
+  const handleInteraction = useCallback(() => {
+    lastInteractionRef.current = Date.now();
+    if (!showControls) {
+      setShowControls(true);
+    }
+  }, [showControls]);
 
   if (hasError) {
     return (
@@ -164,7 +182,10 @@ export function VideoPlayer({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className={`relative bg-black rounded-xl overflow-hidden ${className}`}
-      onClick={handleContainerClick}
+      onClick={handleInteraction}
+      onMouseMove={handleInteraction}
+      onTouchStart={handleInteraction}
+      onTouchMove={handleInteraction}
     >
       {/* Video Element */}
       <video
