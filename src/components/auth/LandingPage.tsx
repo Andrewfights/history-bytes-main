@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Mail, Lock, User, ArrowRight, Sparkles, CheckCircle, RefreshCw,
@@ -62,7 +62,8 @@ function TrailerPlayer({ onClose }: { onClose: () => void }) {
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [showControls, setShowControls] = useState(true);
-  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastInteractionRef = useRef<number>(Date.now());
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -112,15 +113,24 @@ function TrailerPlayer({ onClose }: { onClose: () => void }) {
     }
   };
 
-  const handleMouseMove = () => {
-    setShowControls(true);
+  // Handle any user interaction (mouse or touch)
+  const handleInteraction = useCallback(() => {
+    lastInteractionRef.current = Date.now();
+    if (!showControls) {
+      setShowControls(true);
+    }
+    // Clear existing timeout
     if (controlsTimeoutRef.current) {
       clearTimeout(controlsTimeoutRef.current);
     }
+    // Set new timeout to hide controls
     controlsTimeoutRef.current = setTimeout(() => {
-      if (isPlaying) setShowControls(false);
-    }, 3000);
-  };
+      const timeSinceInteraction = Date.now() - lastInteractionRef.current;
+      if (timeSinceInteraction >= 2400 && isPlaying) {
+        setShowControls(false);
+      }
+    }, 2500);
+  }, [showControls, isPlaying]);
 
   useEffect(() => {
     return () => {
@@ -137,7 +147,9 @@ function TrailerPlayer({ onClose }: { onClose: () => void }) {
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-[110] bg-black flex items-center justify-center"
       onClick={onClose}
-      onMouseMove={handleMouseMove}
+      onMouseMove={handleInteraction}
+      onTouchStart={handleInteraction}
+      onTouchMove={handleInteraction}
     >
       {/* Video container - 16:9 aspect ratio */}
       <motion.div
