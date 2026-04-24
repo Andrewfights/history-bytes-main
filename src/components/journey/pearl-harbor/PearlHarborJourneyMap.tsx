@@ -60,6 +60,15 @@ export function PearlHarborJourneyMap({
   const { progress, totalXP, isLessonUnlocked, isActivityCompleted } = usePearlHarborProgress();
   const [moduleAssets, setModuleAssets] = useState<FirestoreWW2ModuleAssets | null>(null);
 
+  // Lock body scroll when component mounts (full-screen view)
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, []);
+
   // Subscribe to module assets for archived beats and custom order
   useEffect(() => {
     if (!isFirebaseConfigured()) return;
@@ -245,25 +254,49 @@ export function PearlHarborJourneyMap({
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.08 }}
                   className={cn(
-                    'relative w-full text-left mb-3 p-2.5 rounded flex gap-2.5 border transition-all',
+                    'relative w-full text-left mb-3 p-2.5 rounded-lg flex gap-2.5 transition-all',
                     isClickable ? 'cursor-pointer' : 'cursor-not-allowed',
-                    state === 'completed' && 'bg-[rgba(30,24,18,0.6)] border-gold-2/35',
-                    state === 'current' && 'bg-gradient-to-br from-[rgba(58,28,16,0.5)] to-ink-lift border-ha-red shadow-[0_6px_18px_rgba(0,0,0,0.4)]',
-                    state === 'unlocked' && 'bg-[rgba(58,40,20,0.4)] border-gold-2/50',
-                    state === 'locked' && 'bg-ink-lift border-off-white/[0.06] opacity-45'
+                    state === 'completed' && 'bg-[rgba(30,24,18,0.6)] border border-gold-2/35',
+                    state === 'current' && 'bg-gradient-to-br from-[rgba(80,20,20,0.5)] to-[rgba(40,10,10,0.7)] border-2 border-ha-red shadow-[0_0_25px_rgba(205,14,20,0.4),0_6px_18px_rgba(0,0,0,0.5)] animate-[pulse-red_2s_ease-in-out_infinite]',
+                    state === 'unlocked' && 'bg-[rgba(58,40,20,0.4)] border border-gold-2/50',
+                    state === 'locked' && 'bg-[rgba(20,20,20,0.4)] border border-off-white/[0.04] opacity-30 grayscale-[30%]'
                   )}
                 >
-                  {/* Corner fasteners */}
+                  {/* Corner fasteners - all four corners */}
                   <div
                     className={cn(
-                      'absolute top-[5px] left-[5px] w-1.5 h-1.5 rounded-full border-[1.5px] bg-ink z-[3]',
-                      state === 'current' ? 'border-ha-red' : 'border-gold-deep'
+                      'absolute top-[6px] left-[6px] w-2 h-2 rounded-full border-[1.5px] bg-ink z-[3]',
+                      state === 'current' && 'border-ha-red shadow-[0_0_8px_rgba(205,14,20,0.8)]',
+                      state === 'completed' && 'border-gold-deep',
+                      state === 'unlocked' && 'border-gold-deep',
+                      state === 'locked' && 'border-off-white/20'
                     )}
                   />
                   <div
                     className={cn(
-                      'absolute top-[5px] right-[5px] w-1.5 h-1.5 rounded-full border-[1.5px] bg-ink z-[3]',
-                      state === 'current' ? 'border-ha-red' : 'border-gold-deep'
+                      'absolute top-[6px] right-[6px] w-2 h-2 rounded-full border-[1.5px] bg-ink z-[3]',
+                      state === 'current' && 'border-ha-red shadow-[0_0_8px_rgba(205,14,20,0.8)]',
+                      state === 'completed' && 'border-gold-deep',
+                      state === 'unlocked' && 'border-gold-deep',
+                      state === 'locked' && 'border-off-white/20'
+                    )}
+                  />
+                  <div
+                    className={cn(
+                      'absolute bottom-[6px] left-[6px] w-2 h-2 rounded-full border-[1.5px] bg-ink z-[3]',
+                      state === 'current' && 'border-ha-red shadow-[0_0_8px_rgba(205,14,20,0.8)]',
+                      state === 'completed' && 'border-gold-deep',
+                      state === 'unlocked' && 'border-gold-deep',
+                      state === 'locked' && 'border-off-white/20'
+                    )}
+                  />
+                  <div
+                    className={cn(
+                      'absolute bottom-[6px] right-[6px] w-2 h-2 rounded-full border-[1.5px] bg-ink z-[3]',
+                      state === 'current' && 'border-ha-red shadow-[0_0_8px_rgba(205,14,20,0.8)]',
+                      state === 'completed' && 'border-gold-deep',
+                      state === 'unlocked' && 'border-gold-deep',
+                      state === 'locked' && 'border-off-white/20'
                     )}
                   />
 
@@ -287,24 +320,40 @@ export function PearlHarborJourneyMap({
                         : {}
                     }
                   >
-                    {/* Glow overlay */}
-                    <div
-                      className="absolute inset-0"
-                      style={{
-                        background: 'radial-gradient(ellipse at 50% 40%, rgba(230,171,42,0.2), transparent 70%)',
-                      }}
-                    />
-
-                    {/* Silhouette placeholder */}
-                    {state !== 'locked' && (
-                      <div
-                        className="absolute inset-[15%_25%]"
-                        style={{
-                          background: 'radial-gradient(ellipse at 50% 30%, rgba(120,80,40,0.5), rgba(40,30,20,0.8))',
-                          borderRadius: '40% 40% 15% 15%',
-                        }}
-                      />
-                    )}
+                    {/* Artwork or Silhouette placeholder */}
+                    {(() => {
+                      const artworkUrl = moduleAssets?.beatMedia?.[lesson.id]?.artworkUrl;
+                      if (state !== 'locked' && artworkUrl) {
+                        return (
+                          <img
+                            src={artworkUrl}
+                            alt={lesson.title}
+                            className="absolute inset-0 w-full h-full object-cover"
+                          />
+                        );
+                      } else if (state !== 'locked') {
+                        return (
+                          <>
+                            {/* Glow overlay */}
+                            <div
+                              className="absolute inset-0"
+                              style={{
+                                background: 'radial-gradient(ellipse at 50% 40%, rgba(230,171,42,0.2), transparent 70%)',
+                              }}
+                            />
+                            {/* Silhouette placeholder */}
+                            <div
+                              className="absolute inset-[15%_25%]"
+                              style={{
+                                background: 'radial-gradient(ellipse at 50% 30%, rgba(120,80,40,0.5), rgba(40,30,20,0.8))',
+                                borderRadius: '40% 40% 15% 15%',
+                              }}
+                            />
+                          </>
+                        );
+                      }
+                      return null;
+                    })()}
 
                     {/* Number stamp */}
                     <div
@@ -342,7 +391,7 @@ export function PearlHarborJourneyMap({
                         className={cn(
                           'w-[5px] h-[5px] rounded-full',
                           state === 'completed' && 'bg-gold-2',
-                          state === 'current' && 'bg-ha-red shadow-[0_0_6px_var(--ha-red)]',
+                          state === 'current' && 'bg-ha-red shadow-[0_0_8px_var(--ha-red)] animate-pulse',
                           state === 'unlocked' && 'bg-gold-2',
                           state === 'locked' && 'bg-off-white/35'
                         )}

@@ -4,7 +4,7 @@
  */
 
 interface HistoryLogoProps {
-  variant?: 'full' | 'compact' | 'mark';
+  variant?: 'full' | 'compact' | 'mark' | 'icon';
   size?: 'sm' | 'md' | 'lg' | 'xl';
   withUnderline?: boolean;
   className?: string;
@@ -17,10 +17,11 @@ const sizeClasses = {
   xl: 'h-12',
 };
 
-const logoSources = {
+const logoSources: Record<string, string> = {
   full: '/assets/brand/history-logo-full.svg',
-  compact: '/assets/brand/history-logo-compact.svg',
+  compact: '/assets/brand/history-logo-full.svg', // fallback to full
   mark: '/assets/brand/history-logo-h-only.svg',
+  icon: '/assets/brand/history-logo-h-only.svg', // alias for mark
 };
 
 export function HistoryLogo({

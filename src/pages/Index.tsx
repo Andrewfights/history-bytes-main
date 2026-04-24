@@ -39,6 +39,18 @@ function AppContent() {
     return () => unsubscribe();
   }, []);
 
+  // Scroll to top when tab changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [activeTab]);
+
+  // Scroll to top when user authenticates or completes onboarding
+  useEffect(() => {
+    if (isAuthenticated && isOnboarded) {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+  }, [isAuthenticated, isOnboarded]);
+
   const handleStartSession = () => setIsSessionActive(true);
   const handleCloseSession = () => setIsSessionActive(false);
   const handlePlayDaily = () => setActiveTab('arcade');

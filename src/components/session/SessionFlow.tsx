@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Play, Volume2, VolumeX, ChevronRight } from 'lucide-react';
+import { X, Play, Volume2, VolumeX, ChevronRight, Clock, BookOpen } from 'lucide-react';
 import { LessonCardView } from '@/components/session/LessonCardView';
 import { QuizView } from '@/components/session/QuizView';
 import { ResultsView } from '@/components/session/ResultsView';
@@ -23,15 +23,19 @@ interface SessionFlowProps {
   onNextSession: () => void;
 }
 
-// Guide Intro Component
+// Opening Slide Component - New Design v3
 function GuideIntro({
   guideId,
   topicTitle,
-  onContinue
+  onContinue,
+  lessonNumber = 1,
+  unitTitle = 'Unit I'
 }: {
   guideId: string | null;
   topicTitle: string;
   onContinue: () => void;
+  lessonNumber?: number;
+  unitTitle?: string;
 }) {
   const guide = useLiveGuide(guideId || '');
   const [isMuted, setIsMuted] = useState(true);
@@ -69,97 +73,166 @@ function GuideIntro({
     }
   };
 
-  // If no guide or no video, show a simple intro message
+  // If no guide, show a simple intro message
   if (!guide) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center"
+          className="text-center max-w-md"
         >
-          <h2 className="font-editorial text-2xl font-bold mb-4">Starting Lesson</h2>
-          <p className="text-muted-foreground mb-8">{topicTitle}</p>
+          {/* Lesson kick */}
+          <div className="text-xs font-mono text-[var(--ha-red)] uppercase tracking-[0.35em] mb-3 flex items-center justify-center gap-2">
+            <span className="w-3 h-px bg-[var(--ha-red)]" />
+            Lesson {String(lessonNumber).padStart(2, '0')}
+          </div>
+          <h2 className="font-['Playfair_Display',Georgia,serif] italic text-2xl text-[var(--off-white)] mb-4">{topicTitle}</h2>
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={onContinue}
-            className="px-8 py-3 bg-primary text-primary-foreground rounded-xl font-semibold flex items-center gap-2"
+            className="btn-primary-lg"
           >
-            Begin <ChevronRight size={18} />
+            Begin Lesson <ChevronRight size={16} strokeWidth={2.5} />
           </motion.button>
         </motion.div>
       </div>
     );
   }
 
-  const colorMap: Record<string, { bg: string; border: string; text: string }> = {
-    blue: { bg: 'bg-blue-500/10', border: 'border-blue-500/30', text: 'text-blue-400' },
-    amber: { bg: 'bg-amber-500/10', border: 'border-amber-500/30', text: 'text-amber-400' },
-    purple: { bg: 'bg-purple-500/10', border: 'border-purple-500/30', text: 'text-purple-400' },
-    emerald: { bg: 'bg-emerald-500/10', border: 'border-emerald-500/30', text: 'text-emerald-400' },
-    red: { bg: 'bg-red-500/10', border: 'border-red-500/30', text: 'text-red-400' },
-    slate: { bg: 'bg-slate-500/10', border: 'border-slate-400/30', text: 'text-slate-300' },
-  };
-  const colors = colorMap[guide.primaryColor] || colorMap.amber;
-
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6">
+    <div className="min-h-screen flex flex-col p-4 md:p-6">
+      {/* Content container */}
       <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
+        initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="text-center max-w-md"
+        className="flex-1 flex flex-col items-center justify-center max-w-lg mx-auto w-full"
       >
-        {/* Guide Avatar/Video */}
-        <div className={`relative w-32 h-32 mx-auto rounded-full overflow-hidden ${colors.bg} border-2 ${colors.border} mb-6`}>
-          {hasIntroVideo ? (
-            <>
-              <video
-                ref={videoRef}
-                src={guide.introVideoUrl}
-                className="w-full h-full object-cover"
-                muted={isMuted}
-                playsInline
-                onEnded={handleVideoEnded}
-              />
-              {isPlaying && (
-                <button
-                  onClick={toggleMute}
-                  className="absolute bottom-1 right-1 p-1.5 rounded-full bg-black/60 text-white hover:bg-black/80 transition-colors z-10"
-                >
-                  {isMuted ? <VolumeX size={12} /> : <Volume2 size={12} />}
-                </button>
-              )}
-              {!isPlaying && (
-                <button
-                  onClick={() => {
-                    videoRef.current?.play().then(() => setIsPlaying(true)).catch(console.error);
-                  }}
-                  className="absolute inset-0 flex items-center justify-center bg-black/30"
-                >
-                  <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center">
-                    <Play size={18} className="text-primary ml-0.5" fill="currentColor" />
-                  </div>
-                </button>
-              )}
-            </>
-          ) : guide.imageUrl ? (
-            <img src={guide.imageUrl} alt={guide.name} className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-5xl">
-              {guide.avatar}
-            </div>
-          )}
+        {/* Portrait with credential stamp */}
+        <div className="relative mb-5">
+          {/* Host portrait */}
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.1, type: 'spring', damping: 15 }}
+            className="relative w-36 h-36 rounded-full overflow-hidden border-[3px] border-[var(--gold-2)] shadow-[0_0_30px_rgba(230,171,42,0.3)]"
+          >
+            {hasIntroVideo ? (
+              <>
+                <video
+                  ref={videoRef}
+                  src={guide.introVideoUrl}
+                  className="w-full h-full object-cover"
+                  muted={isMuted}
+                  playsInline
+                  onEnded={handleVideoEnded}
+                />
+                {isPlaying && (
+                  <button
+                    onClick={toggleMute}
+                    className="absolute bottom-1 right-1 p-1.5 rounded-full bg-black/60 text-white hover:bg-black/80 transition-colors z-10"
+                  >
+                    {isMuted ? <VolumeX size={12} /> : <Volume2 size={12} />}
+                  </button>
+                )}
+                {!isPlaying && (
+                  <button
+                    onClick={() => {
+                      videoRef.current?.play().then(() => setIsPlaying(true)).catch(console.error);
+                    }}
+                    className="absolute inset-0 flex items-center justify-center bg-black/30"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center">
+                      <Play size={18} className="text-[var(--gold-2)] ml-0.5" fill="currentColor" />
+                    </div>
+                  </button>
+                )}
+              </>
+            ) : guide.imageUrl ? (
+              <img src={guide.imageUrl} alt={guide.name} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-5xl bg-[var(--ink-lift)]">
+                {guide.avatar}
+              </div>
+            )}
+          </motion.div>
+
+          {/* Press credential stamp */}
+          <motion.div
+            initial={{ scale: 0, rotate: -20 }}
+            animate={{ scale: 1, rotate: -8 }}
+            transition={{ delay: 0.3, type: 'spring', damping: 12 }}
+            className="absolute -bottom-3 -right-3 px-2.5 py-1.5 bg-[var(--parch-1)] border-2 border-[var(--parch-red)] text-[var(--parch-red-dp)] font-mono text-[8px] uppercase tracking-[0.25em] font-bold rounded-sm shadow-lg"
+          >
+            ◆ History Guide
+          </motion.div>
         </div>
 
-        {/* Guide Message */}
-        <h2 className="font-editorial text-xl font-bold mb-2">{guide.name}</h2>
-        <p className={`text-sm ${colors.text} mb-4`}>{guide.title}</p>
-        <p className="text-muted-foreground text-sm italic mb-6">
-          "Let's explore {topicTitle} together."
-        </p>
+        {/* Host name and title */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="text-center mb-4"
+        >
+          <h3 className="font-[var(--font-display)] text-lg uppercase tracking-wide text-[var(--off-white)] mb-1">
+            {guide.name}
+          </h3>
+          <p className="text-xs font-mono text-[var(--gold-2)] uppercase tracking-[0.2em]">
+            {guide.title}
+          </p>
+        </motion.div>
 
-        {/* Continue Button */}
+        {/* Quote */}
+        <motion.blockquote
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35 }}
+          className="text-center mb-6 max-w-xs"
+        >
+          <p className="font-[var(--font-calligraphy)] italic text-[var(--text-2)] text-base leading-relaxed">
+            "Let's explore <em className="text-[var(--gold-2)]">{topicTitle}</em> together."
+          </p>
+        </motion.blockquote>
+
+        {/* Lesson Meta Strip */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="flex items-center justify-center gap-4 mb-6 py-3 px-5 rounded-lg bg-[rgba(0,0,0,0.4)] border border-[var(--border-gold)]"
+        >
+          <div className="flex items-center gap-2 text-xs">
+            <BookOpen size={12} className="text-[var(--gold-2)]" />
+            <span className="text-[var(--text-3)]">Lesson</span>
+            <span className="font-mono text-[var(--gold-2)]">{String(lessonNumber).padStart(2, '0')}</span>
+          </div>
+          <div className="w-px h-4 bg-[var(--divider)]" />
+          <div className="flex items-center gap-2 text-xs">
+            <Clock size={12} className="text-[var(--text-3)]" />
+            <span className="text-[var(--text-3)]">~15 min</span>
+          </div>
+        </motion.div>
+
+        {/* Lesson Title Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="text-center mb-8"
+        >
+          <div className="text-xs font-mono text-[var(--ha-red)] uppercase tracking-[0.35em] mb-2 flex items-center justify-center gap-2">
+            <span className="w-3 h-px bg-[var(--ha-red)]" />
+            {unitTitle}
+            <span className="w-3 h-px bg-[var(--ha-red)]" />
+          </div>
+          <h2 className="font-['Playfair_Display',Georgia,serif] italic text-2xl md:text-3xl text-[var(--off-white)] leading-tight">
+            {topicTitle}
+          </h2>
+        </motion.div>
+
+        {/* CTA Button */}
         <AnimatePresence>
           {(showSkip || !hasIntroVideo) && (
             <motion.button
@@ -168,9 +241,9 @@ function GuideIntro({
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={onContinue}
-              className="px-8 py-3 bg-primary text-primary-foreground rounded-xl font-semibold flex items-center gap-2 mx-auto"
+              className="btn-primary-lg"
             >
-              Start Lesson <ChevronRight size={18} />
+              Begin Lesson <ChevronRight size={16} strokeWidth={2.5} />
             </motion.button>
           )}
         </AnimatePresence>
@@ -191,6 +264,15 @@ export function SessionFlow({ sessionId, topicTitle, onClose, onNextSession }: S
   // Filter cards and questions by session
   const cards = mockLessonCards.filter(c => c.sessionId === sessionId || sessionId === 's1');
   const questions = mockQuestions.filter(q => q.sessionId === sessionId || sessionId === 's1');
+
+  // Lock body scroll when component mounts (full-screen view)
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, []);
 
   useEffect(() => {
     if (phase === 'results') {

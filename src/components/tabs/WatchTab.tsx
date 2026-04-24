@@ -2,8 +2,6 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence, PanInfo } from 'framer-motion';
 import { Play, ChevronUp, ChevronDown } from 'lucide-react';
 import { watchCategories, isYouTubeUrl } from '@/data/watchData';
-import { HistoryLogo } from '@/components/brand';
-import { useApp } from '@/context/AppContext';
 
 const SWIPE_THRESHOLD = 50;
 
@@ -17,7 +15,6 @@ const FILTER_NAMES: Record<string, string> = {
 };
 
 export function WatchTab() {
-  const { streak } = useApp();
   const [categoryIndex, setCategoryIndex] = useState(0);
   const [videoIndex, setVideoIndex] = useState(0);
   const [direction, setDirection] = useState<'up' | 'down' | 'left' | 'right' | null>(null);
@@ -180,58 +177,46 @@ export function WatchTab() {
     >
       {/* Header - ink background with border */}
       <div className="absolute top-0 left-0 right-0 z-30 bg-ink border-b border-off-white/[0.06]">
-        {/* Top row with logo and controls */}
-        <div className="flex items-center justify-between px-4 py-2.5">
-          <div className="flex items-center gap-2">
-            <HistoryLogo variant="icon" size="sm" />
-            <div className="w-px h-4 bg-gold/30" />
+        {/* Page Header */}
+        <div className="px-4 pt-3 pb-2">
+          {/* Kicker */}
+          <div className="flex items-center gap-2 mb-1">
+            <div className="w-5 h-[1px] bg-ha-red" />
+            <span className="font-mono text-[9px] font-bold tracking-[0.25em] text-ha-red uppercase">
+              Now Streaming • Live
+            </span>
           </div>
-          <div className="flex items-center gap-2">
-            {/* Streak indicator */}
-            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-card border border-off-white/[0.06]">
-              <svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5 text-gold">
-                <path d="M12 2s1 3 3 5 3 4 3 7a6 6 0 1 1-12 0c0-2 1-4 2-5s2-3 2-5 1-2 2-2z"/>
-              </svg>
-              <span className="font-mono text-[10px] text-gold font-semibold tracking-wider">{streak}</span>
-            </div>
-            {/* Settings */}
-            <button className="w-8 h-8 bg-card border border-off-white/[0.06] flex items-center justify-center">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4 text-off-white/70">
-                <circle cx="12" cy="12" r="4"/>
-                <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
-              </svg>
-            </button>
-            {/* Profile */}
-            <button className="w-8 h-8 bg-card border border-off-white/[0.06] flex items-center justify-center">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4 text-off-white/70">
-                <circle cx="12" cy="8" r="4"/>
-                <path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>
-              </svg>
-            </button>
-          </div>
+          {/* Title */}
+          <h1 className="font-display text-xl font-bold text-off-white uppercase tracking-tight leading-none">
+            The <span className="text-gold-2">Theater.</span>
+          </h1>
         </div>
 
         {/* Filter chips - rectangular style */}
         <div className="flex items-center gap-1.5 px-4 pb-2.5 overflow-x-auto scrollbar-hide">
-          {watchCategories.map((cat, idx) => (
-            <motion.button
-              key={cat.id}
-              onClick={() => {
-                setDirection(idx > categoryIndex ? 'left' : 'right');
-                setCategoryIndex(idx);
-                setVideoIndex(0);
-                setIsPlaying(false);
-              }}
-              className={`px-3 py-1.5 font-mono text-[9px] uppercase tracking-[0.15em] font-semibold transition-all whitespace-nowrap flex-shrink-0 ${
-                idx === categoryIndex
-                  ? 'bg-gold text-[#1a1008] border border-gold'
-                  : 'bg-card border border-off-white/[0.06] text-off-white/60 hover:border-gold/40'
-              }`}
-              whileTap={{ scale: 0.95 }}
-            >
-              {FILTER_NAMES[cat.id] || cat.name}
-            </motion.button>
-          ))}
+          {watchCategories.map((cat, idx) => {
+            const isSelected = idx === categoryIndex;
+            return (
+              <motion.button
+                key={cat.id}
+                onClick={() => {
+                  setDirection(idx > categoryIndex ? 'left' : 'right');
+                  setCategoryIndex(idx);
+                  setVideoIndex(0);
+                  setIsPlaying(false);
+                }}
+                className="px-3 py-1.5 font-mono text-[9px] uppercase tracking-[0.15em] font-semibold transition-all whitespace-nowrap flex-shrink-0"
+                style={{
+                  background: isSelected ? '#E6AB2A' : '#141414',
+                  color: isSelected ? '#1a1008' : 'rgba(242,238,230,0.6)',
+                  border: isSelected ? '1px solid #E6AB2A' : '1px solid rgba(242,238,230,0.06)',
+                }}
+                whileTap={{ scale: 0.95 }}
+              >
+                {FILTER_NAMES[cat.id] || cat.name}
+              </motion.button>
+            );
+          })}
         </div>
       </div>
 

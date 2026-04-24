@@ -11,7 +11,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, HelpCircle, Sparkles, Trophy, Target } from 'lucide-react';
 import { WW2Host } from '@/types';
-import { FactOrMythSwiper, FactOrMythStatement, PreModuleVideoScreen, PostModuleVideoScreen } from '../shared';
+import { FactOrMythSwiper, FactOrMythStatement, PreModuleVideoScreen, PostModuleVideoScreen, XPCompletionScreen } from '../shared';
 import { subscribeToWW2ModuleAssets, type PreModuleVideoConfig, type PostModuleVideoConfig } from '@/lib/firestore';
 import { playXPSound } from '@/lib/xpAudioManager';
 import { usePearlHarborProgress } from '../hooks/usePearlHarborProgress';
@@ -360,58 +360,14 @@ export function FactOrMythBeat({ host, onComplete, onSkip, onBack, isPreview = f
 
           {/* COMPLETION SCREEN */}
           {screen === 'completion' && (
-            <motion.div
-              key="completion"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex flex-col h-full p-6 items-center justify-center"
-              onAnimationComplete={() => {
-                if (!skipped) playXPSound();
-              }}
-            >
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                className="text-6xl mb-6"
-              >
-                {finalScore === STATEMENTS.length ? '🏆' : finalScore >= STATEMENTS.length / 2 ? '✅' : '📚'}
-              </motion.div>
-
-              <h2 className="text-2xl font-bold text-white mb-2">Beat 7 Complete!</h2>
-              <p className="text-white/60 mb-4">Fact or Myth? - Pearl Harbor Legends</p>
-
-              {/* Score display */}
-              <div className="bg-white/5 rounded-2xl p-6 mb-6 border border-white/10 text-center max-w-sm">
-                <div className="flex items-center justify-center gap-3 mb-4">
-                  <Trophy className={getScoreColor()} size={32} />
-                  <span className={`text-4xl font-bold ${getScoreColor()}`}>
-                    {finalScore}/{STATEMENTS.length}
-                  </span>
-                </div>
-                <p className="text-white/70 text-sm">{getScoreMessage()}</p>
-              </div>
-
-              <div className="flex items-center gap-2 px-6 py-3 bg-amber-500/20 rounded-full mb-8">
-                <Sparkles className="text-amber-400" />
-                <span className="text-amber-400 font-bold text-xl">
-                  +{skipped ? 0 : LESSON_DATA.xpReward} XP
-                </span>
-              </div>
-
-              <p className="text-white/50 text-sm text-center max-w-sm">
-                Next: Day of Infamy - Analyze FDR's historic speech
-              </p>
-
-              <div style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))' }}>
-                <button
-                  onClick={() => nextScreen()}
-                  className="mt-6 w-full max-w-sm py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors"
-                >
-                  Continue
-                </button>
-              </div>
-            </motion.div>
+            <XPCompletionScreen
+              beatNumber={7}
+              beatTitle="Fact or Myth?"
+              xpEarned={skipped ? 0 : LESSON_DATA.xpReward}
+              host={host}
+              onContinue={() => nextScreen()}
+              nextBeatPreview="Day of Infamy - Analyze FDR's historic speech"
+            />
           )}
         </AnimatePresence>
       </div>

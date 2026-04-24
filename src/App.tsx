@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
+import { ThemeContextProvider } from "@/context/ThemeContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { AudioProvider } from "@/context/AudioContext";
 import { Loader2 } from 'lucide-react';
@@ -36,6 +37,7 @@ const WW2ModuleEditor = lazy(() => import('./components/admin/WW2ModuleEditor'))
 const ExamVideoManager = lazy(() => import('./components/admin/ExamVideoManager'));
 const MidModuleTestVideoManager = lazy(() => import('./components/admin/MidModuleTestVideoManager'));
 const BreakingNewsStationEditor = lazy(() => import('./components/admin/BreakingNewsStationEditor'));
+const LettersHomeAudioEditor = lazy(() => import('./components/admin/LettersHomeAudioEditor'));
 const FeaturedSectionEditor = lazy(() => import('./components/admin/FeaturedSectionEditor'));
 const AppSettingsEditor = lazy(() => import('./components/admin/AppSettingsEditor').then(m => ({ default: m.AppSettingsEditor })));
 
@@ -56,6 +58,7 @@ function AdminLoadingFallback() {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+      <ThemeContextProvider>
       <AuthProvider>
         <TooltipProvider>
           <Toaster />
@@ -97,6 +100,7 @@ const App = () => (
                 <Route path="exam-videos" element={<Suspense fallback={<AdminLoadingFallback />}><ExamVideoManager /></Suspense>} />
                 <Route path="mid-test-videos" element={<Suspense fallback={<AdminLoadingFallback />}><MidModuleTestVideoManager /></Suspense>} />
                 <Route path="breaking-news" element={<Suspense fallback={<AdminLoadingFallback />}><BreakingNewsStationEditor /></Suspense>} />
+                <Route path="letters-home" element={<Suspense fallback={<AdminLoadingFallback />}><LettersHomeAudioEditor /></Suspense>} />
                 <Route path="featured-section" element={<Suspense fallback={<AdminLoadingFallback />}><FeaturedSectionEditor /></Suspense>} />
                 <Route path="app-settings" element={<Suspense fallback={<AdminLoadingFallback />}><AppSettingsEditor /></Suspense>} />
               </Route>
@@ -107,6 +111,7 @@ const App = () => (
           </AudioProvider>
         </TooltipProvider>
       </AuthProvider>
+      </ThemeContextProvider>
     </ThemeProvider>
   </QueryClientProvider>
 );

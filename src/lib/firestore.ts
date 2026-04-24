@@ -29,12 +29,18 @@ import { db, isFirebaseConfigured } from './firebase';
 export interface FirestoreUserProfile {
   displayName: string;
   email: string;
+  avatarUrl: string | null;
   xp: number;
   streak: number;
   lastActiveDate: Timestamp;
   selectedGuideId: string | null;
   isOnboarded: boolean;
   anonLeaderboard: boolean;
+  apiKeys?: {
+    gemini?: string;
+    elevenlabs?: string;
+    openai?: string;
+  };
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -320,6 +326,40 @@ export async function saveUserProfile(
   profile: Partial<FirestoreUserProfile>
 ): Promise<boolean> {
   return setDocument('users', userId, profile);
+}
+
+// ============ API Keys Operations ============
+
+export interface StoredApiKeys {
+  gemini?: string;
+  elevenlabs?: string;
+  openai?: string;
+}
+
+export async function getUserApiKeys(userId: string): Promise<StoredApiKeys | null> {
+  const profile = await getUserProfile(userId);
+  return profile?.apiKeys || null;
+}
+
+export async function saveUserApiKeys(
+  userId: string,
+  apiKeys: StoredApiKeys
+): Promise<boolean> {
+  return setDocument('users', userId, { apiKeys });
+}
+
+export async function saveUserApiKey(
+  userId: string,
+  service: keyof StoredApiKeys,
+  key: string | null
+): Promise<boolean> {
+  const current = await getUserApiKeys(userId) || {};
+  if (key === null) {
+    delete current[service];
+  } else {
+    current[service] = key;
+  }
+  return setDocument('users', userId, { apiKeys: current });
 }
 
 // ============ Journey Progress Operations ============
@@ -1568,6 +1608,13 @@ export interface BreakingNewsStationMedia {
   hostId?: string;    // Which host (for per-host videos)
 }
 
+// Letters Home audio recordings for each soldier's letter (Beat 10)
+export interface LettersHomeAudioConfig {
+  letterId: string;   // 'barsky' | 'adelman' | 'james'
+  audioUrl?: string;  // Audio recording of the letter being read
+  readerName?: string; // Name of the voice actor (optional)
+}
+
 // Milestone videos played after Q5, Q10, and completion (Q15)
 export type ExamMilestoneType = 'after-q5' | 'after-q10' | 'completion';
 
@@ -1637,6 +1684,10 @@ export interface FirestoreWW2ModuleAssets {
   midModuleTestQuestions?: MidModuleTestQuestion[];
   // Breaking News radio station media (Beat 5)
   breakingNewsStations?: Record<string, BreakingNewsStationMedia>;  // Key: stationId -> media config
+  // Video montage assets (e.g., Make It Do beat has 3 scene videos)
+  montageVideos?: Record<string, Record<string, string>>;  // Key: beat ID -> { videoKey: videoUrl }
+  // Letters Home audio recordings (Beat 10)
+  lettersHomeAudio?: Record<string, LettersHomeAudioConfig>;  // Key: letterId -> audio config
   updatedAt?: Timestamp;
 }
 
@@ -1728,6 +1779,29 @@ export async function updateWW2BeatPostModuleVideo(
   }
 
   return saveWW2ModuleAssets({ postModuleVideos });
+}
+
+// ============ Montage Video Operations ============
+
+export async function updateWW2MontageVideo(
+  beatId: string,
+  videoKey: string,
+  videoUrl: string | null
+): Promise<boolean> {
+  const current = await getWW2ModuleAssets();
+  const montageVideos = current?.montageVideos || {};
+
+  if (!montageVideos[beatId]) {
+    montageVideos[beatId] = {};
+  }
+
+  if (videoUrl) {
+    montageVideos[beatId][videoKey] = videoUrl;
+  } else {
+    delete montageVideos[beatId][videoKey];
+  }
+
+  return saveWW2ModuleAssets({ montageVideos });
 }
 
 // ============ Beat Archive Operations ============
@@ -1906,6 +1980,34 @@ export async function getBreakingNewsStations(): Promise<Record<string, Breaking
 export async function getBreakingNewsStationMedia(stationId: string): Promise<BreakingNewsStationMedia | null> {
   const assets = await getWW2ModuleAssets();
   return assets?.breakingNewsStations?.[stationId] || null;
+}
+
+// ============ Letters Home Audio Operations ============
+
+export async function updateLettersHomeAudio(
+  letterId: string,
+  config: LettersHomeAudioConfig | null
+): Promise<boolean> {
+  const current = await getWW2ModuleAssets();
+  const lettersHomeAudio = current?.lettersHomeAudio || {};
+
+  if (config) {
+    lettersHomeAudio[letterId] = config;
+  } else {
+    delete lettersHomeAudio[letterId];
+  }
+
+  return saveWW2ModuleAssets({ lettersHomeAudio });
+}
+
+export async function getLettersHomeAudio(): Promise<Record<string, LettersHomeAudioConfig>> {
+  const assets = await getWW2ModuleAssets();
+  return assets?.lettersHomeAudio || {};
+}
+
+export async function getLetterAudio(letterId: string): Promise<LettersHomeAudioConfig | null> {
+  const assets = await getWW2ModuleAssets();
+  return assets?.lettersHomeAudio?.[letterId] || null;
 }
 
 // ============ Theater Media Operations ============

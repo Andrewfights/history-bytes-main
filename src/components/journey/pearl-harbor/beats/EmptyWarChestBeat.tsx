@@ -13,7 +13,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, X, Sparkles, ChevronRight, AlertTriangle, Target, Users, Zap } from 'lucide-react';
+import { ArrowLeft, X, Sparkles, ChevronRight, ChevronDown, AlertTriangle, Target, Users, Zap, Check } from 'lucide-react';
 import { WW2Host } from '@/types';
 import { PreModuleVideoScreen, PostModuleVideoScreen } from '../shared';
 import {
@@ -32,59 +32,67 @@ const LESSON_DATA = {
   xpReward: 50,
 };
 
-// Comparison data: US vs Axis powers
+// Comparison data: US vs Axis powers with bar fill percentages
 const COMPARISON_STATS = [
   {
     category: 'Modern Tanks',
-    us: { value: '17', label: 'United States' },
-    axis: { value: '3,000', label: 'Germany' },
-    icon: '🛡️',
-    description: 'America had only 17 modern tanks compared to Germany\'s 3,000.',
+    us: { value: '17', label: 'United States', fillPercent: 1 },
+    axis: { value: '3,000', label: 'Germany', fillPercent: 100 },
+    insight: 'America fielded just 17 modern tanks. Germany had 3,000 — a 176× gap.',
+    summaryLabel: '17 vs 3,000',
   },
   {
     category: 'Combat Aircraft',
-    us: { value: 'Older models', label: 'United States' },
-    axis: { value: 'A6M Zero', label: 'Japan' },
-    icon: '✈️',
-    description: 'Japan fielded modern, battle-tested fighters with superior range and maneuverability.',
+    us: { value: 'P-40', label: 'United States', fillPercent: 30 },
+    axis: { value: 'A6M Zero', label: 'Japan', fillPercent: 85 },
+    insight: 'The P-40 was already obsolete. Japan\'s Zero outclassed every Allied fighter in the Pacific.',
+    summaryLabel: 'P-40 vs A6M',
   },
   {
-    category: 'Rifles',
-    us: { value: '1.5M', label: 'for 2M soldiers' },
-    axis: { value: '18M', label: 'for 7M troops' },
-    icon: '🔫',
-    description: 'The US Army had just 1.5 million rifles for nearly 2 million soldiers.',
+    category: 'Rifles · Infantry Arms',
+    us: { value: '1.5M', label: 'for 2M troops', fillPercent: 20 },
+    axis: { value: '18M', label: 'for 7M troops', fillPercent: 90 },
+    insight: 'The US had 1.5 million rifles for 2 million soldiers. Many trained with broomsticks.',
+    summaryLabel: 'M1903 era',
   },
   {
-    category: 'Ammunition',
-    us: { value: '<1 month', label: 'supply' },
-    axis: { value: 'Stockpiled', label: 'reserves' },
-    icon: '💥',
-    description: 'America didn\'t have enough bullets to last a single month of combat.',
+    category: 'Ammunition Reserves',
+    us: { value: 'Weeks', label: 'of supply', fillPercent: 8 },
+    axis: { value: 'Years', label: 'stockpiled', fillPercent: 95 },
+    insight: 'America didn\'t have enough ammunition to sustain even weeks of combat.',
+    summaryLabel: 'Weeks, not years',
   },
 ];
 
-// Louisiana Maneuvers facts
+// Louisiana Maneuvers facts - stat cards with types
 const MANEUVERS_FACTS = [
   {
-    title: '400,000 Troops',
-    description: 'The largest military training exercise in American history at the time.',
-    icon: '👥',
+    tag: 'Scale',
+    value: '400,000',
+    label: 'Troops Deployed',
+    description: 'Largest exercise in US history at the time.',
+    type: 'default', // gold accent
   },
   {
-    title: 'Mock Weapons',
-    description: 'Some units improvised with trucks labeled "TANK" due to equipment shortages.',
-    icon: '🚛',
+    tag: 'Shortage',
+    value: '"TANK"',
+    label: 'Painted on Trucks',
+    description: 'Units improvised for the real thing.',
+    type: 'default',
   },
   {
-    title: 'Exposed Weaknesses',
-    description: 'Unreliable radios, broken supply lines, and severe equipment shortages.',
-    icon: '⚠️',
+    tag: 'Findings',
+    value: 'Exposed',
+    label: 'Weak Supply Lines',
+    description: 'Broken radios, shortages at every level.',
+    type: 'warning', // red accent
   },
   {
-    title: 'Future Leaders',
-    description: 'Proving ground for Dwight D. Eisenhower and George S. Patton.',
-    icon: '⭐',
+    tag: 'Emergence',
+    value: 'Eisenhower',
+    label: '· Patton Rise',
+    description: 'Future leaders proven in the field.',
+    type: 'strength', // green accent
   },
 ];
 
@@ -100,6 +108,7 @@ export function EmptyWarChestBeat({ host, onComplete, onSkip, onBack, isPreview 
   const [screen, setScreen] = useState<Screen>('intro');
   const [viewedStats, setViewedStats] = useState<Set<number>>(new Set());
   const [viewedFacts, setViewedFacts] = useState<Set<number>>(new Set());
+  const [activeCategory, setActiveCategory] = useState<number | null>(null);
   const [skipped, setSkipped] = useState(false);
   const [preModuleVideoConfig, setPreModuleVideoConfig] = useState<PreModuleVideoConfig | null>(null);
   const [postModuleVideoConfig, setPostModuleVideoConfig] = useState<PostModuleVideoConfig | null>(null);
@@ -202,6 +211,8 @@ export function EmptyWarChestBeat({ host, onComplete, onSkip, onBack, isPreview 
 
   const handleViewStat = (index: number) => {
     setViewedStats(prev => new Set(prev).add(index));
+    // Toggle accordion - if clicking same category, close it; otherwise open clicked one
+    setActiveCategory(prev => prev === index ? null : index);
   };
 
   const handleViewFact = (index: number) => {
@@ -458,275 +469,652 @@ export function EmptyWarChestBeat({ host, onComplete, onSkip, onBack, isPreview 
             </motion.div>
           )}
 
-          {/* COMPARISON SCREEN - US vs Axis */}
+          {/* COMPARISON SCREEN - US vs Axis Balance Sheet */}
           {screen === 'comparison' && (
             <motion.div
               key="comparison"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex flex-col h-full"
+              className="flex flex-col h-full bg-[#0A0A0A]"
             >
-              <div className="p-4 border-b border-white/10">
-                <h2 className="text-lg font-bold text-white text-center">US vs. Axis Powers</h2>
-                <p className="text-white/50 text-xs text-center mt-1">Tap each category to reveal the gap</p>
+              {/* Balance sheet header */}
+              <div className="text-center py-4 px-4">
+                <div className="font-mono text-[8.5px] tracking-[0.35em] text-ha-red font-semibold uppercase mb-1.5">
+                  ◆ 1941 Comparative Strength
+                </div>
+                <div className="relative inline-block">
+                  <h2 className="font-oswald text-[19px] font-bold text-off-white uppercase tracking-tight">
+                    US vs. Axis Powers
+                  </h2>
+                  <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-[26px] h-0.5 bg-ha-red" />
+                </div>
+                <p className="font-sans text-[11px] text-off-white/50 mt-3 italic">
+                  Tap each category to uncover the gap.
+                </p>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4">
-                <div className="space-y-3">
+              {/* Category accordion list */}
+              <div className="flex-1 overflow-y-auto px-3.5 pb-3">
+                <div className="flex flex-col gap-[7px]">
                   {COMPARISON_STATS.map((stat, index) => {
                     const isViewed = viewedStats.has(index);
-                    return (
-                      <motion.button
-                        key={stat.category}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                        onClick={() => handleViewStat(index)}
-                        className={`w-full text-left rounded-xl overflow-hidden transition-all ${
-                          isViewed ? 'bg-white/10' : 'bg-white/5 hover:bg-white/10'
-                        }`}
-                      >
-                        {/* Header */}
-                        <div className="flex items-center gap-3 p-4">
-                          <span className="text-2xl">{stat.icon}</span>
-                          <span className="font-bold text-white flex-1">{stat.category}</span>
-                          {isViewed && (
-                            <motion.span
-                              initial={{ scale: 0 }}
-                              animate={{ scale: 1 }}
-                              className="text-green-400 text-xs"
-                            >
-                              ✓
-                            </motion.span>
-                          )}
-                        </div>
+                    const isActive = activeCategory === index;
 
-                        {/* Comparison (shown when viewed) */}
+                    return (
+                      <motion.div
+                        key={stat.category}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.08 }}
+                        className="relative overflow-hidden"
+                        style={{
+                          background: '#141414',
+                          border: `1px solid ${isActive ? '#E6AB2A' : isViewed ? 'rgba(230,171,42,0.3)' : 'rgba(230,171,42,0.15)'}`,
+                        }}
+                      >
+                        {/* Left accent bar */}
+                        <div
+                          className="absolute left-0 top-0 bottom-0 w-[3px] transition-colors"
+                          style={{
+                            background: isActive ? '#E6AB2A' : isViewed ? '#3DD67A' : 'transparent'
+                          }}
+                        />
+
+                        {/* Header row */}
+                        <button
+                          onClick={() => handleViewStat(index)}
+                          className="w-full flex items-center gap-2.5 py-[11px] px-3 pl-4"
+                        >
+                          {/* Icon placeholder */}
+                          <div
+                            className="w-6 h-6 flex items-center justify-center flex-shrink-0"
+                            style={{ color: isActive ? '#E6AB2A' : isViewed ? '#3DD67A' : 'rgba(242,238,230,0.7)' }}
+                          >
+                            {index === 0 && (
+                              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                                <path d="M4 10h16v6H4zM7 16v3m10-3v3M8 10V7a4 4 0 018 0v3"/>
+                              </svg>
+                            )}
+                            {index === 1 && (
+                              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                                <path d="M2 12l10-9 10 9-4 2v6H6v-6z"/>
+                              </svg>
+                            )}
+                            {index === 2 && (
+                              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                                <path d="M4 18h16M6 14l4-8 4 6 4-4v10"/>
+                              </svg>
+                            )}
+                            {index === 3 && (
+                              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                                <path d="M12 2L2 12l10 10 10-10zM12 7v5M12 16h.01"/>
+                              </svg>
+                            )}
+                          </div>
+
+                          {/* Title */}
+                          <span className="flex-1 font-oswald text-[13px] font-bold text-off-white uppercase tracking-wide text-left">
+                            {stat.category}
+                          </span>
+
+                          {/* Status */}
+                          <div className="flex items-center gap-1.5 font-mono text-[8.5px] tracking-[0.15em] uppercase font-semibold flex-shrink-0">
+                            {!isViewed && (
+                              <span className="text-gold-2">Tap</span>
+                            )}
+                            {isViewed && !isActive && (
+                              <span className="text-[#3DD67A] flex items-center gap-1">
+                                <Check size={10} />
+                                {stat.summaryLabel}
+                              </span>
+                            )}
+                            {isActive && (
+                              <span className="text-[#3DD67A] flex items-center gap-1">
+                                <Check size={10} />
+                                Seen
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Chevron */}
+                          <ChevronDown
+                            size={12}
+                            className={`flex-shrink-0 transition-transform ${isActive ? 'rotate-180 text-gold-2' : 'text-off-white/30'}`}
+                          />
+                        </button>
+
+                        {/* Expanded body */}
                         <AnimatePresence>
-                          {isViewed && (
+                          {isActive && (
                             <motion.div
                               initial={{ height: 0, opacity: 0 }}
                               animate={{ height: 'auto', opacity: 1 }}
                               exit={{ height: 0, opacity: 0 }}
-                              className="border-t border-white/10"
+                              transition={{ duration: 0.2 }}
+                              className="overflow-hidden"
                             >
-                              <div className="grid grid-cols-2 gap-2 p-4">
-                                {/* US Side */}
-                                <div className="bg-blue-500/20 rounded-lg p-3 text-center border border-blue-500/30">
-                                  <p className="text-blue-400 text-xs font-medium mb-1">USA</p>
-                                  <p className="text-white font-bold text-lg">{stat.us.value}</p>
-                                  <p className="text-white/50 text-xs">{stat.us.label}</p>
+                              <div
+                                className="px-3.5 pb-3.5 pt-1"
+                                style={{
+                                  borderTop: '1px solid rgba(242,238,230,0.08)',
+                                  background: '#0A0A0A'
+                                }}
+                              >
+                                {/* Bar pair */}
+                                <div className="flex flex-col gap-[7px] my-3">
+                                  {/* US Bar */}
+                                  <div
+                                    className="relative h-[34px] overflow-hidden"
+                                    style={{
+                                      background: 'linear-gradient(90deg, #1a2838, rgba(74,107,138,0.15))',
+                                      border: '1px solid rgba(74,107,138,0.45)',
+                                    }}
+                                  >
+                                    {/* Left accent */}
+                                    <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#4A6B8A]" />
+                                    {/* Fill */}
+                                    <div
+                                      className="absolute top-0 bottom-0 left-0 opacity-50"
+                                      style={{
+                                        width: `${stat.us.fillPercent}%`,
+                                        background: 'linear-gradient(90deg, rgba(74,107,138,0.9), rgba(74,107,138,0.3))',
+                                      }}
+                                    />
+                                    {/* Label */}
+                                    <div className="absolute inset-0 flex items-center px-2.5 pointer-events-none">
+                                      <div className="flex flex-col items-start">
+                                        <span className="font-mono text-[7.5px] tracking-[0.2em] font-semibold uppercase text-[#8CB0D0]">
+                                          ◇ United States
+                                        </span>
+                                        <span className="font-oswald text-[16px] font-bold text-[#BFD5E8] leading-none">
+                                          {stat.us.value}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Axis Bar */}
+                                  <div
+                                    className="relative h-[34px] overflow-hidden"
+                                    style={{
+                                      background: 'linear-gradient(90deg, #2a0a08, rgba(138,42,30,0.15))',
+                                      border: '1px solid rgba(138,42,30,0.5)',
+                                    }}
+                                  >
+                                    {/* Left accent */}
+                                    <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#8A2A1E]" />
+                                    {/* Fill */}
+                                    <div
+                                      className="absolute top-0 bottom-0 right-0 opacity-50"
+                                      style={{
+                                        width: `${stat.axis.fillPercent}%`,
+                                        background: 'linear-gradient(-90deg, rgba(138,42,30,0.9), rgba(138,42,30,0.3))',
+                                      }}
+                                    />
+                                    {/* Label */}
+                                    <div className="absolute inset-0 flex items-center justify-end px-2.5 pointer-events-none">
+                                      <div className="flex flex-col items-end">
+                                        <span className="font-mono text-[7.5px] tracking-[0.2em] font-semibold uppercase text-[#D09890]">
+                                          {stat.axis.label} ◇
+                                        </span>
+                                        <span className="font-oswald text-[16px] font-bold text-[#E8BFB5] leading-none">
+                                          {stat.axis.value}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
                                 </div>
-                                {/* Axis Side */}
-                                <div className="bg-red-500/20 rounded-lg p-3 text-center border border-red-500/30">
-                                  <p className="text-red-400 text-xs font-medium mb-1">AXIS</p>
-                                  <p className="text-white font-bold text-lg">{stat.axis.value}</p>
-                                  <p className="text-white/50 text-xs">{stat.axis.label}</p>
+
+                                {/* Insight */}
+                                <div
+                                  className="font-sans text-[10.5px] text-off-white/70 leading-relaxed p-2.5 italic"
+                                  style={{
+                                    background: 'rgba(0,0,0,0.3)',
+                                    borderLeft: '2px solid #B2641F',
+                                  }}
+                                >
+                                  {stat.insight}
                                 </div>
                               </div>
-                              <p className="text-white/60 text-sm px-4 pb-4">{stat.description}</p>
                             </motion.div>
                           )}
                         </AnimatePresence>
-                      </motion.button>
+                      </motion.div>
                     );
                   })}
                 </div>
               </div>
 
-              {/* Continue button */}
-              <div className="p-4 border-t border-white/10" style={{ paddingBottom: 'max(1rem, calc(env(safe-area-inset-bottom) + 0.5rem))' }}>
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-white/50 text-sm">Progress</span>
-                  <span className="text-amber-400 text-sm font-medium">{viewedStats.size}/{COMPARISON_STATS.length}</span>
+              {/* Footer with progress and CTA */}
+              <div className="px-4 pt-2.5 pb-4 border-t border-off-white/[0.08]" style={{ paddingBottom: 'max(1rem, calc(env(safe-area-inset-bottom) + 0.5rem))' }}>
+                {/* Progress row */}
+                <div className="flex justify-between font-mono text-[8.5px] tracking-[0.2em] text-off-white/50 uppercase font-semibold mb-2">
+                  <span>Discovered</span>
+                  <span className="text-gold-2">{viewedStats.size} / {COMPARISON_STATS.length}</span>
                 </div>
-                <button
-                  onClick={nextScreen}
-                  disabled={!allStatsViewed}
-                  className={`w-full py-4 font-bold rounded-xl transition-colors flex items-center justify-center gap-2 ${
-                    allStatsViewed
-                      ? 'bg-amber-500 hover:bg-amber-400 text-black'
-                      : 'bg-white/10 text-white/30'
-                  }`}
-                >
-                  {allStatsViewed ? (
-                    <>
-                      Continue
-                      <ChevronRight size={20} />
-                    </>
-                  ) : (
-                    `View all ${COMPARISON_STATS.length} categories`
-                  )}
-                </button>
+                {/* Progress bar */}
+                <div className="h-0.5 bg-off-white/[0.08] overflow-hidden mb-3">
+                  <motion.div
+                    className="h-full bg-gold-2"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${(viewedStats.size / COMPARISON_STATS.length) * 100}%` }}
+                  />
+                </div>
+                {/* CTA Button */}
+                {allStatsViewed ? (
+                  <button
+                    onClick={nextScreen}
+                    className="relative w-full py-3.5 bg-ha-red hover:bg-ha-red/90 text-off-white font-oswald text-[12px] font-bold uppercase tracking-[0.15em] transition-colors flex items-center justify-center gap-2"
+                  >
+                    {/* Corner brackets */}
+                    <span className="absolute top-[-1px] left-[-1px] w-2 h-2 border-l-[1.5px] border-t-[1.5px] border-gold-2" />
+                    <span className="absolute bottom-[-1px] right-[-1px] w-2 h-2 border-r-[1.5px] border-b-[1.5px] border-gold-2" />
+                    Continue The Brief
+                    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <path d="M5 12h14M13 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                ) : (
+                  <button
+                    disabled
+                    className="w-full py-3.5 font-oswald text-[12px] font-bold uppercase tracking-[0.12em] text-off-white/30"
+                    style={{ background: '#141414', border: '1px solid rgba(230,171,42,0.15)' }}
+                  >
+                    Reveal All Four Gaps
+                  </button>
+                )}
               </div>
             </motion.div>
           )}
 
-          {/* LOUISIANA MANEUVERS SCREEN */}
+          {/* LOUISIANA MANEUVERS - Field Report Screen */}
           {screen === 'maneuvers' && (
             <motion.div
               key="maneuvers"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex flex-col h-full"
+              className="flex flex-col h-full bg-[#0A0A0A]"
             >
-              <div className="p-4 border-b border-white/10">
-                <h2 className="text-lg font-bold text-white text-center">The Louisiana Maneuvers</h2>
-                <p className="text-white/50 text-xs text-center mt-1">America's desperate attempt to prepare</p>
-              </div>
+              <div className="flex-1 overflow-y-auto px-4 pt-4 pb-3">
+                {/* Report header */}
+                <div className="text-center mb-3.5">
+                  <div className="font-mono text-[8.5px] tracking-[0.4em] text-ha-red font-semibold uppercase mb-1.5">
+                    ◆ Summer 1941 · Field Report
+                  </div>
+                  <div className="relative inline-block">
+                    <h2 className="font-oswald text-[19px] font-bold text-off-white uppercase tracking-tight">
+                      The Louisiana Maneuvers
+                    </h2>
+                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-[26px] h-0.5 bg-ha-red" />
+                  </div>
+                  <p className="font-sans text-[11px] text-off-white/50 mt-3 italic">
+                    America's desperate attempt to prepare
+                  </p>
+                </div>
 
-              <div className="flex-1 overflow-y-auto p-4">
-                {/* Intro card */}
+                {/* Operation banner */}
                 <motion.div
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="bg-gradient-to-br from-amber-500/20 to-orange-500/10 rounded-xl p-4 border border-amber-500/30 mb-4"
+                  className="relative flex gap-2.5 p-3 pl-3.5 mb-3"
+                  style={{
+                    background: '#1F1810',
+                    border: '1px solid rgba(178,100,31,0.4)',
+                  }}
                 >
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
-                      <Target size={20} className="text-amber-400" />
+                  {/* Gold left bar */}
+                  <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-gold-2" />
+                  {/* Icon */}
+                  <div
+                    className="w-[26px] h-[26px] rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
+                    style={{
+                      background: 'rgba(230,171,42,0.15)',
+                      border: '1px solid #B2641F',
+                    }}
+                  >
+                    <Target size={13} className="text-gold-2" />
+                  </div>
+                  {/* Body */}
+                  <div className="flex-1 min-w-0">
+                    <div className="font-mono text-[8px] tracking-[0.25em] text-gold-2 font-semibold uppercase mb-0.5">
+                      Operation
                     </div>
-                    <div>
-                      <h3 className="font-bold text-white mb-1">Training for Modern War</h3>
-                      <p className="text-white/70 text-sm">
-                        The Army launched a massive training operation across Louisiana and East Texas to simulate the fast-moving, mechanized combat unfolding in Europe.
-                      </p>
+                    <div className="font-oswald text-[14px] font-bold text-off-white uppercase tracking-tight leading-none mb-1.5">
+                      Training For Modern War
                     </div>
+                    <p className="font-sans text-[10.5px] text-off-white/70 leading-relaxed">
+                      The Army launched a massive exercise across Louisiana and East Texas to simulate the fast-moving, mechanized combat unfolding across Europe.
+                    </p>
                   </div>
                 </motion.div>
 
-                {/* Facts grid */}
-                <div className="grid grid-cols-2 gap-3">
+                {/* Stat cards grid */}
+                <div className="grid grid-cols-2 gap-[7px] mb-3">
                   {MANEUVERS_FACTS.map((fact, index) => {
                     const isViewed = viewedFacts.has(index);
+                    const accentColor = fact.type === 'warning' ? '#CD0E14' : fact.type === 'strength' ? '#3DD67A' : '#E6AB2A';
+
                     return (
                       <motion.button
-                        key={fact.title}
-                        initial={{ opacity: 0, scale: 0.9 }}
+                        key={fact.label}
+                        initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: index * 0.1 }}
+                        transition={{ delay: index * 0.08 }}
                         onClick={() => handleViewFact(index)}
-                        className={`text-left p-4 rounded-xl transition-all ${
-                          isViewed
-                            ? 'bg-green-500/20 border border-green-500/30'
-                            : 'bg-white/5 border border-white/10 hover:bg-white/10'
-                        }`}
+                        className="relative text-left p-2.5 min-h-[82px] overflow-hidden"
+                        style={{
+                          background: '#141414',
+                          border: `1px solid ${isViewed ? accentColor + '50' : 'rgba(230,171,42,0.15)'}`,
+                        }}
                       >
-                        <span className="text-2xl mb-2 block">{fact.icon}</span>
-                        <h4 className={`font-bold text-sm mb-1 ${isViewed ? 'text-green-400' : 'text-white'}`}>
-                          {fact.title}
-                        </h4>
-                        {isViewed && (
-                          <motion.p
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            className="text-white/60 text-xs"
+                        {/* Left accent bar */}
+                        <div
+                          className="absolute left-0 top-0 bottom-0 w-0.5"
+                          style={{ background: accentColor }}
+                        />
+
+                        {/* Top row: icon + tag */}
+                        <div className="flex justify-between items-start mb-1.5">
+                          <div style={{ color: accentColor }}>
+                            {fact.type === 'default' && index === 0 && (
+                              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                                <circle cx="9" cy="7" r="3"/><circle cx="17" cy="9" r="2.5"/>
+                                <path d="M3 19c0-3 3-5 6-5s6 2 6 5M15 19c0-2 2-4 4-4s4 1.5 4 4"/>
+                              </svg>
+                            )}
+                            {fact.type === 'default' && index === 1 && (
+                              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                                <rect x="2" y="9" width="15" height="8" rx="1"/>
+                                <path d="M17 11h3l2 3v3h-5M7 20a2 2 0 100-4 2 2 0 000 4zM18 20a2 2 0 100-4 2 2 0 000 4z"/>
+                              </svg>
+                            )}
+                            {fact.type === 'warning' && (
+                              <AlertTriangle size={16} />
+                            )}
+                            {fact.type === 'strength' && (
+                              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 2l3 7 7 .5-5.5 5 2 7-6.5-4-6.5 4 2-7-5.5-5 7-.5z"/>
+                              </svg>
+                            )}
+                          </div>
+                          <span
+                            className="font-mono text-[7px] tracking-[0.15em] text-off-white/35 uppercase font-semibold py-0.5 px-1.5"
+                            style={{ border: '1px solid rgba(230,171,42,0.15)' }}
                           >
-                            {fact.description}
-                          </motion.p>
-                        )}
+                            {fact.tag}
+                          </span>
+                        </div>
+
+                        {/* Value */}
+                        <div
+                          className="font-oswald text-[16px] font-bold leading-none uppercase tracking-tight mb-0.5"
+                          style={{ color: accentColor }}
+                        >
+                          {fact.value}
+                        </div>
+
+                        {/* Label */}
+                        <div className="font-oswald text-[10px] font-semibold text-off-white uppercase tracking-wide leading-tight mb-0.5">
+                          {fact.label}
+                        </div>
+
+                        {/* Description (always shown) */}
+                        <AnimatePresence>
+                          {isViewed && (
+                            <motion.p
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: 'auto' }}
+                              className="font-sans text-[9.5px] text-off-white/50 leading-snug"
+                            >
+                              {fact.description}
+                            </motion.p>
+                          )}
+                        </AnimatePresence>
                       </motion.button>
                     );
                   })}
                 </div>
 
-                {/* Key takeaway */}
-                {allFactsViewed && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mt-4 bg-white/5 rounded-xl p-4 border border-white/10"
+                {/* Quote */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: allFactsViewed ? 1 : 0.4, y: 0 }}
+                  className="relative p-3 pl-3.5 font-sans text-[11px] text-off-white/70 leading-relaxed italic"
+                  style={{
+                    background: 'rgba(205,14,20,0.06)',
+                    border: '1px solid rgba(205,14,20,0.2)',
+                  }}
+                >
+                  {/* Red left bar */}
+                  <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-ha-red" />
+                  {/* Quote mark */}
+                  <span
+                    className="absolute -top-1 left-2.5 bg-[#0A0A0A] px-1.5 font-oswald text-[16px] text-ha-red font-bold not-italic"
                   >
-                    <p className="text-white/70 text-sm italic">
-                      "The take-away was clear: America still had a long way to go before it was ready to fight a modern, global war. And not a lot of time."
-                    </p>
-                  </motion.div>
-                )}
+                    "
+                  </span>
+                  The take-away was clear: America still had a long way to go before it was ready to fight a modern, global war. And not a lot of time.
+                </motion.div>
               </div>
 
-              {/* Continue button */}
-              <div className="p-4 border-t border-white/10" style={{ paddingBottom: 'max(1rem, calc(env(safe-area-inset-bottom) + 0.5rem))' }}>
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-white/50 text-sm">Discovered</span>
-                  <span className="text-amber-400 text-sm font-medium">{viewedFacts.size}/{MANEUVERS_FACTS.length}</span>
+              {/* Footer with progress and CTA */}
+              <div className="px-4 pt-2.5 pb-4 border-t border-off-white/[0.08]" style={{ paddingBottom: 'max(1rem, calc(env(safe-area-inset-bottom) + 0.5rem))' }}>
+                {/* Progress row */}
+                <div className="flex justify-between font-mono text-[8.5px] tracking-[0.2em] text-off-white/50 uppercase font-semibold mb-2 px-0.5">
+                  <span>Pages Surveyed</span>
+                  <span className="text-[#3DD67A]">{viewedFacts.size} / {MANEUVERS_FACTS.length}</span>
                 </div>
-                <button
-                  onClick={nextScreen}
-                  disabled={!allFactsViewed}
-                  className={`w-full py-4 font-bold rounded-xl transition-colors flex items-center justify-center gap-2 ${
-                    allFactsViewed
-                      ? 'bg-amber-500 hover:bg-amber-400 text-black'
-                      : 'bg-white/10 text-white/30'
-                  }`}
-                >
-                  {allFactsViewed ? (
-                    <>
-                      Continue
-                      <ChevronRight size={20} />
-                    </>
-                  ) : (
-                    `Tap all ${MANEUVERS_FACTS.length} facts`
-                  )}
-                </button>
+                {/* CTA Button */}
+                {allFactsViewed ? (
+                  <button
+                    onClick={nextScreen}
+                    className="relative w-full py-3.5 bg-ha-red hover:bg-ha-red/90 text-off-white font-oswald text-[12px] font-bold uppercase tracking-[0.15em] transition-colors flex items-center justify-center gap-2"
+                  >
+                    {/* Corner brackets */}
+                    <span className="absolute top-[-1px] left-[-1px] w-2 h-2 border-l-[1.5px] border-t-[1.5px] border-gold-2" />
+                    <span className="absolute bottom-[-1px] right-[-1px] w-2 h-2 border-r-[1.5px] border-b-[1.5px] border-gold-2" />
+                    Continue To The Payoff
+                    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <path d="M5 12h14M13 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                ) : (
+                  <button
+                    disabled
+                    className="w-full py-3.5 font-oswald text-[12px] font-bold uppercase tracking-[0.12em] text-off-white/30"
+                    style={{ background: '#141414', border: '1px solid rgba(230,171,42,0.15)' }}
+                  >
+                    Tap All Four Cards
+                  </button>
+                )}
               </div>
             </motion.div>
           )}
 
-          {/* LEADERS SCREEN */}
+          {/* LEADERS SCREEN - A Proving Ground */}
           {screen === 'leaders' && (
             <motion.div
               key="leaders"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex flex-col h-full p-6"
+              className="flex flex-col h-full bg-[#0A0A0A]"
             >
-              <div className="flex-1 flex flex-col items-center justify-center text-center">
+              <div className="flex-1 overflow-y-auto px-[18px] pt-5 pb-3 text-center">
+                {/* Star icon */}
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  className="w-20 h-20 rounded-full bg-amber-500/20 flex items-center justify-center mb-6"
+                  className="relative w-[50px] h-[50px] rounded-full mx-auto mb-4 flex items-center justify-center"
+                  style={{
+                    background: 'rgba(230,171,42,0.12)',
+                    border: '1.5px solid #B2641F',
+                  }}
                 >
-                  <Users size={40} className="text-amber-400" />
+                  {/* Dashed outer ring */}
+                  <div
+                    className="absolute -inset-1 rounded-full"
+                    style={{ border: '0.5px dashed rgba(230,171,42,0.3)' }}
+                  />
+                  <Users size={20} className="text-gold-2" />
                 </motion.div>
 
-                <h2 className="text-2xl font-bold text-white mb-4">
-                  A Proving Ground
-                </h2>
-
-                <div className="bg-white/5 rounded-xl p-4 max-w-sm border border-white/10 mb-6">
-                  <p className="text-white/70 text-sm leading-relaxed mb-4">
-                    While the exercises exposed America's weaknesses, they also became a proving ground for future leaders who would help turn the tide of war.
-                  </p>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-amber-500/10 rounded-lg p-3 border border-amber-500/30">
-                      <span className="text-2xl mb-1 block">⭐</span>
-                      <p className="text-amber-400 font-bold text-sm">Dwight D. Eisenhower</p>
-                      <p className="text-white/50 text-xs">Future Supreme Commander</p>
-                    </div>
-                    <div className="bg-amber-500/10 rounded-lg p-3 border border-amber-500/30">
-                      <span className="text-2xl mb-1 block">⭐</span>
-                      <p className="text-amber-400 font-bold text-sm">George S. Patton</p>
-                      <p className="text-white/50 text-xs">Legendary Tank Commander</p>
-                    </div>
-                  </div>
+                {/* Kick label */}
+                <div className="font-mono text-[8px] tracking-[0.35em] text-gold-2 font-semibold uppercase mb-1.5">
+                  ◆ The Payoff · Leadership
                 </div>
 
-                <p className="text-white/50 text-sm max-w-xs">
-                  From these humble beginnings, America would build the most powerful military force in history.
+                {/* Title */}
+                <h2 className="font-playfair italic text-[22px] font-bold text-off-white uppercase tracking-tight leading-none mb-1">
+                  A <em className="text-gold-2">Proving</em> Ground
+                </h2>
+                <div className="w-8 h-0.5 bg-ha-red mx-auto mt-2.5 mb-3.5" />
+
+                {/* Intro text */}
+                <p className="font-sans text-[11.5px] text-off-white/70 leading-relaxed italic mb-4 max-w-[260px] mx-auto">
+                  While the exercises exposed America's weaknesses, they also became a proving ground for future leaders who would turn the tide of the war.
                 </p>
+
+                {/* Commander cards */}
+                <div className="flex gap-[9px] mb-4">
+                  {/* Eisenhower */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="flex-1 relative py-3.5 px-2 text-center overflow-hidden"
+                    style={{
+                      background: '#141414',
+                      border: '1px solid rgba(230,171,42,0.15)',
+                    }}
+                  >
+                    {/* Left gold bar */}
+                    <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-gold-2" />
+                    {/* Top gold gradient line */}
+                    <div
+                      className="absolute top-0 left-0 right-0 h-px opacity-50"
+                      style={{ background: 'linear-gradient(90deg, transparent, #E6AB2A, transparent)' }}
+                    />
+
+                    {/* Rank stars */}
+                    <div className="flex justify-center gap-[3px] mb-2">
+                      {[...Array(4)].map((_, i) => (
+                        <svg key={i} className="w-2.5 h-2.5 text-[#F6E355]" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M12 2l3 7 7 .5-5.5 5 2 7-6.5-4-6.5 4 2-7-5.5-5 7-.5z"/>
+                        </svg>
+                      ))}
+                    </div>
+
+                    {/* Portrait */}
+                    <div
+                      className="relative w-11 h-11 rounded-full mx-auto mb-2 flex items-center justify-center"
+                      style={{
+                        background: 'radial-gradient(circle at 35% 30%, rgba(246,227,85,0.3), transparent 60%), linear-gradient(135deg, #4a3820, #1a1008)',
+                        border: '2px solid #B2641F',
+                      }}
+                    >
+                      {/* Dashed outer ring */}
+                      <div
+                        className="absolute -inset-[3px] rounded-full"
+                        style={{ border: '0.5px dashed rgba(230,171,42,0.35)' }}
+                      />
+                      <span className="font-oswald text-[14px] text-[#F6E355] font-bold tracking-wide">
+                        DE
+                      </span>
+                    </div>
+
+                    {/* Name */}
+                    <div className="font-oswald text-[11.5px] text-gold-2 font-bold uppercase tracking-tight leading-tight mb-0.5">
+                      Dwight D.<br/>Eisenhower
+                    </div>
+                    {/* Role */}
+                    <div className="font-mono text-[7.5px] text-off-white/50 tracking-[0.15em] uppercase leading-snug">
+                      Future Supreme<br/>Commander
+                    </div>
+                  </motion.div>
+
+                  {/* Patton */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.15 }}
+                    className="flex-1 relative py-3.5 px-2 text-center overflow-hidden"
+                    style={{
+                      background: '#141414',
+                      border: '1px solid rgba(230,171,42,0.15)',
+                    }}
+                  >
+                    {/* Left gold bar */}
+                    <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-gold-2" />
+                    {/* Top gold gradient line */}
+                    <div
+                      className="absolute top-0 left-0 right-0 h-px opacity-50"
+                      style={{ background: 'linear-gradient(90deg, transparent, #E6AB2A, transparent)' }}
+                    />
+
+                    {/* Rank stars */}
+                    <div className="flex justify-center gap-[3px] mb-2">
+                      {[...Array(4)].map((_, i) => (
+                        <svg key={i} className="w-2.5 h-2.5 text-[#F6E355]" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M12 2l3 7 7 .5-5.5 5 2 7-6.5-4-6.5 4 2-7-5.5-5 7-.5z"/>
+                        </svg>
+                      ))}
+                    </div>
+
+                    {/* Portrait */}
+                    <div
+                      className="relative w-11 h-11 rounded-full mx-auto mb-2 flex items-center justify-center"
+                      style={{
+                        background: 'radial-gradient(circle at 35% 30%, rgba(246,227,85,0.3), transparent 60%), linear-gradient(135deg, #4a3820, #1a1008)',
+                        border: '2px solid #B2641F',
+                      }}
+                    >
+                      {/* Dashed outer ring */}
+                      <div
+                        className="absolute -inset-[3px] rounded-full"
+                        style={{ border: '0.5px dashed rgba(230,171,42,0.35)' }}
+                      />
+                      <span className="font-oswald text-[14px] text-[#F6E355] font-bold tracking-wide">
+                        GP
+                      </span>
+                    </div>
+
+                    {/* Name */}
+                    <div className="font-oswald text-[11.5px] text-gold-2 font-bold uppercase tracking-tight leading-tight mb-0.5">
+                      George S.<br/>Patton
+                    </div>
+                    {/* Role */}
+                    <div className="font-mono text-[7.5px] text-off-white/50 tracking-[0.15em] uppercase leading-snug">
+                      Legendary<br/>Tank Commander
+                    </div>
+                  </motion.div>
+                </div>
+
+                {/* Closer text */}
+                <div
+                  className="font-sans text-[11px] text-off-white/70 leading-relaxed italic pt-3.5 max-w-[270px] mx-auto"
+                  style={{ borderTop: '1px solid rgba(242,238,230,0.08)' }}
+                >
+                  From these humble beginnings, America would build the{' '}
+                  <strong className="text-gold-2 font-bold not-italic">most powerful military force in history.</strong>
+                </div>
               </div>
 
-              <div className="space-y-3" style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))' }}>
+              {/* CTA Button */}
+              <div className="px-4 pb-4 pt-2" style={{ paddingBottom: 'max(1rem, calc(env(safe-area-inset-bottom) + 0.5rem))' }}>
                 <button
                   onClick={nextScreen}
-                  className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors flex items-center justify-center gap-2"
+                  className="relative w-full py-3.5 bg-ha-red hover:bg-ha-red/90 text-off-white font-oswald text-[12px] font-bold uppercase tracking-[0.15em] transition-colors flex items-center justify-center gap-2"
                 >
-                  Continue
-                  <ChevronRight size={20} />
+                  {/* Corner brackets */}
+                  <span className="absolute top-[-1px] left-[-1px] w-2 h-2 border-l-[1.5px] border-t-[1.5px] border-gold-2" />
+                  <span className="absolute bottom-[-1px] right-[-1px] w-2 h-2 border-r-[1.5px] border-b-[1.5px] border-gold-2" />
+                  Finish The Lesson
+                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M5 12h14M13 5l7 7-7 7" />
+                  </svg>
                 </button>
               </div>
             </motion.div>
@@ -741,65 +1129,191 @@ export function EmptyWarChestBeat({ host, onComplete, onSkip, onBack, isPreview 
             />
           )}
 
-          {/* COMPLETION SCREEN */}
+          {/* COMPLETION SCREEN - Lesson Complete */}
           {screen === 'completion' && (
             <motion.div
               key="completion"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex flex-col h-full p-6 items-center justify-center"
+              className="flex flex-col h-full text-center relative overflow-hidden"
+              style={{
+                background: `
+                  radial-gradient(ellipse at 50% 20%, rgba(230,171,42,0.12), transparent 55%),
+                  radial-gradient(ellipse at 50% 70%, rgba(205,14,20,0.04), transparent 60%),
+                  #0A0A0A
+                `
+              }}
               onAnimationComplete={() => {
                 if (!skipped) playXPSound();
               }}
             >
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                className="text-6xl mb-6"
-              >
-                🎖️
-              </motion.div>
+              {/* Diagonal stripe pattern overlay */}
+              <div
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  background: 'repeating-linear-gradient(45deg, transparent 0, transparent 40px, rgba(230,171,42,0.02) 40px, rgba(230,171,42,0.02) 41px)',
+                }}
+              />
 
-              <h2 className="text-2xl font-bold text-white mb-2">Lesson Complete!</h2>
-              <p className="text-white/60 mb-6">An Empty War Chest</p>
+              <div className="flex-1 overflow-y-auto px-[18px] pt-5 pb-3 relative z-10">
+                {/* Medal */}
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+                  className="relative w-[72px] h-[72px] mx-auto mt-2 mb-3.5"
+                >
+                  {/* Ribbon - red/white/blue stripes with V shape */}
+                  <div
+                    className="absolute -top-1 left-1/2 -translate-x-1/2 w-[34px] h-[18px] z-10"
+                    style={{
+                      background: 'linear-gradient(90deg, #CD0E14 0%, #CD0E14 33%, #F2EEE6 33%, #F2EEE6 66%, #2A4868 66%, #2A4868 100%)',
+                      clipPath: 'polygon(0 0, 100% 0, 100% 80%, 50% 100%, 0 80%)',
+                    }}
+                  />
+                  {/* Star */}
+                  <div
+                    className="absolute top-[14px] left-1/2 -translate-x-1/2 w-[56px] h-[56px]"
+                    style={{
+                      background: 'radial-gradient(circle at 35% 30%, #F6E355, #B2641F)',
+                      clipPath: 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)',
+                      filter: 'drop-shadow(0 0 8px rgba(230,171,42,0.4))',
+                    }}
+                  />
+                </motion.div>
 
-              {/* Summary */}
-              <div className="bg-white/5 rounded-2xl p-4 mb-6 border border-white/10 max-w-sm">
-                <h3 className="font-bold text-white mb-2">Key Takeaways:</h3>
-                <ul className="text-white/70 text-sm space-y-2">
-                  <li className="flex items-start gap-2">
-                    <span className="text-red-400">•</span>
-                    America was drastically unprepared for modern warfare in 1941
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-amber-400">•</span>
-                    The Louisiana Maneuvers exposed critical weaknesses
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-400">•</span>
-                    Future leaders emerged from this proving ground
-                  </li>
-                </ul>
+                {/* Kick label */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className="font-mono text-[8.5px] tracking-[0.4em] text-gold-2 font-semibold uppercase mb-1.5"
+                >
+                  ◆ Lesson Complete
+                </motion.div>
+
+                {/* Title */}
+                <motion.h2
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.15 }}
+                  className="font-playfair italic text-[24px] font-bold text-off-white uppercase tracking-tight leading-none mb-1"
+                >
+                  An Empty <em className="text-gold-2">War Chest</em>
+                </motion.h2>
+
+                {/* Subtitle */}
+                <motion.p
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="font-sans text-[11px] text-off-white/50 italic mb-4"
+                >
+                  Dispatch filed. Move out, soldier.
+                </motion.p>
+
+                {/* Takeaways card */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.25 }}
+                  className="relative text-left p-3.5 mb-3.5"
+                  style={{
+                    background: '#141414',
+                    border: '1px solid rgba(230,171,42,0.15)',
+                  }}
+                >
+                  {/* Left gold bar */}
+                  <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-gold-2" />
+
+                  {/* Header */}
+                  <div className="flex items-center gap-1.5 font-mono text-[8px] tracking-[0.25em] text-gold-2 font-semibold uppercase mb-2.5">
+                    <svg className="w-[9px] h-[9px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h5"/>
+                    </svg>
+                    Key Takeaways
+                  </div>
+
+                  {/* Items */}
+                  <div className="space-y-0">
+                    {[
+                      'America was drastically unprepared for modern warfare in 1941.',
+                      'The Louisiana Maneuvers exposed critical weaknesses.',
+                      'Future leaders like Eisenhower & Patton emerged from this proving ground.',
+                    ].map((takeaway, i) => (
+                      <div
+                        key={i}
+                        className="flex gap-2 items-start py-1.5"
+                        style={{ borderTop: i > 0 ? '1px solid rgba(242,238,230,0.08)' : 'none' }}
+                      >
+                        <span className="font-mono text-[9px] text-gold-2 font-bold tracking-wide flex-shrink-0 mt-0.5">
+                          0{i + 1}
+                        </span>
+                        <span className="font-sans text-[10.5px] text-off-white/70 leading-snug">
+                          {takeaway}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+
+                {/* XP award row */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="relative flex items-center justify-center gap-2.5 py-3 px-3.5 mb-3"
+                  style={{
+                    background: '#1F1810',
+                    border: '1px solid rgba(178,100,31,0.4)',
+                  }}
+                >
+                  {/* Inner dashed border */}
+                  <div
+                    className="absolute inset-0.5 pointer-events-none"
+                    style={{ border: '0.5px dashed rgba(178,100,31,0.3)' }}
+                  />
+                  {/* Star icon */}
+                  <svg className="w-5 h-5 text-[#F6E355] relative z-10" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2l2 6 6 .5-4.5 4 1.5 6-5-3-5 3 1.5-6L4 8.5 10 8z"/>
+                  </svg>
+                  {/* Value */}
+                  <span className="font-oswald text-[18px] text-[#F6E355] font-bold tracking-wide relative z-10">
+                    +{skipped ? 0 : LESSON_DATA.xpReward} XP
+                  </span>
+                  {/* Label */}
+                  <span className="font-mono text-[9px] text-off-white/70 tracking-[0.2em] uppercase font-semibold relative z-10">
+                    Awarded
+                  </span>
+                </motion.div>
+
+                {/* Next up */}
+                <motion.p
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.35 }}
+                  className="font-mono text-[9px] text-off-white/50 tracking-[0.15em] uppercase leading-relaxed"
+                >
+                  Next up · <strong className="text-gold-2 font-semibold">Arsenal of Democracy</strong><br/>
+                  See how America transformed into a production powerhouse.
+                </motion.p>
               </div>
 
-              <div className="flex items-center gap-2 px-6 py-3 bg-amber-500/20 rounded-full mb-8">
-                <Sparkles className="text-amber-400" />
-                <span className="text-amber-400 font-bold text-xl">
-                  +{skipped ? 0 : LESSON_DATA.xpReward} XP
-                </span>
-              </div>
-
-              <p className="text-white/50 text-sm text-center max-w-sm mb-6">
-                Next: Arsenal of Democracy — See how America transformed into a production powerhouse
-              </p>
-
-              <div style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))' }}>
+              {/* CTA Button */}
+              <div className="relative z-10 px-4 pb-4 pt-2" style={{ paddingBottom: 'max(1rem, calc(env(safe-area-inset-bottom) + 0.5rem))' }}>
                 <button
                   onClick={nextScreen}
-                  className="w-full max-w-sm py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors"
+                  className="relative w-full py-3.5 text-[#1a1008] font-oswald text-[12px] font-bold uppercase tracking-[0.15em] transition-colors flex items-center justify-center gap-2"
+                  style={{ background: '#E6AB2A' }}
                 >
-                  Continue
+                  {/* Red corner brackets */}
+                  <span className="absolute top-[-1px] left-[-1px] w-2 h-2 border-l-[1.5px] border-t-[1.5px] border-ha-red" />
+                  <span className="absolute bottom-[-1px] right-[-1px] w-2 h-2 border-r-[1.5px] border-b-[1.5px] border-ha-red" />
+                  Continue Campaign
+                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M5 12h14M13 5l7 7-7 7" />
+                  </svg>
                 </button>
               </div>
             </motion.div>

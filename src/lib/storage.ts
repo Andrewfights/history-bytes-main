@@ -48,6 +48,7 @@ export interface AuthState {
 export interface PersistedUserProfile {
   id: string;
   displayName: string;
+  avatarUrl?: string;
   anonLeaderboard: boolean;
   xp: number;
   streak: number;
@@ -288,6 +289,7 @@ export async function loadUserProfile(): Promise<PersistedUserProfile | null> {
         const profile: PersistedUserProfile = {
           id: userId,
           displayName: data.displayName || '',
+          avatarUrl: data.avatarUrl || undefined,
           anonLeaderboard: data.anonLeaderboard,
           xp: data.xp,
           streak: data.streak,
@@ -317,6 +319,7 @@ export async function saveUserProfile(profile: PersistedUserProfile): Promise<bo
     try {
       await firestoreSaveUserProfile(userId, {
         displayName: profile.displayName || '',
+        avatarUrl: profile.avatarUrl || null,
         xp: profile.xp,
         streak: profile.streak,
         selectedGuideId: profile.selectedGuideId || null,

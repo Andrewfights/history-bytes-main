@@ -6,7 +6,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, Play, Gamepad2, Trophy, X } from 'lucide-react';
+import { ArrowRight, Play, Gamepad2, Trophy, X, BookOpen, Calendar, MapPin, User, ChevronRight } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { usePearlHarborProgress } from '@/components/journey/pearl-harbor/hooks/usePearlHarborProgress';
 import { PEARL_HARBOR_LESSONS, getLessonById } from '@/data/pearlHarborLessons';
@@ -20,24 +20,43 @@ interface HomeTabProps {
 }
 
 // This Day in History data
-const thisDayEvents = [
+interface HistoryEvent {
+  year: string;
+  title: string;
+  tag: string;
+  description: string;
+  fullDescription: string;
+  location: string;
+  significance: string;
+}
+
+const thisDayEvents: HistoryEvent[] = [
   {
     year: '1915',
     title: 'Second Battle of Ypres begins',
     tag: 'WWI',
     description: '168 tons of chlorine gas along a 6 km line in Belgium. The first large-scale use of poison gas in warfare.',
+    fullDescription: 'On this day in 1915, the German Army launched the first large-scale use of chemical weapons in warfare near the Belgian city of Ypres. At 5:00 PM, German troops opened approximately 6,000 cylinders containing 168 tons of chlorine gas along a 6-kilometer front. The greenish-yellow cloud drifted toward French and Algerian troops, causing mass panic and approximately 6,000 casualties. This attack marked a turning point in military history, introducing a new and terrifying form of warfare that would define much of the First World War.',
+    location: 'Ypres, Belgium',
+    significance: 'First large-scale use of chemical weapons in warfare',
   },
   {
     year: '1945',
     title: 'U.S. troops liberate Flossenburg',
     tag: 'WWII',
     description: 'The 90th and 97th Infantry Divisions reach the concentration camp in Bavaria.',
+    fullDescription: 'On April 22, 1945, soldiers from the U.S. 90th and 97th Infantry Divisions liberated Flossenbürg concentration camp in Bavaria, Germany. The camp had been established in 1938 and held primarily political prisoners and Jews. Over 30,000 people had died in the camp and its subcamps. Among those executed just weeks before liberation was Dietrich Bonhoeffer, the German theologian and anti-Nazi dissident. The liberating soldiers found approximately 1,500 prisoners too weak to have been sent on death marches.',
+    location: 'Bavaria, Germany',
+    significance: 'Liberation of a major Nazi concentration camp',
   },
   {
     year: '1970',
     title: 'The first Earth Day',
     tag: 'Cultural',
     description: 'Twenty million Americans demonstrate for environmental protection.',
+    fullDescription: 'On April 22, 1970, an estimated 20 million Americans participated in the first Earth Day, making it the largest single-day protest in human history at that time. Organized by Senator Gaylord Nelson of Wisconsin and activist Denis Hayes, the event united people from all walks of life to protest environmental degradation. Earth Day 1970 led directly to the creation of the Environmental Protection Agency (EPA) and passage of the Clean Air, Clean Water, and Endangered Species Acts. Today, Earth Day is observed by more than a billion people in 192 countries.',
+    location: 'United States',
+    significance: 'Launched the modern environmental movement',
   },
 ];
 
@@ -96,6 +115,10 @@ const newReleases = [
 export function HomeTab({ onStartSession, onPlayDaily, onSelectTopic }: HomeTabProps) {
   const { user, setActiveTab, setPendingPearlHarbor, selectedHost } = useApp();
 
+  // Modal states
+  const [selectedEvent, setSelectedEvent] = useState<HistoryEvent | null>(null);
+  const [showGuideModal, setShowGuideModal] = useState(false);
+
   // Pearl Harbor progress
   const { progress, totalXP, checkpoint } = usePearlHarborProgress();
   const completedLessons = progress.completedActivities.filter(
@@ -146,16 +169,10 @@ export function HomeTab({ onStartSession, onPlayDaily, onSelectTopic }: HomeTabP
               <span className="font-mono text-[10px] tracking-[0.35em] text-ha-red uppercase font-bold">
                 {formattedDate}
               </span>
-              <span className="font-mono text-[10px] tracking-[0.35em] text-text-3 uppercase font-semibold">
-                · Day {user.daysAtAcademy || 127} at the Academy
-              </span>
             </div>
             <h1 className="font-serif text-[32px] md:text-[42px] font-bold italic text-off-white leading-none tracking-[-0.01em]">
               Welcome back, <em className="text-gold-2">{user.displayName || 'Historian'}.</em>
             </h1>
-            <p className="font-calligraphy text-[14px] md:text-[16px] italic text-text-3 mt-2 leading-[1.45]">
-              You're {totalLessons - completedLessons} lessons from the Pearl Harbor diploma.
-            </p>
           </div>
 
           {/* Right: Stat chips */}
@@ -229,11 +246,6 @@ export function HomeTab({ onStartSession, onPlayDaily, onSelectTopic }: HomeTabP
               </span>
             </div>
 
-            {/* Lesson number */}
-            <div className="font-mono text-[10px] tracking-[0.3em] text-text-3 uppercase font-semibold mb-2.5">
-              Lesson {currentLessonIndex + 1} of {totalLessons} · Beat {currentLesson?.beatNumber || 'V'}
-            </div>
-
             {/* Title */}
             <h2 className="font-serif text-[36px] md:text-[64px] font-bold italic text-off-white leading-[0.95] tracking-[-0.015em] mb-3 text-shadow-lg">
               {currentLesson?.title || 'Voices from'} <em className="text-gold-2">{currentLesson?.subtitle || 'the Harbor.'}</em>
@@ -244,14 +256,26 @@ export function HomeTab({ onStartSession, onPlayDaily, onSelectTopic }: HomeTabP
               {currentLesson?.description || 'Three survivor testimonies from the morning of December 7. Firsthand accounts you won\'t find in the official record.'}
             </p>
 
-            {/* Instructor chip */}
-            <div className="inline-flex items-center gap-2.5 px-3 py-2 bg-[rgba(20,14,8,0.7)] backdrop-blur-[10px] border border-gold-2/30 rounded-full mb-5 self-start">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[rgba(180,140,95,0.6)] to-[rgba(60,40,25,0.85)] border border-gold-2" />
+            {/* Instructor chip - clickable for backstory */}
+            <button
+              onClick={() => setShowGuideModal(true)}
+              className="inline-flex items-center gap-2.5 px-3 py-2 bg-[rgba(20,14,8,0.7)] backdrop-blur-[10px] border border-gold-2/30 rounded-full mb-5 self-start hover:border-gold-2/60 hover:bg-[rgba(30,20,12,0.8)] transition-all group cursor-pointer"
+            >
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[rgba(180,140,95,0.6)] to-[rgba(60,40,25,0.85)] border border-gold-2 overflow-hidden group-hover:border-gold-1 transition-colors">
+                {selectedHost?.imageUrl && (
+                  <img
+                    src={selectedHost.imageUrl}
+                    alt={hostName}
+                    className="w-full h-full object-cover"
+                  />
+                )}
+              </div>
               <div className="flex flex-col gap-0.5">
                 <span className="font-mono text-[7.5px] tracking-[0.3em] text-text-3 uppercase font-bold">Your Guide</span>
-                <span className="font-serif text-[13px] font-bold italic text-off-white">{hostName}</span>
+                <span className="font-serif text-[13px] font-bold italic text-off-white group-hover:text-gold-2 transition-colors">{hostName}</span>
               </div>
-            </div>
+              <ChevronRight size={14} className="text-gold-2/50 group-hover:text-gold-2 transition-colors ml-1" />
+            </button>
 
             {/* Progress bar */}
             <div className="max-w-[420px] mb-5">
@@ -392,10 +416,11 @@ export function HomeTab({ onStartSession, onPlayDaily, onSelectTopic }: HomeTabP
 
             <div className="flex-1">
               {thisDayEvents.map((event, i) => (
-                <div
+                <button
                   key={i}
+                  onClick={() => setSelectedEvent(event)}
                   className={cn(
-                    'flex gap-3.5 px-5 py-3 cursor-pointer hover:bg-ink transition-colors',
+                    'flex gap-3.5 px-5 py-3 cursor-pointer hover:bg-ink transition-colors w-full text-left group',
                     i < thisDayEvents.length - 1 && 'border-b border-dashed border-off-white/[0.05]'
                   )}
                 >
@@ -403,7 +428,7 @@ export function HomeTab({ onStartSession, onPlayDaily, onSelectTopic }: HomeTabP
                     {event.year}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-body text-[13px] font-semibold text-off-white leading-tight mb-0.5">
+                    <div className="font-body text-[13px] font-semibold text-off-white leading-tight mb-0.5 group-hover:text-gold-2 transition-colors">
                       {event.title}
                       <span className="inline-block font-mono text-[7.5px] tracking-[0.22em] text-gold-2 uppercase font-bold px-1.5 py-0.5 bg-gold-2/[0.08] border border-gold-2/15 rounded ml-1.5 align-middle">
                         {event.tag}
@@ -413,7 +438,8 @@ export function HomeTab({ onStartSession, onPlayDaily, onSelectTopic }: HomeTabP
                       {event.description}
                     </div>
                   </div>
-                </div>
+                  <ChevronRight size={16} className="text-text-4 group-hover:text-gold-2 transition-colors flex-shrink-0 mt-1" />
+                </button>
               ))}
             </div>
           </div>
@@ -502,6 +528,197 @@ export function HomeTab({ onStartSession, onPlayDaily, onSelectTopic }: HomeTabP
           />
         </div>
       </section>
+
+      {/* ═══════════ THIS DAY IN HISTORY MODAL ═══════════ */}
+      <AnimatePresence>
+        {selectedEvent && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+            onClick={() => setSelectedEvent(null)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ duration: 0.2 }}
+              onClick={(e) => e.stopPropagation()}
+              className="relative w-full max-w-lg bg-ink border border-gold-2/30 rounded-xl overflow-hidden shadow-[0_30px_80px_rgba(0,0,0,0.6)]"
+            >
+              {/* Gold top bar */}
+              <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-gold-3 via-gold-1 to-gold-3" />
+
+              {/* Header */}
+              <div className="relative p-5 border-b border-gold-2/15">
+                <button
+                  onClick={() => setSelectedEvent(null)}
+                  className="absolute top-4 right-4 w-8 h-8 rounded-full bg-ink-lift border border-gold-2/20 flex items-center justify-center text-text-3 hover:text-off-white hover:border-gold-2/40 transition-colors"
+                >
+                  <X size={16} />
+                </button>
+
+                <div className="flex items-center gap-2 mb-2">
+                  <Calendar size={14} className="text-ha-red" />
+                  <span className="font-mono text-[9px] tracking-[0.35em] text-ha-red uppercase font-bold">
+                    This Day in History
+                  </span>
+                </div>
+
+                <div className="flex items-baseline gap-3">
+                  <span className="font-serif text-[42px] font-bold italic text-gold-2 leading-none tracking-[-0.02em]">
+                    {selectedEvent.year}
+                  </span>
+                  <span className="font-mono text-[8px] tracking-[0.25em] text-gold-2 uppercase font-bold px-2 py-1 bg-gold-2/[0.08] border border-gold-2/20 rounded">
+                    {selectedEvent.tag}
+                  </span>
+                </div>
+
+                <h3 className="font-serif text-[24px] font-bold italic text-off-white leading-tight mt-2">
+                  {selectedEvent.title}
+                </h3>
+              </div>
+
+              {/* Content */}
+              <div className="p-5 space-y-4">
+                <p className="font-body text-[14px] text-text-2 leading-[1.65]">
+                  {selectedEvent.fullDescription}
+                </p>
+
+                {/* Meta info */}
+                <div className="flex flex-wrap gap-3 pt-2">
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-ink-lift border border-gold-2/15 rounded-lg">
+                    <MapPin size={12} className="text-gold-2" />
+                    <span className="font-mono text-[9px] tracking-[0.15em] text-text-2 uppercase font-semibold">
+                      {selectedEvent.location}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-ink-lift border border-gold-2/15 rounded-lg">
+                    <BookOpen size={12} className="text-gold-2" />
+                    <span className="font-mono text-[9px] tracking-[0.15em] text-text-2 uppercase font-semibold">
+                      {selectedEvent.significance}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="p-5 pt-0">
+                <button
+                  onClick={() => setSelectedEvent(null)}
+                  className="w-full py-3 bg-gold-2 text-void font-display text-[11px] font-bold tracking-[0.2em] uppercase rounded-full hover:bg-gold-1 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ═══════════ GUIDE BACKSTORY MODAL ═══════════ */}
+      <AnimatePresence>
+        {showGuideModal && selectedHost && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+            onClick={() => setShowGuideModal(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ duration: 0.2 }}
+              onClick={(e) => e.stopPropagation()}
+              className="relative w-full max-w-md bg-ink border border-gold-2/30 rounded-xl overflow-hidden shadow-[0_30px_80px_rgba(0,0,0,0.6)]"
+            >
+              {/* Gold top bar */}
+              <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-gold-3 via-gold-1 to-gold-3" />
+
+              {/* Close button */}
+              <button
+                onClick={() => setShowGuideModal(false)}
+                className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm border border-gold-2/20 flex items-center justify-center text-text-3 hover:text-off-white hover:border-gold-2/40 transition-colors"
+              >
+                <X size={16} />
+              </button>
+
+              {/* Hero image */}
+              <div className="relative h-48 bg-gradient-to-b from-[#2a1810] to-ink overflow-hidden">
+                {selectedHost.imageUrl ? (
+                  <img
+                    src={selectedHost.imageUrl}
+                    alt={selectedHost.name}
+                    className="w-full h-full object-cover object-top"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[rgba(180,140,95,0.6)] to-[rgba(60,40,25,0.85)] border-2 border-gold-2 flex items-center justify-center">
+                      <User size={48} className="text-gold-2/60" />
+                    </div>
+                  </div>
+                )}
+                {/* Gradient overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/50 to-transparent" />
+
+                {/* Name overlay */}
+                <div className="absolute bottom-4 left-5 right-5">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="w-4 h-px bg-gold-2" />
+                    <span className="font-mono text-[8px] tracking-[0.35em] text-gold-2 uppercase font-bold">
+                      Your Guide
+                    </span>
+                  </div>
+                  <h3 className="font-serif text-[28px] font-bold italic text-off-white leading-none">
+                    {selectedHost.name}
+                  </h3>
+                  <p className="font-mono text-[10px] tracking-[0.2em] text-text-3 uppercase font-semibold mt-1">
+                    {selectedHost.title}
+                  </p>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="p-5 space-y-4">
+                {/* Info chips */}
+                <div className="flex flex-wrap gap-2">
+                  <div className="px-3 py-1.5 bg-ink-lift border border-gold-2/15 rounded-lg">
+                    <span className="font-mono text-[8px] tracking-[0.2em] text-text-3 uppercase font-semibold">Era</span>
+                    <p className="font-serif text-[13px] font-bold italic text-gold-2">{selectedHost.era}</p>
+                  </div>
+                  <div className="px-3 py-1.5 bg-ink-lift border border-gold-2/15 rounded-lg">
+                    <span className="font-mono text-[8px] tracking-[0.2em] text-text-3 uppercase font-semibold">Specialty</span>
+                    <p className="font-serif text-[13px] font-bold italic text-gold-2">{selectedHost.specialty}</p>
+                  </div>
+                </div>
+
+                {/* Description/Backstory */}
+                <div>
+                  <h4 className="font-mono text-[9px] tracking-[0.3em] text-ha-red uppercase font-bold mb-2">
+                    Backstory
+                  </h4>
+                  <p className="font-body text-[14px] text-text-2 leading-[1.65]">
+                    {selectedHost.description || 'A seasoned guide ready to take you through the pivotal moments of history. With years of experience and firsthand knowledge, they bring the past to life in ways that textbooks never could.'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="p-5 pt-0">
+                <button
+                  onClick={() => setShowGuideModal(false)}
+                  className="w-full py-3 bg-gold-2 text-void font-display text-[11px] font-bold tracking-[0.2em] uppercase rounded-full hover:bg-gold-1 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -1,39 +1,49 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, X, ChevronRight } from 'lucide-react';
+import { ChevronRight, Lightbulb, X } from 'lucide-react';
 import { Question } from '@/types';
 
 interface QuizViewProps {
   questions: Question[];
   onComplete: (score: number, answers: number[]) => void;
+  onClose?: () => void;
 }
 
-export function QuizView({ questions, onComplete }: QuizViewProps) {
+const LETTERS = ['A', 'B', 'C', 'D'];
+
+export function QuizView({ questions, onComplete, onClose }: QuizViewProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [correctAnswers, setCorrectAnswers] = useState(0);
   const [userAnswers, setUserAnswers] = useState<number[]>([]);
+  const [streak, setStreak] = useState(1);
+  const [answerHistory, setAnswerHistory] = useState<boolean[]>([]);
 
   const currentQuestion = questions[currentIndex];
   const isCorrect = selectedAnswer === currentQuestion.answer;
   const isLast = currentIndex === questions.length - 1;
+  const score = Math.round((correctAnswers / questions.length) * 100);
 
   const handleSubmit = () => {
     if (selectedAnswer === null) return;
-    
+
     setHasSubmitted(true);
     setUserAnswers(prev => [...prev, selectedAnswer]);
-    
+    setAnswerHistory(prev => [...prev, isCorrect]);
+
     if (isCorrect) {
       setCorrectAnswers(prev => prev + 1);
+      setStreak(prev => prev + 1);
+    } else {
+      setStreak(1);
     }
   };
 
   const handleNext = () => {
     if (isLast) {
-      // correctAnswers was already updated in handleSubmit(), so use it directly
-      onComplete(correctAnswers, userAnswers);
+      const finalCorrect = isCorrect ? correctAnswers + 1 : correctAnswers;
+      onComplete(finalCorrect, [...userAnswers, selectedAnswer!]);
     } else {
       setCurrentIndex(prev => prev + 1);
       setSelectedAnswer(null);
@@ -42,48 +52,106 @@ export function QuizView({ questions, onComplete }: QuizViewProps) {
   };
 
   return (
-    <div className="flex flex-col min-h-[calc(100vh-8rem)]">
-      {/* Progress */}
-      <div className="px-4 pt-4">
-        <div className="flex items-center justify-between text-sm text-muted-foreground mb-2">
-          <span>Quiz</span>
-          <span>Q{currentIndex + 1} of {questions.length}</span>
+    <div className="flex flex-col min-h-[calc(100vh-4rem)]">
+      {/* Top Bar */}
+      <div className="px-4 pt-4 pb-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-[var(--ha-red)] font-bold text-xs uppercase tracking-wider">QUIZ</span>
+            <span className="text-muted-foreground/50">·</span>
+            <span className="text-foreground">
+              <em className="text-[var(--gold-2)] not-italic font-medium">{currentIndex + 1}</em> of {questions.length}
+            </span>
+          </div>
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="w-8 h-8 rounded-lg border border-border flex items-center justify-center hover:border-primary/50 transition-colors"
+            >
+              <X size={16} />
+            </button>
+          )}
         </div>
-        <div className="h-1 bg-border rounded-full overflow-hidden">
-          <motion.div
-            className="h-full bg-primary rounded-full"
-            animate={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
-            transition={{ duration: 0.3 }}
-          />
+      </div>
+
+      {/* Progress Segments */}
+      <div className="px-4 pb-4">
+        <div className="quiz-progress-segments">
+          {questions.map((_, i) => {
+            let segmentClass = 'quiz-progress-seg';
+            if (i < currentIndex) {
+              segmentClass += ' done';
+              if (answerHistory[i]) {
+                segmentClass += ' correct';
+              } else {
+                segmentClass += ' incorrect';
+              }
+            } else if (i === currentIndex) {
+              if (hasSubmitted) {
+                segmentClass += ' done';
+                if (isCorrect) {
+                  segmentClass += ' correct';
+                } else {
+                  segmentClass += ' incorrect';
+                }
+              } else {
+                segmentClass += ' current';
+              }
+            }
+            return <div key={i} className={segmentClass} />;
+          })}
         </div>
       </div>
 
       {/* Question */}
-      <div className="flex-1 px-4 py-6 space-y-4">
+      <div className="flex-1 px-4 py-2 space-y-4 overflow-auto">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentIndex}
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
-            className="space-y-6"
+            className="space-y-5"
           >
-            <h2 className="font-editorial text-xl font-semibold leading-snug">
-              {currentQuestion.prompt}
-            </h2>
+            {/* Question Card */}
+            <div className="p-5 rounded-lg bg-[linear-gradient(180deg,rgba(19,21,24,0.95),rgba(10,8,5,0.95))] border border-[rgba(230,171,42,0.2)]">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Question</span>
+                <span className="text-xs font-mono text-[var(--gold-2)]">
+                  {String(currentIndex + 1).padStart(2, '0')} / {String(questions.length).padStart(2, '0')}
+                </span>
+              </div>
+              <h2
+                className="font-['DM_Serif_Display',Georgia,serif] italic text-[22px] md:text-[26px] text-[var(--off-white)] leading-tight"
+                dangerouslySetInnerHTML={{
+                  __html: currentQuestion.prompt.replace(
+                    /\*(.*?)\*/g,
+                    '<em class="not-italic text-[var(--gold-2)]">$1</em>'
+                  )
+                }}
+              />
 
-            <div className="space-y-3">
+              {/* Hint button - placeholder */}
+              <button className="mt-4 flex items-center gap-2 text-xs text-muted-foreground hover:text-[var(--gold-2)] transition-colors py-1.5 px-3 rounded border border-[rgba(255,255,255,0.08)] bg-[rgba(0,0,0,0.3)]">
+                <Lightbulb size={12} />
+                <span>Use a hint</span>
+                <span className="text-[var(--text-4)]">−5 XP</span>
+              </button>
+            </div>
+
+            {/* Answer Options */}
+            <div className="space-y-2.5">
               {currentQuestion.choices.map((choice, index) => {
-                let optionClass = 'quiz-option';
-                
+                let answerClass = 'quiz-answer-v3';
+
                 if (hasSubmitted) {
                   if (index === currentQuestion.answer) {
-                    optionClass = 'quiz-option quiz-option-correct';
+                    answerClass += ' correct';
                   } else if (index === selectedAnswer && !isCorrect) {
-                    optionClass = 'quiz-option quiz-option-incorrect';
+                    answerClass += ' incorrect';
                   }
                 } else if (index === selectedAnswer) {
-                  optionClass = 'quiz-option quiz-option-selected';
+                  answerClass += ' selected';
                 }
 
                 return (
@@ -93,27 +161,10 @@ export function QuizView({ questions, onComplete }: QuizViewProps) {
                     whileTap={!hasSubmitted ? { scale: 0.99 } : {}}
                     onClick={() => !hasSubmitted && setSelectedAnswer(index)}
                     disabled={hasSubmitted}
-                    className={optionClass}
+                    className={answerClass}
                   >
-                    <div className="flex items-center gap-3">
-                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
-                        hasSubmitted && index === currentQuestion.answer
-                          ? 'border-success bg-success'
-                          : hasSubmitted && index === selectedAnswer && !isCorrect
-                          ? 'border-destructive bg-destructive'
-                          : index === selectedAnswer
-                          ? 'border-primary bg-primary'
-                          : 'border-border'
-                      }`}>
-                        {hasSubmitted && index === currentQuestion.answer && (
-                          <Check size={14} className="text-success-foreground" />
-                        )}
-                        {hasSubmitted && index === selectedAnswer && !isCorrect && (
-                          <X size={14} className="text-destructive-foreground" />
-                        )}
-                      </div>
-                      <span>{choice}</span>
-                    </div>
+                    <div className="quiz-letter">{LETTERS[index]}</div>
+                    <span className="quiz-answer-text-v3">{choice}</span>
                   </motion.button>
                 );
               })}
@@ -126,14 +177,18 @@ export function QuizView({ questions, onComplete }: QuizViewProps) {
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
-                  className={`p-4 rounded-xl ${
-                    isCorrect ? 'bg-success/10 border border-success/20' : 'bg-destructive/10 border border-destructive/20'
+                  className={`p-4 rounded-lg border ${
+                    isCorrect
+                      ? 'bg-[rgba(61,214,122,0.08)] border-[var(--success)]'
+                      : 'bg-[rgba(205,14,20,0.08)] border-[var(--ha-red)]'
                   }`}
                 >
-                  <p className={`text-sm font-medium mb-1 ${isCorrect ? 'text-success' : 'text-destructive'}`}>
+                  <p className={`text-sm font-bold mb-1.5 uppercase tracking-wider ${
+                    isCorrect ? 'text-[var(--success)]' : 'text-[var(--ha-red)]'
+                  }`}>
                     {isCorrect ? '✓ Correct!' : '✗ Incorrect'}
                   </p>
-                  <p className="text-sm text-foreground/80">
+                  <p className="text-sm text-[var(--text-2)] font-[var(--font-calligraphy)] italic">
                     {currentQuestion.explanation}
                   </p>
                 </motion.div>
@@ -143,17 +198,32 @@ export function QuizView({ questions, onComplete }: QuizViewProps) {
         </AnimatePresence>
       </div>
 
-      {/* Action button */}
+      {/* Footer */}
       <div className="p-4" style={{ paddingBottom: 'max(1rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}>
+        {/* Score and Streak */}
+        <div className="flex items-center justify-between text-xs mb-3">
+          <div className="flex items-center gap-3">
+            <span className="text-muted-foreground">
+              Score <em className="not-italic text-[var(--gold-2)] font-mono">{score}</em>/100
+            </span>
+            <span className="text-[var(--text-4)]">·</span>
+            <span className="text-muted-foreground">
+              Streak <em className="not-italic text-[var(--gold-2)] font-mono">×{streak}</em>
+            </span>
+          </div>
+        </div>
+
         {!hasSubmitted ? (
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={handleSubmit}
             disabled={selectedAnswer === null}
-            className="w-full h-14 bg-primary text-primary-foreground rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:glow-yellow transition-all"
+            className="btn-primary-lg w-full disabled:opacity-40 disabled:cursor-not-allowed disabled:animate-none"
+            style={{ minHeight: '52px' }}
           >
-            Submit
+            Submit Answer
+            <ChevronRight size={16} strokeWidth={2.5} />
           </motion.button>
         ) : (
           <motion.button
@@ -162,10 +232,11 @@ export function QuizView({ questions, onComplete }: QuizViewProps) {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={handleNext}
-            className="w-full h-14 bg-primary text-primary-foreground rounded-xl font-semibold flex items-center justify-center gap-2 hover:glow-yellow transition-all"
+            className="btn-primary-lg w-full"
+            style={{ minHeight: '52px' }}
           >
             {isLast ? 'See Results' : 'Next Question'}
-            <ChevronRight size={18} />
+            <ChevronRight size={16} strokeWidth={2.5} />
           </motion.button>
         )}
       </div>

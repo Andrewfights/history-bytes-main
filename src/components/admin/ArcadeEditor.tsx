@@ -273,12 +273,16 @@ export default function ArcadeEditor() {
 
   // Generate thumbnails for all games without valid images
   const handleGenerateAllThumbnails = async () => {
+    console.log('[ArcadeEditor] Generate All clicked');
+    console.log('[ArcadeEditor] isGeminiConfigured:', isGeminiConfigured());
+
     if (!isGeminiConfigured()) {
-      toast.error('Gemini API not configured');
+      toast.error('Gemini API not configured. Add your key in Profile > Settings.');
       return;
     }
 
     const gamesNeedingThumbnails = defaultGameTypesMeta.filter(g => !isValidThumbnail(gameThumbnails[g.id]));
+    console.log('[ArcadeEditor] Games needing thumbnails:', gamesNeedingThumbnails.length);
 
     if (gamesNeedingThumbnails.length === 0) {
       toast.info('All games already have thumbnails');

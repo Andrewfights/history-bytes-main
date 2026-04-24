@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Mail, Lock, User, ArrowRight, Sparkles, CheckCircle, RefreshCw,
   Play, Menu, X, Flame, ChevronRight, Star, Lock as LockIcon,
-  Film, Globe, Flag
+  Film, Globe, Flag, Pause, Volume2, VolumeX,
+  Home, Map, BookOpen, Gamepad2
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
@@ -49,6 +50,210 @@ const DEMO_USERS = {
   new: { id: 'demo-new-user', email: DEMO_CREDENTIALS.newUser.email, displayName: 'New Explorer' },
   existing: { id: 'demo-existing-user', email: DEMO_CREDENTIALS.returning.email, displayName: 'History Scholar' },
 };
+
+// ============================================
+// TRAILER PLAYER COMPONENT
+// ============================================
+function TrailerPlayer({ onClose }: { onClose: () => void }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [showControls, setShowControls] = useState(true);
+  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const handlePlayPause = () => {
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.pause();
+      } else {
+        videoRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
+
+  const handleMuteToggle = () => {
+    if (videoRef.current) {
+      videoRef.current.muted = !isMuted;
+      setIsMuted(!isMuted);
+    }
+  };
+
+  const handleTimeUpdate = () => {
+    if (videoRef.current) {
+      const current = videoRef.current.currentTime;
+      const dur = videoRef.current.duration;
+      setCurrentTime(current);
+      setProgress((current / dur) * 100);
+    }
+  };
+
+  const handleLoadedMetadata = () => {
+    if (videoRef.current) {
+      setDuration(videoRef.current.duration);
+    }
+  };
+
+  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (videoRef.current) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const percentage = clickX / rect.width;
+      videoRef.current.currentTime = percentage * duration;
+    }
+  };
+
+  const handleMouseMove = () => {
+    setShowControls(true);
+    if (controlsTimeoutRef.current) {
+      clearTimeout(controlsTimeoutRef.current);
+    }
+    controlsTimeoutRef.current = setTimeout(() => {
+      if (isPlaying) setShowControls(false);
+    }, 3000);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (controlsTimeoutRef.current) {
+        clearTimeout(controlsTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[110] bg-black flex items-center justify-center"
+      onClick={onClose}
+      onMouseMove={handleMouseMove}
+    >
+      {/* Video container - 16:9 aspect ratio */}
+      <motion.div
+        initial={{ scale: 0.95, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.95, opacity: 0 }}
+        transition={{ type: 'spring', damping: 25 }}
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-5xl mx-4"
+      >
+        {/* Video wrapper with 16:9 aspect ratio */}
+        <div className="relative aspect-video bg-black rounded-lg overflow-hidden shadow-2xl">
+          <video
+            ref={videoRef}
+            src={TRAILER_VIDEO}
+            autoPlay
+            playsInline
+            className="w-full h-full object-contain"
+            onTimeUpdate={handleTimeUpdate}
+            onLoadedMetadata={handleLoadedMetadata}
+            onPlay={() => setIsPlaying(true)}
+            onPause={() => setIsPlaying(false)}
+            onEnded={() => setIsPlaying(false)}
+            onClick={handlePlayPause}
+          />
+
+          {/* Controls overlay */}
+          <motion.div
+            initial={false}
+            animate={{ opacity: showControls ? 1 : 0 }}
+            transition={{ duration: 0.2 }}
+            className="absolute inset-0 pointer-events-none"
+          >
+            {/* Top gradient */}
+            <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-b from-black/70 to-transparent" />
+
+            {/* Bottom gradient */}
+            <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/80 to-transparent" />
+
+            {/* Close button */}
+            <button
+              onClick={onClose}
+              className="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/50 border border-off-white/20 flex items-center justify-center text-off-white hover:bg-black/70 transition-colors pointer-events-auto"
+            >
+              <X size={20} />
+            </button>
+
+            {/* Center play/pause */}
+            <button
+              onClick={handlePlayPause}
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full bg-black/50 border-2 border-off-white/30 flex items-center justify-center text-off-white hover:bg-black/70 hover:border-gold-2 transition-all pointer-events-auto"
+            >
+              {isPlaying ? <Pause size={32} /> : <Play size={32} className="ml-1" />}
+            </button>
+
+            {/* Bottom controls */}
+            <div className="absolute bottom-0 left-0 right-0 p-4 pointer-events-auto">
+              {/* Progress bar */}
+              <div
+                className="relative h-1 bg-off-white/20 rounded-full mb-3 cursor-pointer group"
+                onClick={handleSeek}
+              >
+                <div
+                  className="absolute top-0 left-0 h-full bg-gold-2 rounded-full transition-all"
+                  style={{ width: `${progress}%` }}
+                />
+                <div
+                  className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-gold-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                  style={{ left: `${progress}%`, marginLeft: '-6px' }}
+                />
+              </div>
+
+              {/* Controls row */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  {/* Play/Pause */}
+                  <button
+                    onClick={handlePlayPause}
+                    className="text-off-white hover:text-gold-2 transition-colors"
+                  >
+                    {isPlaying ? <Pause size={22} /> : <Play size={22} />}
+                  </button>
+
+                  {/* Mute */}
+                  <button
+                    onClick={handleMuteToggle}
+                    className="text-off-white hover:text-gold-2 transition-colors"
+                  >
+                    {isMuted ? <VolumeX size={22} /> : <Volume2 size={22} />}
+                  </button>
+
+                  {/* Time */}
+                  <span className="font-mono text-xs text-off-white/70">
+                    {formatTime(currentTime)} / {formatTime(duration)}
+                  </span>
+                </div>
+
+                {/* Trailer label */}
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-ha-red animate-pulse" />
+                  <span className="font-mono text-[10px] tracking-[0.2em] text-off-white/60 uppercase">Official Trailer</span>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Decorative corner flourishes */}
+        <div className="absolute -top-1 -left-1 w-8 h-8 border-l-2 border-t-2 border-gold-2/40 rounded-tl pointer-events-none" />
+        <div className="absolute -top-1 -right-1 w-8 h-8 border-r-2 border-t-2 border-gold-2/40 rounded-tr pointer-events-none" />
+        <div className="absolute -bottom-1 -left-1 w-8 h-8 border-l-2 border-b-2 border-gold-2/40 rounded-bl pointer-events-none" />
+        <div className="absolute -bottom-1 -right-1 w-8 h-8 border-r-2 border-b-2 border-gold-2/40 rounded-br pointer-events-none" />
+      </motion.div>
+    </motion.div>
+  );
+}
 
 export function LandingPage({ onAuthSuccess }: LandingPageProps) {
   const { signIn, signUp, resetPassword, sendVerificationEmail, isConfigured } = useAuth();
@@ -191,22 +396,34 @@ export function LandingPage({ onAuthSuccess }: LandingPageProps) {
   return (
     <div className="min-h-screen bg-void text-off-white font-body overflow-x-hidden">
       {/* Navigation */}
-      <nav className="sticky top-0 z-50 bg-ink/85 backdrop-blur-xl border-b border-off-white/[0.06]">
-        <div className="max-w-7xl mx-auto px-4 md:px-10 h-16 flex items-center justify-between">
-          <HistoryLogo variant="full" size="md" withUnderline />
+      <nav className="sticky top-0 z-50 bg-ink/85 backdrop-blur-xl border-b-2 border-ha-red">
+        <div className="max-w-7xl mx-auto px-4 md:px-10 h-14 flex items-center">
+          {/* History Academy Logo */}
+          <div className="flex items-center gap-2.5">
+            {/* H Mark */}
+            <div className="w-8 h-8 bg-gradient-to-b from-[#F6E355] via-[#E6AB2A] to-[#B2641F] flex items-center justify-center">
+              <span className="font-display text-[20px] font-bold text-[#1a1008] leading-none" style={{ textShadow: '0 1px 0 rgba(255,255,255,0.2)' }}>H</span>
+            </div>
+            {/* Text */}
+            <div className="font-display font-bold text-off-white uppercase leading-[0.95]">
+              <div className="text-[13px] tracking-[0.01em]">History</div>
+              <div className="text-[8px] tracking-[0.22em] font-semibold text-gold-2 mt-[1px]">Academy</div>
+            </div>
+          </div>
 
-          {/* Desktop Nav */}
-          <div className="hidden md:flex items-center gap-8">
+          {/* Desktop Nav - Center section with flex-1 */}
+          <div className="hidden md:flex items-center justify-center flex-1 gap-8">
             <a href="#features" className="font-mono text-[11px] tracking-[0.2em] uppercase text-off-white/70 hover:text-gold-2 transition-colors">Features</a>
             <a href="#campaigns" className="font-mono text-[11px] tracking-[0.2em] uppercase text-off-white/70 hover:text-gold-2 transition-colors">Campaigns</a>
             <a href="#guides" className="font-mono text-[11px] tracking-[0.2em] uppercase text-off-white/70 hover:text-gold-2 transition-colors">Guides</a>
           </div>
 
-          <div className="hidden md:flex items-center gap-3">
+          {/* Right side - Sign In & Get Started */}
+          <div className="hidden md:flex items-center gap-4">
             <button onClick={() => setMode('signin')} className="font-mono text-[11px] tracking-[0.2em] uppercase text-off-white/70 hover:text-gold-2 transition-colors">
               Sign In
             </button>
-            <button onClick={() => setMode('signup')} className="bg-ha-red text-off-white px-5 py-2.5 rounded-md font-display text-[11px] font-bold uppercase tracking-[0.15em] hover:bg-ha-red-deep transition-colors">
+            <button onClick={() => setMode('signup')} className="bg-ha-red text-off-white px-4 py-2 rounded-md font-display text-[11px] font-bold uppercase tracking-[0.15em] hover:bg-ha-red-deep transition-colors">
               Get Started
             </button>
           </div>
@@ -240,7 +457,7 @@ export function LandingPage({ onAuthSuccess }: LandingPageProps) {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative py-16 md:py-24 px-4 md:px-10 overflow-hidden" style={{
+      <section className="relative pt-4 md:pt-6 pb-12 md:pb-16 px-4 md:px-10 overflow-hidden" style={{
         background: 'radial-gradient(ellipse at 20% 30%, rgba(205,14,20,0.12) 0%, transparent 50%), radial-gradient(ellipse at 80% 70%, rgba(230,171,42,0.1) 0%, transparent 50%), linear-gradient(180deg, #000 0%, #0A0A0A 100%)'
       }}>
         <div className="max-w-7xl mx-auto">
@@ -300,9 +517,9 @@ export function LandingPage({ onAuthSuccess }: LandingPageProps) {
                   <div className="absolute top-2 left-1/2 -translate-x-1/2 w-24 h-5 bg-black rounded-b-xl z-10" />
 
                   {/* Screen content */}
-                  <div className="pt-10 px-4">
+                  <div className="pt-10 px-4 pb-4 h-full flex flex-col">
                     <div className="flex justify-between items-center mb-4">
-                      <HistoryLogo variant="icon" size="sm" />
+                      <HistoryLogo variant="icon" size="sm" withUnderline={false} />
                       <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-ink-lift border border-gold-2/15 text-gold-2 font-mono text-[10px]">
                         <Flame size={12} /> 8
                       </div>
@@ -310,26 +527,95 @@ export function LandingPage({ onAuthSuccess }: LandingPageProps) {
 
                     {/* Featured card */}
                     <div className="bg-ink-lift border border-gold-2/15 rounded-xl overflow-hidden">
-                      <div className="h-36 relative overflow-hidden">
+                      <div className="h-28 relative overflow-hidden">
                         <img
                           src="/assets/ww2-battles/pearl-harbor.png"
                           alt="Pearl Harbor"
                           className="absolute inset-0 w-full h-full object-cover"
                         />
                         <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/90" />
-                        <span className="absolute top-2 left-2 bg-black/70 text-gold-2 px-2 py-1 font-mono text-[8px] tracking-wider uppercase rounded">Featured</span>
-                      </div>
-                      <div className="p-3 -mt-8 relative z-10">
-                        <h3 className="font-serif text-xl font-bold">Pearl Harbor</h3>
-                        <p className="font-mono text-[9px] text-off-white/50 tracking-wider uppercase mt-1">Beat 5 of 10</p>
-                        <div className="flex justify-between font-mono text-[9px] mt-3">
-                          <span>8 / 14 Lessons</span>
-                          <span className="text-gold-2">+442 XP</span>
-                        </div>
-                        <div className="h-0.5 bg-off-white/10 rounded mt-2">
-                          <div className="h-full w-[57%] bg-gold-2 rounded" />
+                        <span className="absolute top-2 left-2 bg-black/70 text-gold-2 px-2 py-1 font-mono text-[7px] tracking-wider uppercase rounded">Featured</span>
+                        {/* Play indicator */}
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm border border-white/50 flex items-center justify-center">
+                          <div className="w-0 h-0 border-l-[8px] border-l-white border-y-[5px] border-y-transparent ml-0.5" />
                         </div>
                       </div>
+                      <div className="p-2.5 -mt-6 relative z-10">
+                        <h3 className="font-serif text-base font-bold">Pearl Harbor</h3>
+                        <p className="font-mono text-[8px] text-off-white/50 tracking-wider uppercase mt-0.5">Beat 5 of 10</p>
+                        <div className="flex justify-between items-center mt-2">
+                          <div className="font-mono text-[8px]">
+                            <span>8 / 14 Lessons</span>
+                            <span className="text-gold-2 ml-2">+442 XP</span>
+                          </div>
+                          <div className="bg-ha-red text-off-white px-2 py-0.5 font-display text-[7px] font-bold uppercase tracking-wider flex items-center gap-1">
+                            Continue
+                            <ArrowRight size={8} />
+                          </div>
+                        </div>
+                        <div className="h-0.5 bg-off-white/10 rounded mt-1.5">
+                          <div className="h-full w-[57%] bg-gradient-to-r from-gold-dp to-gold-2 rounded" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Your Campaign section */}
+                    <div className="mt-3">
+                      <div className="flex justify-between items-center mb-2">
+                        <h4 className="font-serif italic text-sm font-bold text-off-white">Your <span className="text-gold-2">Campaign</span></h4>
+                        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-ink-lift border border-gold-2/15 text-gold-2 font-mono text-[8px]">
+                          <Flame size={10} /> 3
+                        </div>
+                      </div>
+                      {/* Rank card mini */}
+                      <div className="bg-ink-lift border border-gold-2/15 rounded-lg p-2 relative">
+                        <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-gold-2 rounded-l" />
+                        <div className="flex items-center gap-2 ml-1">
+                          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-gold-2 to-gold-dp flex items-center justify-center shadow-[0_2px_8px_rgba(230,171,42,0.3)]">
+                            <Star size={14} className="text-black/70" fill="currentColor" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-mono text-[6px] tracking-[0.3em] text-off-white/50 uppercase">Current Rank</div>
+                            <div className="font-serif italic text-xs font-bold text-gold-2">Time Tourist</div>
+                            <div className="flex items-center gap-1 mt-0.5">
+                              <div className="flex-1 h-[2px] bg-off-white/10 rounded overflow-hidden">
+                                <div className="h-full w-[65%] bg-gradient-to-r from-gold-dp to-gold-2" />
+                              </div>
+                              <span className="font-mono text-[6px] text-gold-2/70">1,250 XP</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Stats row mini */}
+                    <div className="grid grid-cols-4 gap-1 mt-2">
+                      {[
+                        { v: '3', l: 'Eras' },
+                        { v: '12', l: 'Nodes' },
+                        { v: '87%', l: 'Acc.' },
+                        { v: '3', l: 'Streak' },
+                      ].map((s) => (
+                        <div key={s.l} className="bg-ink-lift border border-gold-2/15 rounded p-1.5 text-center">
+                          <div className="font-serif italic text-xs font-bold text-off-white">{s.v}</div>
+                          <div className="font-mono text-[5px] tracking-[0.2em] text-off-white/50 uppercase">{s.l}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Bottom nav */}
+                    <div className="mt-auto pt-3 flex justify-around border-t border-off-white/10">
+                      {[
+                        { name: 'Home', icon: Home },
+                        { name: 'Journey', icon: Map },
+                        { name: 'Learn', icon: BookOpen },
+                        { name: 'Arcade', icon: Gamepad2 },
+                      ].map((tab, i) => (
+                        <div key={tab.name} className={`text-center ${i === 1 ? 'text-gold-2' : 'text-off-white/40'}`}>
+                          <tab.icon size={14} className="mx-auto mb-0.5" strokeWidth={i === 1 ? 2.5 : 1.5} />
+                          <div className="font-mono text-[5px] tracking-wider uppercase">{tab.name}</div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
@@ -346,9 +632,9 @@ export function LandingPage({ onAuthSuccess }: LandingPageProps) {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-20 md:py-28 px-4 md:px-10">
+      <section id="features" className="py-12 md:py-16 px-4 md:px-10">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
+          <div className="text-center mb-10">
             <div className="font-mono text-[11px] tracking-[0.4em] text-ha-red uppercase font-semibold mb-4">Why History Academy</div>
             <h2 className="font-display text-4xl md:text-6xl font-bold uppercase mb-4">
               More than <span className="text-gold-2">a textbook.</span>
@@ -379,11 +665,11 @@ export function LandingPage({ onAuthSuccess }: LandingPageProps) {
       </section>
 
       {/* Campaign Showcase */}
-      <section id="campaigns" className="py-20 md:py-28 px-4 md:px-10" style={{
+      <section id="campaigns" className="py-12 md:py-16 px-4 md:px-10" style={{
         background: 'radial-gradient(ellipse at 50% 0%, rgba(205,14,20,0.08), transparent 50%)'
       }}>
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
+          <div className="text-center mb-10">
             <div className="font-mono text-[11px] tracking-[0.4em] text-ha-red uppercase font-semibold mb-4">Available Now</div>
             <h2 className="font-display text-4xl md:text-6xl font-bold uppercase mb-4">
               Start with <span className="text-gold-2">Pearl Harbor.</span>
@@ -428,14 +714,20 @@ export function LandingPage({ onAuthSuccess }: LandingPageProps) {
           {/* Coming Soon */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
-              { title: 'American Revolution', era: '1775 – 1783', season: 'Coming Spring' },
-              { title: 'The Bronze Age', era: '3300 – 1200 BCE', season: 'Coming Summer' },
-              { title: 'Ancient Egypt', era: '3100 – 30 BCE', season: 'Coming Fall' },
-              { title: 'The Roman Empire', era: '27 BCE – 476 CE', season: 'Coming Winter' },
+              { title: 'American Revolution', era: '1775 – 1783', season: 'Coming Spring', imageUrl: 'https://images.unsplash.com/photo-1508433957232-3107f5fd5995?w=400&h=300&fit=crop' },
+              { title: 'Ancient Greece', era: '800 – 31 BCE', season: 'Coming Summer', imageUrl: 'https://images.unsplash.com/photo-1555993539-1732b0258235?w=400&h=300&fit=crop' },
+              { title: 'Ancient Egypt', era: '3100 – 30 BCE', season: 'Coming Fall', imageUrl: 'https://images.unsplash.com/photo-1539650116574-8efeb43e2750?w=400&h=300&fit=crop' },
+              { title: 'The Roman Empire', era: '27 BCE – 476 CE', season: 'Coming Winter', imageUrl: 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=400&h=300&fit=crop' },
             ].map((c) => (
               <div key={c.title} className="card-ha overflow-hidden group hover:-translate-y-1 transition-all">
-                <div className="h-28 md:h-36 relative bg-gradient-to-br from-charcoal-2 to-ink">
-                  <div className="absolute inset-0 bg-gradient-radial from-gold-2/10 to-transparent" />
+                <div className="h-28 md:h-36 relative bg-gradient-to-br from-charcoal-2 to-ink overflow-hidden">
+                  {/* Era image */}
+                  <img
+                    src={c.imageUrl}
+                    alt={c.title}
+                    className="absolute inset-0 w-full h-full object-cover opacity-60"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
                   <div className="absolute top-2 right-2 w-7 h-7 bg-black/70 rounded-full border border-gold-2/30 flex items-center justify-center text-gold-2">
                     <LockIcon size={12} />
                   </div>
@@ -452,11 +744,11 @@ export function LandingPage({ onAuthSuccess }: LandingPageProps) {
       </section>
 
       {/* Guides Section */}
-      <section id="guides" className="py-20 md:py-28 px-4 md:px-10" style={{
+      <section id="guides" className="py-12 md:py-16 px-4 md:px-10" style={{
         background: 'linear-gradient(180deg, #000 0%, #0A0A0A 100%)'
       }}>
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
+          <div className="text-center mb-10">
             <div className="font-mono text-[11px] tracking-[0.4em] text-ha-red uppercase font-semibold mb-4">Meet The Cast</div>
             <h2 className="font-display text-4xl md:text-6xl font-bold uppercase mb-4">
               Hosts who <span className="text-gold-2">were there.</span>
@@ -549,7 +841,7 @@ export function LandingPage({ onAuthSuccess }: LandingPageProps) {
       </section>
 
       {/* Final CTA */}
-      <section className="py-24 md:py-32 px-4 md:px-10 text-center relative" style={{
+      <section className="py-14 md:py-20 px-4 md:px-10 text-center relative" style={{
         background: 'radial-gradient(ellipse at 50% 50%, rgba(205,14,20,0.12), transparent 60%)'
       }}>
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-[3px] bg-ha-red" />
@@ -571,7 +863,18 @@ export function LandingPage({ onAuthSuccess }: LandingPageProps) {
       <footer className="py-12 px-4 md:px-10 border-t-[3px] border-ha-red bg-void">
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-center gap-8">
-            <HistoryLogo variant="full" size="md" withUnderline />
+            {/* History Academy Logo */}
+            <div className="flex items-center gap-2.5">
+              {/* H Mark */}
+              <div className="w-9 h-9 bg-gradient-to-b from-[#F6E355] via-[#E6AB2A] to-[#B2641F] flex items-center justify-center">
+                <span className="font-display text-[22px] font-bold text-[#1a1008] leading-none" style={{ textShadow: '0 1px 0 rgba(255,255,255,0.2)' }}>H</span>
+              </div>
+              {/* Text */}
+              <div className="font-display font-bold text-off-white uppercase leading-[0.95]">
+                <div className="text-[14px] tracking-[0.01em]">History</div>
+                <div className="text-[9px] tracking-[0.22em] font-semibold text-gold-2 mt-[1px]">Academy</div>
+              </div>
+            </div>
             <p className="font-mono text-[10px] tracking-[0.2em] text-off-white/50 uppercase">
               © 2024 History Academy. All rights reserved.
             </p>
@@ -768,52 +1071,7 @@ export function LandingPage({ onAuthSuccess }: LandingPageProps) {
       {/* Trailer Video Modal */}
       <AnimatePresence>
         {showTrailer && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[110] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4"
-            onClick={() => setShowTrailer(false)}
-          >
-            {/* Close button */}
-            <button
-              onClick={() => setShowTrailer(false)}
-              className="absolute top-6 right-6 w-12 h-12 rounded-full bg-off-white/10 border border-off-white/20 flex items-center justify-center text-off-white hover:bg-off-white/20 transition-colors z-10"
-            >
-              <X size={24} />
-            </button>
-
-            {/* Video container - 9:16 aspect ratio for mobile feel */}
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              transition={{ type: 'spring', damping: 25 }}
-              onClick={(e) => e.stopPropagation()}
-              className="relative w-full max-w-[400px] md:max-w-[450px] aspect-[9/16] bg-ink rounded-2xl overflow-hidden shadow-2xl border border-gold-2/20"
-            >
-              {/* Video */}
-              <video
-                src={TRAILER_VIDEO}
-                autoPlay
-                controls
-                playsInline
-                className="w-full h-full object-cover"
-              />
-
-              {/* Decorative corner flourishes */}
-              <div className="absolute top-2 left-2 w-6 h-6 border-l-2 border-t-2 border-gold-2/40 rounded-tl pointer-events-none" />
-              <div className="absolute top-2 right-2 w-6 h-6 border-r-2 border-t-2 border-gold-2/40 rounded-tr pointer-events-none" />
-              <div className="absolute bottom-2 left-2 w-6 h-6 border-l-2 border-b-2 border-gold-2/40 rounded-bl pointer-events-none" />
-              <div className="absolute bottom-2 right-2 w-6 h-6 border-r-2 border-b-2 border-gold-2/40 rounded-br pointer-events-none" />
-            </motion.div>
-
-            {/* Trailer label */}
-            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-ha-red animate-pulse" />
-              <span className="font-mono text-[10px] tracking-[0.3em] text-off-white/60 uppercase">Official Trailer</span>
-            </div>
-          </motion.div>
+          <TrailerPlayer onClose={() => setShowTrailer(false)} />
         )}
       </AnimatePresence>
     </div>

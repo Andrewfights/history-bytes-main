@@ -151,6 +151,7 @@ export interface ArcadePlayRecord {
 export interface User {
   id: string;
   displayName: string;
+  avatarUrl?: string;
   anonLeaderboard: boolean;
   xp: number;
   streak: number;

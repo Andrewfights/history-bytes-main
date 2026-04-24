@@ -4,12 +4,13 @@
  * Sections: Hero, Rank Ladder, Stats Strip, Campaigns, Trophies, Certificates, Streak, Activity, Settings
  */
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Share2, Settings, ChevronRight, ChevronDown, ChevronUp, Star, Flame,
-  BookOpen, Trophy, Award, Gamepad2, User, LogOut, Eye, EyeOff
+  BookOpen, Trophy, Award, Gamepad2, User, LogOut, Eye, EyeOff,
+  Camera, Pencil, X, Check, Loader2
 } from 'lucide-react';
 import { useApp, type TabType } from '@/context/AppContext';
 import { getNextRankXP } from '@/types';
@@ -17,6 +18,7 @@ import { isAdminUser } from '@/components/admin/AdminRoute';
 import { cn } from '@/lib/utils';
 import { StudyNotes } from '@/components/profile/StudyNotes';
 import { ApiKeySettings } from '@/components/profile/ApiKeySettings';
+import { uploadToFirebaseStorage } from '@/lib/firebaseStorage';
 
 // Rank data
 const RANKS = [
@@ -62,9 +64,55 @@ export function ProfileTab() {
   const { user, updateUser, crownedCount, signOut, userEmail, studyNotes, setActiveTab, setPendingTrophyRoom } = useApp();
   const [showStudyNotes, setShowStudyNotes] = useState(false);
 
+  // Profile editing state
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editedName, setEditedName] = useState(user.displayName);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const handleTrophyRoomClick = () => {
     setPendingTrophyRoom(true);
     setActiveTab('journey');
+  };
+
+  const handleSaveName = () => {
+    if (editedName.trim()) {
+      updateUser({ displayName: editedName.trim() });
+    }
+    setIsEditingName(false);
+  };
+
+  const handleCancelEdit = () => {
+    setEditedName(user.displayName);
+    setIsEditingName(false);
+  };
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image must be less than 5MB');
+      return;
+    }
+
+    setIsUploadingPhoto(true);
+    try {
+      const url = await uploadToFirebaseStorage(file, 'avatars');
+      updateUser({ avatarUrl: url });
+    } catch (error) {
+      console.error('Failed to upload photo:', error);
+      alert('Failed to upload photo. Please try again.');
+    } finally {
+      setIsUploadingPhoto(false);
+    }
   };
 
   // Get rank info
@@ -103,21 +151,52 @@ export function ProfileTab() {
 
         {/* Hero content */}
         <div className="relative z-10 px-4 py-6 flex gap-5 items-start">
-          {/* Portrait Frame */}
-          <div className="relative w-[110px] h-[128px] flex-shrink-0">
+          {/* Portrait Frame with Photo Upload */}
+          <div className="relative w-[110px] h-[128px] flex-shrink-0 group">
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handlePhotoUpload}
+              accept="image/*"
+              className="hidden"
+            />
             <div className="absolute inset-0 border-2 border-gold-3 bg-gradient-to-b from-[#1a1008] to-[#0a0604] p-[6px]">
               <div className="absolute inset-[3px] border border-gold-2/20 pointer-events-none" />
               <div className="relative w-full h-[calc(100%-18px)] overflow-hidden bg-gradient-to-b from-[#2a1810] to-[#0a0604]" style={{
                 background: 'radial-gradient(ellipse at 50% 30%, rgba(230,171,42,0.15), transparent 55%), linear-gradient(180deg, #2a1810 0%, #0a0604 100%)'
               }}>
-                {/* Silhouette */}
-                <div className="absolute top-[14%] left-1/2 -translate-x-1/2 w-[70%] h-full rounded-[45%_45%_10%_10%]" style={{
-                  background: 'radial-gradient(ellipse at 50% 20%, rgba(180,140,95,0.55), rgba(60,40,25,0.85) 50%, rgba(20,12,6,0.95) 90%)'
-                }}>
-                  <div className="absolute top-[8%] left-1/2 -translate-x-1/2 w-[40%] h-[30%] rounded-full" style={{
-                    background: 'radial-gradient(circle at 50% 30%, rgba(210,170,130,0.55), rgba(90,60,35,0.4) 70%, transparent)'
-                  }} />
-                </div>
+                {user.avatarUrl ? (
+                  /* User uploaded photo */
+                  <img
+                    src={user.avatarUrl}
+                    alt={user.displayName}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  /* Default silhouette */
+                  <div className="absolute top-[14%] left-1/2 -translate-x-1/2 w-[70%] h-full rounded-[45%_45%_10%_10%]" style={{
+                    background: 'radial-gradient(ellipse at 50% 20%, rgba(180,140,95,0.55), rgba(60,40,25,0.85) 50%, rgba(20,12,6,0.95) 90%)'
+                  }}>
+                    <div className="absolute top-[8%] left-1/2 -translate-x-1/2 w-[40%] h-[30%] rounded-full" style={{
+                      background: 'radial-gradient(circle at 50% 30%, rgba(210,170,130,0.55), rgba(90,60,35,0.4) 70%, transparent)'
+                    }} />
+                  </div>
+                )}
+                {/* Upload overlay */}
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploadingPhoto}
+                  className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
+                >
+                  {isUploadingPhoto ? (
+                    <Loader2 size={24} className="text-gold-2 animate-spin" />
+                  ) : (
+                    <div className="flex flex-col items-center gap-1">
+                      <Camera size={20} className="text-gold-2" />
+                      <span className="font-mono text-[8px] text-gold-2 uppercase tracking-wider">Upload</span>
+                    </div>
+                  )}
+                </button>
               </div>
               <div className="absolute bottom-0 left-[6px] right-[6px] h-[14px] bg-void border-t border-gold-2/20 flex items-center justify-center">
                 <span className="font-mono text-[6px] tracking-[0.4em] text-gold-2 uppercase font-bold">◆ FILE ◆</span>
@@ -132,9 +211,47 @@ export function ProfileTab() {
 
           {/* Hero body */}
           <div className="flex-1 min-w-0 pt-2">
-            <h1 className="font-serif text-[28px] font-bold italic text-off-white leading-[0.95] mb-1">
-              {user.displayName}
-            </h1>
+            {isEditingName ? (
+              /* Editing mode */
+              <div className="flex items-center gap-2 mb-1">
+                <input
+                  type="text"
+                  value={editedName}
+                  onChange={(e) => setEditedName(e.target.value)}
+                  className="font-serif text-[24px] font-bold italic text-off-white leading-[0.95] bg-ink-lift border border-gold-2/30 rounded px-2 py-1 w-full focus:outline-none focus:border-gold-2"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSaveName();
+                    if (e.key === 'Escape') handleCancelEdit();
+                  }}
+                />
+                <button
+                  onClick={handleSaveName}
+                  className="p-1.5 bg-success/20 border border-success/30 rounded text-success hover:bg-success/30 transition-colors"
+                >
+                  <Check size={16} />
+                </button>
+                <button
+                  onClick={handleCancelEdit}
+                  className="p-1.5 bg-ha-red/20 border border-ha-red/30 rounded text-ha-red hover:bg-ha-red/30 transition-colors"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            ) : (
+              /* Display mode */
+              <div className="flex items-center gap-2 mb-1 group/name">
+                <h1 className="font-serif text-[28px] font-bold italic text-off-white leading-[0.95]">
+                  {user.displayName}
+                </h1>
+                <button
+                  onClick={() => setIsEditingName(true)}
+                  className="p-1 opacity-0 group-hover/name:opacity-100 text-text-3 hover:text-gold-2 transition-all"
+                >
+                  <Pencil size={14} />
+                </button>
+              </div>
+            )}
             <div className="font-mono text-[10px] text-text-3 tracking-wide mb-3">
               @{user.displayName.toLowerCase().replace(/\s/g, '')} · they/them
             </div>

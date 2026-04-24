@@ -8,9 +8,6 @@ import { getApiKey } from './apiKeys';
 // Get API key from user storage or env var
 const getGeminiApiKey = () => getApiKey('gemini');
 
-// Image generation model - using gemini-2.0-flash-exp with native image output
-const IMAGE_MODEL = 'gemini-2.0-flash';
-
 // Supported aspect ratios per documentation
 export type AspectRatio = '1:1' | '2:3' | '3:2' | '3:4' | '4:3' | '4:5' | '5:4' | '9:16' | '16:9' | '21:9';
 
@@ -40,13 +37,14 @@ museum-quality historical accuracy in costumes and settings
 `.trim().replace(/\n/g, ' ');
 
 /**
- * Generate an image using Gemini's image generation capability
+ * Generate an image using Google's Imagen 3 API
  */
 export async function generateImage(options: GenerateImageOptions): Promise<GeneratedImage | null> {
   const apiKey = getGeminiApiKey();
+  console.log('[Imagen] generateImage called, apiKey exists:', !!apiKey);
 
   if (!apiKey) {
-    console.error('Gemini API key not configured. Add your key in Profile Settings.');
+    console.error('[Imagen] API key not configured. Add your key in Profile Settings.');
     return null;
   }
 
@@ -54,24 +52,28 @@ export async function generateImage(options: GenerateImageOptions): Promise<Gene
 
   // Build the enhanced prompt with cinematic styling
   const enhancedPrompt = buildEnhancedPrompt(prompt, style, aspectRatio);
-  console.log('[Gemini] Generating with prompt:', enhancedPrompt.substring(0, 200) + '...');
+  console.log('[Imagen] Generating with prompt:', enhancedPrompt.substring(0, 200) + '...');
 
   try {
+    // Use Imagen 3 API endpoint
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${IMAGE_MODEL}:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`,
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: `Generate an image: ${enhancedPrompt}`
-            }]
+          instances: [{
+            prompt: enhancedPrompt
           }],
-          generationConfig: {
-            responseModalities: ['IMAGE', 'TEXT'],
+          parameters: {
+            sampleCount: 1,
+            aspectRatio: aspectRatio,
+            // personGeneration is required, set to allow for historical figures
+            personGeneration: 'allow_adult',
+            // Safety settings
+            safetySetting: 'block_some',
           }
         }),
       }
@@ -79,37 +81,36 @@ export async function generateImage(options: GenerateImageOptions): Promise<Gene
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.error('[Gemini] API error:', response.status, errorData);
+      console.error('[Imagen] API error:', response.status, errorData);
 
       // Log helpful debug info
       if (response.status === 404) {
-        console.error('[Gemini] Model not found. Check if the model name is correct.');
+        console.error('[Imagen] Model not found. Imagen 3 may not be available for your API key.');
       } else if (response.status === 403) {
-        console.error('[Gemini] Access forbidden. Check API key permissions.');
+        console.error('[Imagen] Access forbidden. Check API key permissions or enable Imagen in Google AI Studio.');
+      } else if (response.status === 400) {
+        console.error('[Imagen] Bad request. Check prompt or parameters:', errorData);
       }
 
       return null;
     }
 
     const data = await response.json();
+    console.log('[Imagen] Response received:', Object.keys(data));
 
-    // Extract image from response
-    if (data.candidates && data.candidates[0]?.content?.parts) {
-      for (const part of data.candidates[0].content.parts) {
-        if (part.inlineData) {
-          console.log('[Gemini] Image generated successfully');
-          return {
-            base64Data: part.inlineData.data,
-            mimeType: part.inlineData.mimeType || 'image/png',
-          };
-        }
-      }
+    // Extract image from Imagen response format
+    if (data.predictions && data.predictions[0]?.bytesBase64Encoded) {
+      console.log('[Imagen] Image generated successfully');
+      return {
+        base64Data: data.predictions[0].bytesBase64Encoded,
+        mimeType: data.predictions[0].mimeType || 'image/png',
+      };
     }
 
-    console.error('[Gemini] No image found in response:', data);
+    console.error('[Imagen] No image found in response:', data);
     return null;
   } catch (error) {
-    console.error('[Gemini] Error generating image:', error);
+    console.error('[Imagen] Error generating image:', error);
     return null;
   }
 }

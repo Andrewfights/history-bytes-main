@@ -14,3 +14,4 @@ export type { SortableItem } from './DragAndDropSorter';
 export { DragAndDropSorter } from './DragAndDropSorter';
 export { PreModuleVideoScreen } from './PreModuleVideoScreen';
 export { PostModuleVideoScreen } from './PostModuleVideoScreen';
+export { XPCompletionScreen } from './XPCompletionScreen';

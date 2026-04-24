@@ -14,7 +14,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence, PanInfo, useMotionValue, useTransform } from 'framer-motion';
 import { ArrowLeft, Sparkles, Package, ChevronLeft, ChevronRight, ZoomIn, X, Info } from 'lucide-react';
 import { WW2Host } from '@/types';
-import { PreModuleVideoScreen, PostModuleVideoScreen } from '../shared';
+import { PreModuleVideoScreen, PostModuleVideoScreen, XPCompletionScreen } from '../shared';
 import { subscribeToWW2ModuleAssets, type PreModuleVideoConfig, type PostModuleVideoConfig } from '@/lib/firestore';
 import { playXPSound } from '@/lib/xpAudioManager';
 import { usePearlHarborProgress } from '../hooks/usePearlHarborProgress';
@@ -606,29 +606,17 @@ export function ThingsCarriedBeat({ host, onComplete, onSkip, onBack, isPreview 
 
           {/* COMPLETION */}
           {screen === 'completion' && (
-            <motion.div
-              key="completion"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex flex-col h-full p-6 items-center justify-center"
-              onAnimationComplete={() => {
-                if (!skipped) playXPSound();
+            <XPCompletionScreen
+              beatNumber={10}
+              beatTitle="The Things They Carried"
+              xpEarned={skipped ? 0 : LESSON_DATA.xpReward}
+              host={host}
+              onContinue={() => {
                 clearCheckpoint();
                 onComplete(skipped ? 0 : LESSON_DATA.xpReward);
               }}
-            >
-              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="text-6xl mb-6">📦</motion.div>
-              <h2 className="text-2xl font-bold text-white mb-2">Beat 10 Complete!</h2>
-              <p className="text-white/60 mb-6">The Things They Carried</p>
-              <div className="flex items-center gap-2 px-6 py-3 bg-amber-500/20 rounded-full mb-8">
-                <Sparkles className="text-amber-400" />
-                <span className="text-amber-400 font-bold text-xl">+{skipped ? 0 : LESSON_DATA.xpReward} XP</span>
-              </div>
-              <p className="text-white/50 text-sm text-center max-w-sm">
-                Next: Code Talkers - Learn about the unbreakable Navajo code.
-              </p>
-            </motion.div>
+              nextBeatPreview="Code Talkers - Learn about the unbreakable Navajo code"
+            />
           )}
         </AnimatePresence>
       </div>

@@ -13,7 +13,7 @@ import { ArrowLeft, Sparkles, Clock, MapPin, Volume2, VolumeX } from 'lucide-rea
 import { WW2Host } from '@/types';
 import { usePearlHarborProgress } from '../hooks/usePearlHarborProgress';
 import { useWW2ModuleAssets } from '../hooks/useWW2ModuleAssets';
-import { PreModuleVideoScreen, PostModuleVideoScreen } from '../shared';
+import { PreModuleVideoScreen, PostModuleVideoScreen, XPCompletionScreen } from '../shared';
 import { subscribeToWW2ModuleAssets, type PreModuleVideoConfig, type PostModuleVideoConfig } from '@/lib/firestore';
 import { playXPSound } from '@/lib/xpAudioManager';
 
@@ -787,32 +787,14 @@ export function ToraToraToraBeat({ host, onComplete, onSkip, onBack, isPreview =
 
           {/* COMPLETION */}
           {screen === 'completion' && (
-            <motion.div
-              key="completion"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex flex-col h-full p-6"
-              onAnimationComplete={() => {
-                if (!skipped) playXPSound();
-              }}
-            >
-              <div className="flex-1 flex flex-col items-center justify-center">
-                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="text-6xl mb-6">✈️</motion.div>
-                <h2 className="text-2xl font-bold text-white mb-2">Beat 3 Complete!</h2>
-                <p className="text-white/60 mb-6">Tora! Tora! Tora! - The Attack Begins</p>
-                <div className="flex items-center gap-2 px-6 py-3 bg-amber-500/20 rounded-full mb-8">
-                  <Sparkles className="text-amber-400" />
-                  <span className="text-amber-400 font-bold text-xl">+{skipped ? 0 : LESSON_DATA.xpReward} XP</span>
-                </div>
-                <p className="text-white/50 text-sm text-center max-w-sm">
-                  Next: Voices from the Harbor - Hear from those who lived through it
-                </p>
-              </div>
-              <button onClick={nextScreen} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors">
-                Continue
-              </button>
-            </motion.div>
+            <XPCompletionScreen
+              beatNumber={3}
+              beatTitle="Tora! Tora! Tora!"
+              xpEarned={skipped ? 0 : LESSON_DATA.xpReward}
+              host={host}
+              onContinue={nextScreen}
+              nextBeatPreview="Damage Done - See the full impact"
+            />
           )}
         </AnimatePresence>
       </div>

@@ -11,7 +11,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Sparkles, Trophy, Target, Award, Star } from 'lucide-react';
 import { WW2Host } from '@/types';
-import { TimedChallenge, TimedQuestion, PreModuleVideoScreen, PostModuleVideoScreen } from '../shared';
+import { TimedChallenge, TimedQuestion, PreModuleVideoScreen, PostModuleVideoScreen, XPCompletionScreen } from '../shared';
 import { subscribeToWW2ModuleAssets, type PreModuleVideoConfig, type PostModuleVideoConfig } from '@/lib/firestore';
 import { playXPSound } from '@/lib/xpAudioManager';
 import { usePearlHarborProgress } from '../hooks/usePearlHarborProgress';
@@ -640,46 +640,14 @@ export function MasteryRunBeat({ host, onComplete, onSkip, onBack, isPreview = f
 
           {/* COMPLETION */}
           {screen === 'completion' && (
-            <motion.div key="completion" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full p-6 items-center justify-center">
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                onAnimationComplete={() => {
-                  if (!skipped) {
-                    playXPSound();
-                  }
-                }}
-                className="w-24 h-24 rounded-full bg-gradient-to-br from-amber-500 to-yellow-600 flex items-center justify-center mb-6 shadow-lg shadow-amber-500/30"
-              >
-                <Trophy size={48} className="text-white" />
-              </motion.div>
-
-              <h2 className="text-2xl font-bold text-white mb-2 text-center">Pearl Harbor Journey Complete!</h2>
-              <p className="text-white/60 mb-6 text-center">You've completed all 10 beats</p>
-
-              <div className="bg-white/5 rounded-xl p-6 max-w-sm border border-white/10 mb-6 text-center">
-                <p className="text-white/70 text-sm leading-relaxed">
-                  From the Road to War through the Arsenal of Democracy, you've explored one of the most pivotal days in American history.
-                </p>
-                <p className="text-amber-400 mt-4 font-medium">
-                  December 7, 1941 - Never Forget
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2 px-6 py-3 bg-amber-500/20 rounded-full mb-8">
-                <Sparkles className="text-amber-400" />
-                <span className="text-amber-400 font-bold text-xl">+{skipped ? 0 : earnedXP} XP</span>
-              </div>
-
-              <div style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))' }}>
-                <button
-                  onClick={nextScreen}
-                  className="w-full max-w-sm py-4 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-black font-bold rounded-xl transition-colors shadow-lg shadow-amber-500/30"
-                >
-                  Take the Final Exam
-                </button>
-              </div>
-            </motion.div>
+            <XPCompletionScreen
+              beatNumber={10}
+              beatTitle="Mastery Run"
+              xpEarned={skipped ? 0 : earnedXP}
+              host={host}
+              onContinue={() => nextScreen()}
+              nextBeatPreview="Pearl Harbor Journey Complete - View your diploma!"
+            />
           )}
         </AnimatePresence>
       </div>

@@ -27,43 +27,43 @@ export default {
         sans: ['Inter', '-apple-system', 'sans-serif'],
       },
       colors: {
-        // History Academy Dark v2 - Canvas
-        void: '#000000',
+        // History Academy - Theme-aware canvas colors (use CSS variables)
+        void: 'var(--void)',
         ink: {
-          DEFAULT: '#0A0A0A',
-          lift: '#141414',
+          DEFAULT: 'var(--ink)',
+          lift: 'var(--ink-lift)',
         },
         charcoal: {
-          DEFAULT: '#1C1C1C',
-          2: '#242424',
+          DEFAULT: 'var(--charcoal)',
+          2: 'var(--charcoal-2)',
         },
-        smoke: '#3A3A3A',
+        smoke: 'var(--smoke)',
         stone: {
-          DEFAULT: '#6A6A65',
-          light: '#8A8A85',
+          DEFAULT: 'var(--stone)',
+          light: 'var(--stone-light)',
         },
 
-        // History Academy Dark v2 - Text
-        'off-white': '#F2EEE6',
-        ivory: '#E8E4DA',
-        cream: '#FAF4E4',
+        // History Academy - Theme-aware text colors
+        'off-white': 'var(--off-white)',
+        ivory: 'var(--ivory)',
+        cream: 'var(--cream)',
 
-        // History Academy Dark v2 - Brand
+        // History Academy - Theme-aware brand colors
         'ha-red': {
-          DEFAULT: '#CD0E14',
-          deep: '#8A0A0E',
+          DEFAULT: 'var(--ha-red)',
+          deep: 'var(--ha-red-deep)',
         },
         gold: {
-          1: '#F6E355',
-          2: '#E6AB2A',
-          3: '#B2641F',
-          deep: '#6A3A12',
+          1: 'var(--gold-1)',
+          2: 'var(--gold-2)',
+          3: 'var(--gold-3)',
+          deep: 'var(--gold-deep)',
         },
 
-        // History Academy Dark v2 - Status
+        // History Academy - Theme-aware status colors
         'ha-success': {
-          DEFAULT: '#3DD67A',
-          deep: '#1E7A3A',
+          DEFAULT: 'var(--success)',
+          deep: 'var(--success-deep)',
         },
 
         // Legacy A+E colors (for admin panel)

@@ -38,6 +38,7 @@ import {
 } from '@/lib/storage';
 import { initEraTileOverridesCache } from '@/data/historicalEras';
 import { initPantheonCache, subscribeToPantheonUpdates } from '@/data/pantheonSouvenirs';
+import { syncApiKeysFromFirestore } from '@/lib/apiKeys';
 import { initGameThumbnailsCache } from '@/data/arcadeGames';
 import { initTriviaCache, subscribeToTriviaUpdates } from '@/lib/triviaStorage';
 import {
@@ -546,6 +547,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const profile: PersistedUserProfile = {
       id: user.id,
       displayName: user.displayName,
+      avatarUrl: user.avatarUrl,
       anonLeaderboard: user.anonLeaderboard,
       xp: user.xp,
       streak: user.streak,
@@ -847,6 +849,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         ...prev,
         id: userId,
       }));
+
+      // Sync API keys from Firestore for existing users
+      syncApiKeysFromFirestore(userId);
     }
   };
 

@@ -116,6 +116,11 @@ export function JourneyTab() {
   const [journeyUIAssets, setJourneyUIAssets] = useState<FirestoreJourneyUIAssets | null>(null);
   const [ww2ModuleAssets, setWw2ModuleAssets] = useState<FirestoreWW2ModuleAssets | null>(null);
 
+  // Track previous view for context-aware back navigation
+  const [previousView, setPreviousView] = useState<JourneyView>('landing');
+  // Track origin view for trophy room -> arc navigation
+  const [arcOriginView, setArcOriginView] = useState<JourneyView>('landing');
+
   // Cinematic video state
   const [showCinematicVideo, setShowCinematicVideo] = useState(false);
   const [cinematicVideoUrl, setCinematicVideoUrl] = useState<string | null>(null);
@@ -274,12 +279,12 @@ export function JourneyTab() {
     // Wait for preferences to load before processing
     if (isPreferencesLoading || !pendingPearlHarbor) return;
 
-    // If user has selected a host, go to theater selection
+    // If user has selected a host, go directly to the Pearl Harbor journey
     if (hasSelectedHost && selectedHostId) {
       updateLastVisit();
       trackArcVisit(WW2_ARC_ID);
       setSelectedArcId(WW2_ARC_ID);
-      setView('ww2-theaters');
+      setView('pearl-harbor-journey');
     } else {
       // No host selected - show host selection
       setShowWW2HostSelection(true);
@@ -318,6 +323,7 @@ export function JourneyTab() {
     trackArcVisit(arcId); // Track as recent
     setSelectedArcId(arcId);
     setCurrentChapterIndex(0);
+    setArcOriginView('landing');
     setView('arc');
 
     // Save view state
@@ -428,6 +434,7 @@ export function JourneyTab() {
     setShowWW2PathSelection(false);
     trackArcVisit(WW2_ARC_ID);
     setSelectedArcId(WW2_ARC_ID);
+    setPreviousView('ww2-theaters');
     setView('world-map');
   };
 
@@ -508,6 +515,7 @@ export function JourneyTab() {
 
   // Handle opening world map from Pearl Harbor journey
   const handleOpenWorldMapFromPearlHarbor = () => {
+    setPreviousView('pearl-harbor-journey');
     setView('world-map');
   };
 
@@ -591,7 +599,13 @@ export function JourneyTab() {
   };
 
   const handleBackToLanding = () => {
-    setView('landing');
+    // Check if we came from trophy room and should go back there
+    if (arcOriginView === 'trophy-room') {
+      setView('trophy-room');
+      setArcOriginView('landing'); // Reset for next time
+    } else {
+      setView('landing');
+    }
     setSelectedArcId(null);
     setSelectedChapterId(null);
     setSelectedNodeId(null);
@@ -621,6 +635,7 @@ export function JourneyTab() {
 
   // Handle opening the WW2 World Map
   const handleOpenWorldMap = () => {
+    setPreviousView('ww2-theaters');
     setView('world-map');
   };
 
@@ -631,10 +646,9 @@ export function JourneyTab() {
     // TODO: Connect to country-specific learning modules
   };
 
-  // Handle back from world map
+  // Handle back from world map - returns to where user came from
   const handleBackFromWorldMap = () => {
-    // Return to theater selection
-    setView('ww2-theaters');
+    setView(previousView);
   };
 
   // Render WW2 Intro if showing
@@ -754,13 +768,28 @@ export function JourneyTab() {
             exit={{ opacity: 0, x: -20 }}
             className="px-4 py-6"
           >
+            {/* Page Header */}
+            <div className="mb-6">
+              {/* Kicker */}
+              <div className="flex items-center gap-2.5 mb-2">
+                <div className="w-6 h-[1px] bg-ha-red" />
+                <span className="font-mono text-[10px] font-bold tracking-[0.3em] text-ha-red uppercase">
+                  War Room • Active
+                </span>
+              </div>
+              {/* Title */}
+              <h1 className="font-display text-[28px] sm:text-[36px] font-bold text-off-white uppercase tracking-tight leading-none mb-2">
+                The <span className="text-gold-2">Campaign.</span>
+              </h1>
+              {/* Subtitle */}
+              <p className="text-off-white/60 text-[13px] sm:text-sm leading-relaxed">
+                Choose your era. Master the history. Earn your place in the Pantheon.
+              </p>
+            </div>
+
             {/* Continue Where You Left Off - Shows when there's a resumable checkpoint */}
             {hasResumableCheckpoint() && pearlHarborCheckpoint && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mb-4"
-              >
+              <div className="mb-4">
                 <button
                   onClick={handleResumePearlHarborLesson}
                   className="w-full relative p-3 sm:p-4 rounded-xl bg-ink-lift border border-success/30 hover:border-success/50 transition-all group text-left overflow-hidden"
@@ -785,10 +814,10 @@ export function JourneyTab() {
                     <ArrowRight size={18} className="text-success group-hover:translate-x-1 transition-transform sm:w-5 sm:h-5" />
                   </div>
                 </button>
-              </motion.div>
+              </div>
             )}
 
-            {/* WW2/PEARL HARBOR HERO - Primary CTA */}
+            {/* WW2/PEARL HARBOR HERO - Featured Card */}
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -808,65 +837,84 @@ export function JourneyTab() {
                     setShowWW2HostSelection(true);
                   }
                 }}
-                className="w-full relative overflow-hidden rounded-2xl bg-ink-lift border border-gold-2/30 p-4 sm:p-5 text-left group"
+                className="w-full relative overflow-hidden rounded-xl border border-gold-2/20 text-left group min-h-[190px] sm:min-h-[240px]"
+                style={{
+                  background: `
+                    radial-gradient(ellipse at 65% 35%, rgba(200,60,20,0.3) 0%, transparent 50%),
+                    radial-gradient(ellipse at 30% 70%, rgba(100,60,30,0.3) 0%, transparent 55%),
+                    linear-gradient(180deg, #2a1810 0%, #0a0604 60%, #050302 100%)
+                  `
+                }}
               >
-                {/* Background image - Firebase upload or default battle artwork */}
-                <div className="absolute inset-0">
-                  <img
-                    src={journeyUIAssets?.featuredJourneyImage || '/assets/ww2-battles/pearl-harbor.png'}
-                    alt=""
-                    className="w-full h-full object-cover opacity-50"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-void via-void/70 to-void/40" />
-                </div>
-                {/* Background glow effect */}
-                <div className="absolute inset-0 bg-gradient-to-r from-gold-2/10 to-ha-red/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                {/* Top gold accent bar */}
+                <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-gold-dp via-gold-br to-gold-dp z-10" />
 
-                <div className="relative z-10">
+                {/* Ship silhouette effect */}
+                <div className="absolute right-[5%] bottom-[22%] w-[60%] h-[35%] opacity-50 z-[1]">
+                  <div className="absolute bottom-0 left-[8%] right-[10%] h-[42%] bg-gradient-to-b from-[rgba(30,20,14,0.95)] to-[rgba(10,5,2,0.98)] rounded-sm" />
+                </div>
+
+                {/* Fire effect */}
+                <div
+                  className="absolute bottom-[45%] right-[30%] w-[6%] h-[10%] z-[3] blur-[3px] animate-pulse"
+                  style={{ background: 'radial-gradient(ellipse, rgba(246,100,30,0.85), rgba(205,60,20,0.3) 50%, transparent)' }}
+                />
+
+                {/* Scrim overlay */}
+                <div className="absolute inset-0 bg-gradient-to-b from-[rgba(5,3,2,0.4)] via-[rgba(5,3,2,0.6)] to-[rgba(5,3,2,0.95)] z-[4]" />
+
+                {/* Grain texture */}
+                <div className="absolute inset-0 opacity-35 mix-blend-overlay pointer-events-none z-[5]"
+                  style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='nmf'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.3 0 0 0 0 0.1 0 0 0 0.3 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23nmf)'/%3E%3C/svg%3E")` }}
+                />
+
+                <div className="relative z-10 p-4 sm:p-6 flex flex-col min-h-[190px] sm:min-h-[240px]">
                   {/* Featured badge */}
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 mb-3 rounded bg-void/60 backdrop-blur-sm border border-gold-2/30">
-                    {journeyUIAssets?.featuredJourneyIcon ? (
-                      <img src={journeyUIAssets.featuredJourneyIcon} alt="" className="w-5 h-5 object-contain" />
-                    ) : (
-                      <span className="text-gold-2 text-[10px]">◆</span>
-                    )}
-                    <span className="font-mono text-gold-2 text-[10px] sm:text-xs font-medium uppercase tracking-wider">Featured</span>
+                  <div className="inline-flex items-center gap-1.5 self-start px-2 py-1 mb-3 border border-gold-2 rounded-sm bg-[rgba(20,14,8,0.55)] backdrop-blur-sm">
+                    <span className="text-gold-2 text-[6px]">◆</span>
+                    <span className="font-mono text-gold-2 text-[7.5px] sm:text-[9px] font-bold uppercase tracking-[0.28em]">Featured</span>
                   </div>
 
-                  <h2 className="font-serif text-xl sm:text-2xl font-bold text-off-white mb-1">
+                  <h2 className="font-serif italic text-2xl sm:text-[44px] font-bold text-off-white leading-[0.95] tracking-[-0.018em] mb-1.5 sm:mb-2 drop-shadow-[0_3px_16px_rgba(0,0,0,0.8)]">
                     Pearl Harbor
                   </h2>
-                  <p className="text-off-white/70 text-xs sm:text-sm mb-3 sm:mb-4">
+                  <p className="text-off-white/70 text-[11.5px] sm:text-sm leading-[1.35] mb-auto max-w-[280px] sm:max-w-[540px] drop-shadow-[0_1px_6px_rgba(0,0,0,0.6)]">
                     December 7, 1941 — Experience the day that changed history
                   </p>
 
-                  {/* Progress bar - show if user has started */}
-                  {getPearlHarborProgress() > 0 && (
-                    <div className="mb-3">
-                      <div className="flex items-center justify-between font-mono text-[10px] sm:text-xs text-off-white/50 mb-1">
-                        <span>{pearlHarborProgress.completedActivities.filter(id => id.startsWith('ph-beat-')).length} of {PEARL_HARBOR_LESSONS.length} lessons</span>
-                        <span className="text-gold-2">{getPearlHarborProgress()}%</span>
-                      </div>
-                      <div className="h-[2px] bg-void/50 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-gold-2 rounded-full transition-all duration-500"
-                          style={{ width: `${getPearlHarborProgress()}%` }}
-                        />
-                      </div>
+                  {/* Progress section */}
+                  <div className="mt-4 sm:mt-6">
+                    {/* Progress labels */}
+                    <div className="flex justify-between items-center font-mono text-[8px] sm:text-[10px] tracking-[0.18em] text-off-white/50 uppercase font-semibold mb-1.5 sm:mb-2">
+                      <span>{pearlHarborProgress.completedActivities.filter(id => id.startsWith('ph-beat-')).length} of {PEARL_HARBOR_LESSONS.length} lessons</span>
+                      <span className="text-gold-2 font-bold text-[10px] sm:text-xs">{getPearlHarborProgress()}%</span>
                     </div>
-                  )}
 
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 sm:gap-3 font-mono text-[10px] sm:text-xs text-off-white/50 uppercase tracking-wide">
-                      <span>7 Lessons</span>
-                      <span>•</span>
-                      <span>~45 min</span>
-                      <span>•</span>
-                      <span className="text-gold-2">+280 XP</span>
+                    {/* Progress bar */}
+                    <div className="h-[3px] bg-off-white/15 rounded-sm overflow-visible mb-3 sm:mb-4">
+                      <div
+                        className="h-full bg-gradient-to-r from-gold-dp to-gold-br rounded-sm relative transition-all duration-500"
+                        style={{ width: `${Math.max(getPearlHarborProgress(), 3)}%` }}
+                      >
+                        <div className="absolute right-[-3px] top-1/2 -translate-y-1/2 w-[7px] h-[7px] bg-gold-br rounded-full shadow-[0_0_10px_var(--gold)]" />
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1 text-gold-2 font-mono text-xs sm:text-sm font-medium uppercase tracking-wide group-hover:translate-x-1 transition-transform">
-                      {getPearlHarborProgress() > 0 ? 'Continue' : 'Begin'}
-                      <ArrowRight size={14} className="sm:w-4 sm:h-4" />
+
+                    {/* Footer with meta + continue */}
+                    <div className="flex justify-between items-center pt-2 sm:pt-3 border-t border-dashed border-off-white/10 gap-2 flex-wrap">
+                      <div className="flex items-center gap-2 sm:gap-3 font-mono text-[8px] sm:text-[10px] tracking-[0.14em] text-off-white/50 uppercase font-semibold">
+                        <span><span className="text-gold-2 font-bold">7</span> Lessons</span>
+                        <span className="text-off-white/30">·</span>
+                        <span><span className="text-gold-2 font-bold">~45</span> Min</span>
+                        <span className="text-off-white/30">·</span>
+                        <span><span className="text-gold-2 font-bold">+280</span> XP</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 font-display text-[10px] sm:text-xs tracking-[0.18em] text-gold-2 uppercase font-bold group-hover:gap-3 transition-all">
+                        {getPearlHarborProgress() > 0 ? 'Continue' : 'Begin'}
+                        <svg viewBox="0 0 24 24" className="w-[11px] h-[11px] sm:w-[14px] sm:h-[14px]" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <path d="M5 12h14M13 6l6 6-6 6"/>
+                        </svg>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -884,35 +932,32 @@ export function JourneyTab() {
               bossNodesDefeated={bossNodesDefeated}
             />
 
-            {/* Trophy Room */}
+            {/* Trophy Room / Pantheon Row */}
             <motion.button
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               onClick={() => setView('trophy-room')}
-              className="w-full mb-4 p-3 sm:p-4 rounded-xl bg-ink-lift border border-off-white/[0.06] hover:border-gold-2/30 transition-all group relative overflow-hidden"
+              className="w-full mb-6 py-3 px-3.5 sm:py-3.5 sm:px-4 rounded-xl bg-card border border-gold-2/20 hover:bg-[#1C1C1C] hover:border-gold-2/30 transition-all group flex items-center gap-2.5 sm:gap-3.5"
             >
-              {/* Custom background image */}
-              {journeyUIAssets?.pantheonImage && (
-                <div className="absolute inset-0">
-                  <img src={journeyUIAssets.pantheonImage} alt="" className="w-full h-full object-cover opacity-20" />
-                  <div className="absolute inset-0 bg-gradient-to-r from-void/90 to-void/70" />
-                </div>
-              )}
-              <div className="flex items-center justify-between relative z-10">
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gold-2/10 border border-gold-2/20 flex items-center justify-center text-xl sm:text-2xl overflow-hidden">
-                    {journeyUIAssets?.pantheonIcon ? (
-                      <img src={journeyUIAssets.pantheonIcon} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      <Trophy size={18} className="text-gold-2" />
-                    )}
-                  </div>
-                  <div className="text-left">
-                    <h3 className="font-serif font-bold text-sm sm:text-base text-off-white">Trophy Room</h3>
-                    <p className="font-mono text-[10px] sm:text-xs text-off-white/50 uppercase tracking-wide">Your medal collection</p>
-                  </div>
-                </div>
-                <ChevronRight size={18} className="text-off-white/40 group-hover:text-gold-2 group-hover:translate-x-1 transition-all sm:w-5 sm:h-5" />
+              {/* Circular gold icon */}
+              <div
+                className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border border-gold-2/30 flex-shrink-0 relative flex items-center justify-center"
+                style={{ background: 'radial-gradient(circle at 30% 30%, rgba(230,171,42,0.35), rgba(40,28,16,0.9) 75%)' }}
+              >
+                {/* Inner gold sphere */}
+                <div
+                  className="w-3 h-3 sm:w-4 sm:h-4 rounded-full shadow-[0_1px_3px_rgba(0,0,0,0.4)]"
+                  style={{ background: 'radial-gradient(circle at 35% 30%, var(--gold-br), var(--gold-dp) 60%)' }}
+                />
+              </div>
+              <div className="flex-1 min-w-0 text-left">
+                <h3 className="font-serif italic font-bold text-sm sm:text-[17px] text-off-white leading-none mb-0.5">The Pantheon</h3>
+                <p className="font-mono text-[7px] sm:text-[8.5px] tracking-[0.26em] text-off-white/50 uppercase font-semibold">Your Souvenir Collection</p>
+              </div>
+              <div className="text-gold-2 flex-shrink-0">
+                <svg viewBox="0 0 24 24" className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M9 6l6 6-6 6"/>
+                </svg>
               </div>
             </motion.button>
 
@@ -984,14 +1029,13 @@ export function JourneyTab() {
                 animate={{ opacity: 1, y: 0 }}
                 className="mb-6"
               >
-                <div className="mb-4">
-                  <div className="flex items-center gap-2">
-                    <Clock size={14} className="text-gold-2" />
-                    <h2 className="font-serif text-lg text-off-white">Recently Played</h2>
-                  </div>
-                  <div className="mt-1.5 w-12 h-0.5 bg-ha-red" />
+                <div className="mb-3 relative pb-1.5">
+                  <h2 className="font-serif italic font-bold text-xl sm:text-[28px] text-off-white leading-none tracking-[-0.015em]">
+                    Recently <em className="text-gold-2">Played</em>
+                  </h2>
+                  <div className="absolute bottom-0 left-0 w-9 sm:w-12 h-[2px] bg-ha-red" />
                 </div>
-                <div className="space-y-3">
+                <div className="flex flex-col gap-2 sm:gap-2.5">
                   {recentArcIds.map((arcId, index) => {
                     const arc = getArcById(arcId);
                     if (!arc) return null;
@@ -1017,11 +1061,13 @@ export function JourneyTab() {
 
             {/* All Eras */}
             <div>
-              <div className="mb-4">
-                <h2 className="font-serif text-lg text-off-white">All Eras</h2>
-                <div className="mt-1.5 w-12 h-0.5 bg-ha-red" />
+              <div className="mb-3 relative pb-1.5">
+                <h2 className="font-serif italic font-bold text-xl sm:text-[28px] text-off-white leading-none tracking-[-0.015em]">
+                  All <em className="text-gold-2">Eras</em>
+                </h2>
+                <div className="absolute bottom-0 left-0 w-9 sm:w-12 h-[2px] bg-ha-red" />
               </div>
-              <div className="space-y-3">
+              <div className="flex flex-col gap-2 sm:gap-2.5">
                 {arcs
                   .filter(arc => !recentArcIds.includes(arc.id))
                   .map((arc, index) => {
@@ -1133,7 +1179,7 @@ export function JourneyTab() {
 
         {/* Guard: If ww2-theaters or pearl-harbor views but no host, show host selection */}
         {(view === 'ww2-theaters' || view === 'pearl-harbor' || view === 'pearl-harbor-journey' || view === 'pearl-harbor-lesson') && !selectedHostId && (
-          <WW2HostSelection onSelectHost={handleWW2HostSelected} onClose={() => setView('eras')} />
+          <WW2HostSelection onSelectHost={handleWW2HostSelected} onClose={() => setView('landing')} />
         )}
 
         {view === 'pearl-harbor' && selectedHostId && (
@@ -1185,22 +1231,16 @@ export function JourneyTab() {
           </motion.div>
         )}
 
-        {/* Trophy Room View - Hidden, keeping Pantheon instead */}
-        {/*
+        {/* Trophy Room */}
         {view === 'trophy-room' && (
           <TrophyRoom
             onBack={() => setView('landing')}
             onSelectEra={(arcId) => {
               setSelectedArcId(arcId);
+              setArcOriginView('trophy-room');
               setView('arc');
             }}
           />
-        )}
-        */}
-
-        {/* Trophy Room */}
-        {view === 'trophy-room' && (
-          <PantheonRoom onBack={() => setView('landing')} />
         )}
       </AnimatePresence>
     </div>
@@ -1229,84 +1269,97 @@ function ArcCard({ arc, onSelect, isContinue, isRecent, isHighlighted, thumbnail
   const hasContent = totalChapters > 0;
   const isLocked = !hasContent;
 
+  // Era-specific background gradients for circular thumbnails
+  const eraBackgrounds: Record<string, string> = {
+    'world-war-2': 'radial-gradient(ellipse at 50% 40%, rgba(200,60,20,0.3) 0%, transparent 60%), linear-gradient(135deg, #2a1410 0%, #0a0604 100%)',
+    'french-revolution': 'radial-gradient(ellipse at 50% 40%, rgba(180,30,30,0.45) 0%, transparent 60%), linear-gradient(135deg, #2a1008 0%, #080402 100%)',
+    'ancient-rome': 'radial-gradient(ellipse at 50% 40%, rgba(205,14,20,0.3) 0%, transparent 60%), linear-gradient(135deg, #2a1410 0%, #0a0604 100%)',
+    'civil-war': 'radial-gradient(ellipse at 50% 40%, rgba(100,50,30,0.5) 0%, transparent 60%), linear-gradient(135deg, #1a1008 0%, #050302 100%)',
+    'mesopotamia': 'radial-gradient(ellipse at 50% 40%, rgba(205,120,40,0.4) 0%, transparent 60%), linear-gradient(135deg, #2a1810 0%, #0a0604 100%)',
+    'ancient-egypt': 'radial-gradient(ellipse at 50% 40%, rgba(230,171,42,0.4) 0%, transparent 60%), linear-gradient(135deg, #2a1a08 0%, #0a0604 100%)',
+    'medieval-europe': 'radial-gradient(ellipse at 50% 40%, rgba(70,70,100,0.4) 0%, transparent 60%), linear-gradient(135deg, #15151c 0%, #050508 100%)',
+    'ancient-greece': 'radial-gradient(ellipse at 50% 40%, rgba(220,190,140,0.3) 0%, transparent 60%), linear-gradient(135deg, #1a1808 0%, #050302 100%)',
+    'cold-war': 'radial-gradient(ellipse at 50% 40%, rgba(60,80,120,0.4) 0%, transparent 60%), linear-gradient(135deg, #12141a 0%, #050608 100%)',
+    'renaissance': 'radial-gradient(ellipse at 50% 40%, rgba(160,120,80,0.35) 0%, transparent 60%), linear-gradient(135deg, #1a1510 0%, #080604 100%)',
+    'world-war-1': 'radial-gradient(ellipse at 50% 40%, rgba(120,90,60,0.4) 0%, transparent 60%), linear-gradient(135deg, #1a1410 0%, #080604 100%)',
+    'american-revolution': 'radial-gradient(ellipse at 50% 40%, rgba(140,80,50,0.4) 0%, transparent 60%), linear-gradient(135deg, #1a1208 0%, #080502 100%)',
+    'industrial-revolution': 'radial-gradient(ellipse at 50% 40%, rgba(100,100,100,0.4) 0%, transparent 60%), linear-gradient(135deg, #181818 0%, #080808 100%)',
+    'exploration': 'radial-gradient(ellipse at 50% 40%, rgba(60,100,140,0.35) 0%, transparent 60%), linear-gradient(135deg, #101820 0%, #040608 100%)',
+    'vikings': 'radial-gradient(ellipse at 50% 40%, rgba(100,120,140,0.35) 0%, transparent 60%), linear-gradient(135deg, #141820 0%, #060810 100%)',
+  };
+
+  const defaultBackground = 'radial-gradient(ellipse at 50% 40%, rgba(230,171,42,0.25) 0%, transparent 60%), linear-gradient(135deg, #1a1608 0%, #080604 100%)';
+
   return (
     <motion.button
       onClick={isLocked ? undefined : onSelect}
       disabled={isLocked}
-      className={`w-full text-left p-4 rounded-xl border transition-all ${
+      className={`w-full text-left py-3 px-3.5 sm:py-3.5 sm:px-4 rounded-xl border transition-all group min-h-[70px] sm:min-h-[80px] ${
         isLocked
-          ? 'bg-ink-lift/50 border-off-white/[0.03] cursor-not-allowed opacity-60'
-          : isHighlighted
-          ? 'bg-gold-2/10 border-gold-2/30 hover:bg-gold-2/15 hover:border-gold-2/50'
-          : isRecent
-          ? 'bg-gold-2/5 border-gold-2/15 hover:bg-gold-2/10 hover:border-gold-2/30'
-          : isContinue
-          ? 'bg-gold-2/10 border-gold-2/20 hover:bg-gold-2/15'
-          : 'bg-ink-lift border-off-white/[0.06] hover:border-gold-2/30'
+          ? 'bg-card/50 border-gold-2/10 cursor-not-allowed opacity-55'
+          : 'bg-card border-gold-2/20 hover:bg-[#1C1C1C] hover:border-gold-2/30'
       }`}
-      whileHover={isLocked ? {} : { scale: 1.01 }}
-      whileTap={isLocked ? {} : { scale: 0.99 }}
+      whileHover={isLocked ? {} : { scale: 1.005 }}
+      whileTap={isLocked ? {} : { scale: 0.995 }}
     >
-      <div className="flex items-center gap-4">
-        {/* Era Image */}
-        <div className={`w-14 h-14 rounded-xl flex items-center justify-center overflow-hidden border ${
-          isLocked ? 'bg-ink-lift border-off-white/[0.03]' : isHighlighted ? 'bg-gold-2/20 border-gold-2/30' : 'bg-gold-2/10 border-gold-2/20'
-        }`}>
-          {hasValidThumbnail ? (
+      <div className="flex items-center gap-3 sm:gap-4">
+        {/* Circular Era Thumbnail */}
+        <div
+          className={`w-11 h-11 sm:w-14 sm:h-14 rounded-full flex-shrink-0 relative overflow-hidden border border-gold-2/30 ${isLocked ? 'opacity-50' : ''}`}
+          style={{ background: eraBackgrounds[arc.id] || defaultBackground }}
+        >
+          {hasValidThumbnail && (
             <img
               src={thumbnailUrl}
               alt={arc.title}
-              className={`w-full h-full object-cover ${isLocked ? 'grayscale opacity-50' : ''}`}
+              className={`w-full h-full object-cover ${isLocked ? 'grayscale' : ''}`}
               onError={() => setImageError(true)}
             />
-          ) : (
-            <Map size={28} className={isLocked ? 'text-off-white/20' : 'text-gold-2/50'} />
           )}
+          {/* Vignette overlay */}
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_50%,transparent_55%,rgba(0,0,0,0.55)_100%)] pointer-events-none" />
         </div>
 
         {/* Content */}
-        <div className="flex-1 min-w-0">
-          <h3 className={`font-serif font-bold text-lg truncate ${isLocked ? 'text-off-white/40' : 'text-off-white'}`}>{arc.title}</h3>
-          <p className={`text-sm line-clamp-1 ${isLocked ? 'text-off-white/30' : 'text-off-white/60'}`}>{arc.description}</p>
-          <div className={`flex items-center gap-3 mt-1 font-mono text-[10px] uppercase tracking-wide ${isLocked ? 'text-off-white/30' : 'text-off-white/50'}`}>
+        <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+          <h3 className={`font-serif italic font-bold text-sm sm:text-[19px] leading-[1.1] tracking-[-0.005em] truncate ${isLocked ? 'text-off-white/40' : 'text-off-white'}`}>
+            {arc.title}
+          </h3>
+          <p className={`text-[10.5px] sm:text-[12.5px] leading-[1.35] line-clamp-1 ${isLocked ? 'text-off-white/30' : 'text-off-white/70'}`}>
+            {arc.description}
+          </p>
+          <div className={`flex items-center gap-1.5 sm:gap-2 mt-0.5 font-mono text-[7.5px] sm:text-[9px] tracking-[0.18em] uppercase font-bold ${isLocked ? 'text-off-white/30' : 'text-gold-dp'}`}>
             {host && (
-              <span className="flex items-center gap-1">
-                <span className={isLocked ? 'grayscale' : ''}>{host.avatar}</span>
+              <>
+                <svg viewBox="0 0 24 24" className="w-[9px] h-[9px] sm:w-[11px] sm:h-[11px]" fill="currentColor">
+                  <circle cx="12" cy="8" r="4"/>
+                  <path d="M4 20c0-4 4-6 8-6s8 2 8 6" fill="none" stroke="currentColor" strokeWidth="2"/>
+                </svg>
                 <span>{host.name}</span>
-              </span>
+                <span className="text-off-white/30">·</span>
+              </>
             )}
             {isLocked ? (
-              <span className="flex items-center gap-1 text-gold-2/50">
-                <span>🔒</span>
-                <span>Coming Soon</span>
-              </span>
+              <span className="text-gold-2/50 font-semibold">Coming Soon</span>
             ) : (
-              <span>
-                {`${totalChapters} chapter${totalChapters !== 1 ? 's' : ''}`}
+              <span className="text-off-white/50 font-semibold">
+                {`${totalChapters} Chapter${totalChapters !== 1 ? 's' : ''}`}
               </span>
             )}
           </div>
         </div>
 
-        {/* Arrow or Lock */}
+        {/* Circular Arrow Button */}
         {isLocked ? (
-          <span className="text-off-white/30 text-lg">🔒</span>
+          <span className="text-off-white/30 text-base">🔒</span>
         ) : (
-          <ChevronRight size={20} className={`shrink-0 ${isHighlighted ? 'text-gold-2' : 'text-off-white/40'}`} />
+          <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-gold-2/10 border border-gold-2/30 flex items-center justify-center flex-shrink-0 transition-all group-hover:bg-gold-2 group-hover:border-gold-2">
+            <svg viewBox="0 0 24 24" className="w-[9px] h-[9px] sm:w-[11px] sm:h-[11px] text-gold-2 group-hover:text-void" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M9 6l6 6-6 6"/>
+            </svg>
+          </div>
         )}
       </div>
-
-      {/* Progress bar for recent/continue */}
-      {(isContinue || isRecent) && hasContent && (
-        <div className="mt-3 h-[2px] bg-void/50 rounded-full overflow-hidden">
-          <motion.div
-            className="h-full rounded-full bg-gold-2"
-            initial={{ width: 0 }}
-            animate={{ width: '33%' }}
-            transition={{ delay: 0.2, duration: 0.5 }}
-          />
-        </div>
-      )}
     </motion.button>
   );
 }

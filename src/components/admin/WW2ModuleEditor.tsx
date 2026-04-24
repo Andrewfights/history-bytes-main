@@ -43,7 +43,11 @@ import {
   Archive,
   RotateCcw,
   GripVertical,
+  Sparkles,
+  Palette,
 } from 'lucide-react';
+import { generateImage, base64ToDataUrl, isGeminiConfigured, buildHistoricalPrompt } from '@/lib/gemini';
+import { toast } from 'sonner';
 import { PEARL_HARBOR_LESSONS, TOTAL_XP, FINAL_EXAM_SCORING } from '@/data/pearlHarborLessons';
 import { BEAT_1_DEFAULT_IMAGE, BEAT_1_DEFAULT_HOTSPOTS } from '@/data/pearlHarborDefaults';
 import { ARENA_QUESTIONS, ARENA_TIERS, RECOGNITION_TIERS } from '@/data/arenaQuestions';
@@ -58,6 +62,7 @@ import {
   updateWW2BeatHotspots,
   updateWW2BeatPreModuleVideo,
   updateWW2BeatPostModuleVideo,
+  updateWW2MontageVideo,
   archiveWW2Beat,
   restoreWW2Beat,
   saveWW2BeatOrder,
@@ -188,12 +193,12 @@ const BEAT_4_CONTENT: BeatContent = {
 
 // Beat 5: Breaking News
 const BEAT_5_CONTENT: BeatContent = {
-  screens: ['intro', 'radio-broadcast', 'newspaper-front', 'drag-order', 'completion'],
+  screens: ['intro', 'radio-broadcast', 'completion'],
   questions: [],
   mediaNeeded: [
     { type: 'audio', description: 'CBS radio broadcast clip (optional)' },
     { type: 'audio', description: 'NBC radio broadcast clip (optional)' },
-    { type: 'image', description: 'New York Times front page facsimile' },
+    { type: 'audio', description: 'MBS radio broadcast clip (optional)' },
   ],
 };
 
@@ -1250,6 +1255,197 @@ function MediaUploadSection({ beatId, mediaNeeded, uploadedMedia, onUpload, onRe
   );
 }
 
+// ============================================================
+// BEAT ARTWORK SECTION - Upload or AI Generate artwork for beats
+// ============================================================
+
+interface BeatArtworkSectionProps {
+  beatId: string;
+  beatTitle: string;
+  beatSubtitle: string;
+  artworkUrl?: string;
+  onUpload: (beatId: string, mediaKey: string, file: File) => Promise<void>;
+  onRemove: (beatId: string, mediaKey: string) => Promise<void>;
+}
+
+function BeatArtworkSection({ beatId, beatTitle, beatSubtitle, artworkUrl, onUpload, onRemove }: BeatArtworkSectionProps) {
+  const [isUploading, setIsUploading] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      await onUpload(beatId, 'artworkUrl', file);
+      toast.success('Artwork uploaded successfully');
+    } catch (error) {
+      console.error('Failed to upload artwork:', error);
+      toast.error('Failed to upload artwork');
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleRemove = async () => {
+    if (!confirm('Remove this artwork?')) return;
+    setIsUploading(true);
+    try {
+      await onRemove(beatId, 'artworkUrl');
+      toast.success('Artwork removed');
+    } catch (error) {
+      console.error('Failed to remove artwork:', error);
+      toast.error('Failed to remove artwork');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleGenerate = async () => {
+    if (!isGeminiConfigured()) {
+      toast.error('Gemini API key not configured. Add your key in Profile Settings.');
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      // Build a historical prompt for this beat
+      const prompt = buildHistoricalPrompt(
+        beatTitle,
+        'World War 2 - December 1941',
+        `${beatSubtitle}. Pearl Harbor attack context. Dramatic cinematic scene suitable for an educational history module thumbnail.`
+      );
+
+      const result = await generateImage({
+        prompt,
+        aspectRatio: '1:1',
+        style: 'cinematic',
+      });
+
+      if (result) {
+        // Convert to data URL, then to File, then upload
+        const dataUrl = base64ToDataUrl(result.base64Data, result.mimeType);
+        const response = await fetch(dataUrl);
+        const blob = await response.blob();
+        const fileName = `beat-artwork-${beatId}-${Date.now()}.${result.mimeType.split('/')[1] || 'png'}`;
+        const file = new File([blob], fileName, { type: result.mimeType });
+
+        await onUpload(beatId, 'artworkUrl', file);
+        toast.success('AI artwork generated and saved!');
+      } else {
+        toast.error('Failed to generate artwork. Check console for details.');
+      }
+    } catch (error) {
+      console.error('Error generating artwork:', error);
+      toast.error('Error generating artwork');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      <h4 className="text-white/60 text-xs uppercase tracking-wide flex items-center gap-2">
+        <Palette size={14} />
+        Beat Artwork
+        <span className="text-amber-400 text-[10px]">Shown on Journey Map</span>
+      </h4>
+      <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
+        <div className="flex items-start gap-4">
+          {/* Preview */}
+          <div className="w-20 h-20 rounded-lg bg-slate-700/50 border border-slate-600 overflow-hidden flex-shrink-0">
+            {artworkUrl ? (
+              <img
+                src={artworkUrl}
+                alt={`${beatTitle} artwork`}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <ImageIcon size={24} className="text-slate-500" />
+              </div>
+            )}
+          </div>
+
+          {/* Info & Actions */}
+          <div className="flex-1 min-w-0">
+            <p className="text-white text-sm font-medium mb-1">Journey Map Thumbnail</p>
+            <p className="text-slate-400 text-xs mb-3">
+              {artworkUrl
+                ? 'Artwork set. This appears on the journey map for this beat.'
+                : 'No artwork set. Upload an image or generate one with AI.'}
+            </p>
+
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Upload Button */}
+              <button
+                onClick={handleUploadClick}
+                disabled={isUploading || isGenerating}
+                className="px-3 py-1.5 bg-slate-600 hover:bg-slate-500 text-white text-xs font-medium rounded-lg flex items-center gap-1.5 transition-colors disabled:opacity-50"
+              >
+                {isUploading ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <Upload size={14} />
+                )}
+                {artworkUrl ? 'Replace' : 'Upload'}
+              </button>
+
+              {/* AI Generate Button */}
+              <button
+                onClick={handleGenerate}
+                disabled={isUploading || isGenerating}
+                className="px-3 py-1.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white text-xs font-medium rounded-lg flex items-center gap-1.5 transition-colors disabled:opacity-50"
+              >
+                {isGenerating ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles size={14} />
+                    AI Generate
+                  </>
+                )}
+              </button>
+
+              {/* Remove Button */}
+              {artworkUrl && (
+                <button
+                  onClick={handleRemove}
+                  disabled={isUploading || isGenerating}
+                  className="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 text-xs font-medium rounded-lg flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                >
+                  <Trash2 size={14} />
+                  Remove
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        accept="image/*"
+        className="hidden"
+      />
+    </div>
+  );
+}
+
 interface PreModuleVideoSectionProps {
   beatId: string;
   config?: PreModuleVideoConfig;
@@ -1882,6 +2078,162 @@ function PostModuleVideoSection({ beatId, config, onSave, onUploadVideo, onClear
   );
 }
 
+// Montage video configuration for Make It Do beat
+const MONTAGE_VIDEO_SCENES = [
+  { key: 'make-it-do-cooking-fat', label: 'Fat for Explosives', icon: '🍳', description: 'Kitchen to Battlefield' },
+  { key: 'make-it-do-fabric', label: 'Fabric Rationing', icon: '🧵', description: 'Every Thread Counts' },
+  { key: 'make-it-do-gardens', label: 'Victory Gardens', icon: '🥕', description: 'Growing for Freedom' },
+];
+
+interface MontageVideoSectionProps {
+  beatId: string;
+  montageVideos: Record<string, string>;
+  onUploadVideo: (beatId: string, mediaKey: string, file: File, onProgress?: (progress: number) => void) => Promise<void>;
+  onRemoveVideo: (beatId: string, videoKey: string) => Promise<void>;
+}
+
+function MontageVideoSection({ beatId, montageVideos, onUploadVideo, onRemoveVideo }: MontageVideoSectionProps) {
+  const [uploadingKey, setUploadingKey] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [deletingKey, setDeletingKey] = useState<string | null>(null);
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+
+  const handleUploadClick = (key: string) => {
+    fileInputRefs.current[key]?.click();
+  };
+
+  const handleFileChange = async (key: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingKey(key);
+    setUploadProgress(0);
+    setUploadError(null);
+
+    try {
+      await onUploadVideo(beatId, `montage-${key}`, file, (progress) => {
+        setUploadProgress(progress);
+      });
+    } catch (error) {
+      console.error('[MontageVideo] Upload failed:', error);
+      setUploadError(error instanceof Error ? error.message : 'Upload failed');
+    } finally {
+      setUploadingKey(null);
+      if (fileInputRefs.current[key]) {
+        fileInputRefs.current[key]!.value = '';
+      }
+    }
+  };
+
+  const handleRemove = async (key: string) => {
+    setDeletingKey(key);
+    try {
+      await onRemoveVideo(beatId, key);
+    } catch (error) {
+      console.error('[MontageVideo] Remove failed:', error);
+    } finally {
+      setDeletingKey(null);
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <h4 className="text-white/60 text-xs uppercase tracking-wide flex items-center gap-2">
+        <Layers size={14} />
+        Video Montage Scenes
+        <span className="text-amber-400 text-[10px]">3 Scene Videos</span>
+      </h4>
+
+      <div className="bg-slate-800/50 rounded-lg p-4 border border-amber-500/30 space-y-4">
+        <p className="text-slate-400 text-xs">
+          Upload videos for each scene in the Make It Do beat. These videos show how civilians contributed to the war effort.
+        </p>
+
+        {MONTAGE_VIDEO_SCENES.map((scene) => {
+          const videoUrl = montageVideos[scene.key];
+          const isUploading = uploadingKey === scene.key;
+          const isDeleting = deletingKey === scene.key;
+
+          return (
+            <div key={scene.key} className="bg-slate-700/50 rounded-lg p-3 border border-slate-600">
+              <div className="flex items-center gap-3 mb-3">
+                <span className="text-2xl">{scene.icon}</span>
+                <div>
+                  <h5 className="text-white font-medium text-sm">{scene.label}</h5>
+                  <p className="text-slate-400 text-xs">{scene.description}</p>
+                </div>
+              </div>
+
+              {videoUrl ? (
+                <div className="space-y-2">
+                  <div className="rounded-lg overflow-hidden bg-black border border-slate-600">
+                    <video
+                      src={videoUrl}
+                      controls
+                      className="w-full max-h-40"
+                      preload="metadata"
+                    />
+                  </div>
+                  <button
+                    onClick={() => handleRemove(scene.key)}
+                    disabled={isDeleting}
+                    className="w-full py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 text-xs font-medium rounded-lg flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50 border border-red-500/30"
+                  >
+                    {isDeleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                    Remove Video
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <button
+                    onClick={() => handleUploadClick(scene.key)}
+                    disabled={isUploading}
+                    className="w-full py-2.5 bg-amber-600 hover:bg-amber-500 text-white text-sm font-medium rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+                  >
+                    {isUploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                    {isUploading ? 'Uploading...' : 'Upload Video'}
+                  </button>
+                  <input
+                    type="file"
+                    ref={(el) => { fileInputRefs.current[scene.key] = el; }}
+                    onChange={(e) => handleFileChange(scene.key, e)}
+                    accept="video/*"
+                    className="hidden"
+                  />
+                  {isUploading && (
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-xs text-slate-400">
+                        <span>Uploading...</span>
+                        <span>{Math.round(uploadProgress)}%</span>
+                      </div>
+                      <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-amber-500 transition-all duration-300 ease-out"
+                          style={{ width: `${uploadProgress}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        {uploadError && (
+          <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-3">
+            <p className="text-red-400 text-sm flex items-center gap-2">
+              <AlertCircle size={16} />
+              {uploadError}
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function ExamQuestionsList() {
   return (
     <div className="space-y-4">
@@ -1997,6 +2349,7 @@ function BeatCard({
   customHotspotConfig,
   preModuleVideoConfig,
   postModuleVideoConfig,
+  montageVideos,
   onUpload,
   onRemove,
   onSaveQuestions,
@@ -2004,6 +2357,8 @@ function BeatCard({
   onEditHotspots,
   onSavePreModuleVideo,
   onSavePostModuleVideo,
+  onUploadMontageVideo,
+  onRemoveMontageVideo,
   onArchive,
   showDragHandle,
 }: {
@@ -2016,6 +2371,7 @@ function BeatCard({
   customHotspotConfig?: WW2BeatHotspotConfig;
   preModuleVideoConfig?: PreModuleVideoConfig;
   postModuleVideoConfig?: PostModuleVideoConfig;
+  montageVideos: Record<string, string>;
   onUpload: (beatId: string, mediaKey: string, file: File, onProgress?: (progress: number) => void) => Promise<void>;
   onRemove: (beatId: string, mediaKey: string) => Promise<void>;
   onSaveQuestions: (beatId: string, questions: WW2BeatQuestion[]) => Promise<void>;
@@ -2023,6 +2379,8 @@ function BeatCard({
   onEditHotspots: (beatId: string) => void;
   onSavePreModuleVideo: (beatId: string, config: PreModuleVideoConfig | null) => Promise<void>;
   onSavePostModuleVideo: (beatId: string, config: PostModuleVideoConfig | null) => Promise<void>;
+  onUploadMontageVideo: (beatId: string, mediaKey: string, file: File, onProgress?: (progress: number) => void) => Promise<void>;
+  onRemoveMontageVideo: (beatId: string, videoKey: string) => Promise<void>;
   onArchive?: (beatId: string) => void;
   showDragHandle?: boolean;
 }) {
@@ -2201,6 +2559,18 @@ function BeatCard({
                 />
               )}
 
+              {/* Beat Artwork - show for all beats except exam */}
+              {!isExam && (
+                <BeatArtworkSection
+                  beatId={lesson.id}
+                  beatTitle={lesson.title}
+                  beatSubtitle={lesson.subtitle}
+                  artworkUrl={uploadedMedia['artworkUrl']}
+                  onUpload={onUpload}
+                  onRemove={onRemove}
+                />
+              )}
+
               {/* Pre-Module Video - show for all beats except exam */}
               {!isExam && (
                 <PreModuleVideoSection
@@ -2220,6 +2590,16 @@ function BeatCard({
                   onSave={onSavePostModuleVideo}
                   onUploadVideo={onUpload}
                   onClearMediaUrl={onRemove}
+                />
+              )}
+
+              {/* Montage Videos - show only for video-montage type beats (Make It Do) */}
+              {lesson.type === 'video-montage' && (
+                <MontageVideoSection
+                  beatId={lesson.id}
+                  montageVideos={montageVideos}
+                  onUploadVideo={onUploadMontageVideo}
+                  onRemoveVideo={onRemoveMontageVideo}
                 />
               )}
 
@@ -2989,6 +3369,46 @@ export function WW2ModuleEditor() {
     }
   }, []);
 
+  // Get montage videos for a beat
+  const getMontageVideos = useCallback((beatId: string): Record<string, string> => {
+    return uploadedAssets?.montageVideos?.[beatId] || {};
+  }, [uploadedAssets]);
+
+  // Handle uploading montage video
+  const handleUploadMontageVideo = useCallback(async (
+    beatId: string,
+    mediaKey: string,
+    file: File,
+    onProgress?: (progress: number) => void
+  ) => {
+    try {
+      // Extract the video key from the mediaKey (e.g., 'montage-make-it-do-cooking-fat' -> 'make-it-do-cooking-fat')
+      const videoKey = mediaKey.replace('montage-', '');
+
+      // Upload to Firebase Storage
+      const path = `ww2-module/${beatId}/montage/${videoKey}`;
+      const result = await uploadFile(file, path, onProgress);
+
+      // Save to Firestore montageVideos
+      await updateWW2MontageVideo(beatId, videoKey, result.url);
+      console.log('Montage video uploaded for beat:', beatId, 'key:', videoKey);
+    } catch (error) {
+      console.error('Error uploading montage video:', error);
+      throw error;
+    }
+  }, []);
+
+  // Handle removing montage video
+  const handleRemoveMontageVideo = useCallback(async (beatId: string, videoKey: string) => {
+    try {
+      await updateWW2MontageVideo(beatId, videoKey, null);
+      console.log('Montage video removed for beat:', beatId, 'key:', videoKey);
+    } catch (error) {
+      console.error('Error removing montage video:', error);
+      throw error;
+    }
+  }, []);
+
   const handlePreview = (beatType: string) => {
     setPreviewBeat(beatType);
   };
@@ -3112,6 +3532,7 @@ export function WW2ModuleEditor() {
               customHotspotConfig={getHotspotConfig(lesson.id)}
               preModuleVideoConfig={getPreModuleVideoConfig(lesson.id)}
               postModuleVideoConfig={getPostModuleVideoConfig(lesson.id)}
+              montageVideos={getMontageVideos(lesson.id)}
               onUpload={handleUpload}
               onRemove={handleRemove}
               onSaveQuestions={handleSaveQuestions}
@@ -3119,6 +3540,8 @@ export function WW2ModuleEditor() {
               onEditHotspots={handleEditHotspots}
               onSavePreModuleVideo={handleSavePreModuleVideo}
               onSavePostModuleVideo={handleSavePostModuleVideo}
+              onUploadMontageVideo={handleUploadMontageVideo}
+              onRemoveMontageVideo={handleRemoveMontageVideo}
               onArchive={handleArchiveBeat}
               showDragHandle={true}
             />

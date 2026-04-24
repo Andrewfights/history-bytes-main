@@ -38,6 +38,15 @@ export function JourneyMap({
   const nodes = chapter.nodes;
   const [showIntroVideo, setShowIntroVideo] = useState(false);
 
+  // Lock body scroll when component mounts (full-screen view)
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, []);
+
   // Check if we should show intro video when chapter changes
   useEffect(() => {
     if (chapter.aiVideoUrl && !hasViewedChapterIntro(chapter.id)) {

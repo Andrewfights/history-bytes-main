@@ -157,22 +157,6 @@ export function CourseCatalog({ courseProgress, onCourseClick }: CourseCatalogPr
 
   return (
     <div className="pb-28">
-      {/* ═══════════ HEADER ═══════════ */}
-      <div className="px-4 pt-4 pb-3">
-        <div className="flex items-center gap-2 mb-2">
-          <div className="w-5 h-[1px] bg-ha-red" />
-          <span className="font-mono text-[9px] tracking-[0.35em] text-ha-red uppercase font-bold">
-            The Library · Open
-          </span>
-        </div>
-        <h1 className="font-display text-[38px] font-bold text-off-white leading-[0.95] tracking-tight uppercase mb-2">
-          The <span className="text-gold-2">Curriculum.</span>
-        </h1>
-        <p className="font-body text-[12.5px] text-text-2 leading-relaxed">
-          Courses, instructors, certificates. Structured learning in the Academy style.
-        </p>
-      </div>
-
       {/* ═══════════ SEARCH ═══════════ */}
       <div className="px-4 mb-4">
         <div className="relative">

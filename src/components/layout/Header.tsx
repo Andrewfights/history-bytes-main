@@ -7,6 +7,7 @@
 import { Flame } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { TabType } from '@/types';
+import { ThemeToggle } from './ThemeToggle';
 
 // Nav configuration
 interface NavItem {
@@ -109,12 +110,23 @@ export function Header() {
             </span>
           </button>
 
+          {/* Theme toggle */}
+          <ThemeToggle />
+
           {/* Avatar button */}
           <button
             onClick={() => setActiveTab('profile')}
-            className="w-8 h-8 rounded-full bg-gradient-to-br from-[#5a3a1a] to-[#2a1a08] border border-gold-2 shadow-[0_0_0_2px_rgba(230,171,42,0.15)]"
+            className="w-8 h-8 rounded-full bg-gradient-to-br from-[#5a3a1a] to-[#2a1a08] border border-gold-2 shadow-[0_0_0_2px_rgba(230,171,42,0.15)] overflow-hidden"
             aria-label="Profile"
-          />
+          >
+            {user.avatarUrl && (
+              <img
+                src={user.avatarUrl}
+                alt={user.displayName || 'Profile'}
+                className="w-full h-full object-cover"
+              />
+            )}
+          </button>
         </div>
       </div>
     </header>

@@ -1,15 +1,16 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, ChevronLeft, Bookmark, Lightbulb } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Bookmark, Lightbulb, X } from 'lucide-react';
 import { LessonCard } from '@/types';
 
 interface LessonCardViewProps {
   cards: LessonCard[];
   onComplete: () => void;
+  onClose?: () => void;
   topicTitle: string;
 }
 
-export function LessonCardView({ cards, onComplete, topicTitle }: LessonCardViewProps) {
+export function LessonCardView({ cards, onComplete, onClose, topicTitle }: LessonCardViewProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState(1);
 
@@ -49,16 +50,36 @@ export function LessonCardView({ cards, onComplete, topicTitle }: LessonCardView
   };
 
   return (
-    <div className="flex flex-col min-h-[calc(100vh-8rem)]">
-      {/* Progress bar */}
-      <div className="px-4 pt-4">
-        <div className="flex items-center justify-between text-sm text-muted-foreground mb-2">
-          <span>{topicTitle}</span>
-          <span>Card {currentIndex + 1} of {cards.length}</span>
+    <div className="flex flex-col min-h-[calc(100vh-4rem)]">
+      {/* Top Bar */}
+      <div className="px-4 pt-4 pb-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-muted-foreground">{topicTitle}</span>
+            <span className="text-muted-foreground/50">/</span>
+            <span className="text-foreground">
+              Card <em className="text-[var(--gold-2)] not-italic font-medium">{currentIndex + 1}</em>/{cards.length}
+            </span>
+          </div>
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="w-8 h-8 rounded-lg border border-border flex items-center justify-center hover:border-primary/50 transition-colors"
+            >
+              <X size={16} />
+            </button>
+          )}
         </div>
-        <div className="h-1 bg-border rounded-full overflow-hidden">
+      </div>
+
+      {/* Progress bar */}
+      <div className="px-4 pb-4">
+        <div className="h-1 bg-[rgba(255,255,255,0.06)] rounded-full overflow-hidden">
           <motion.div
-            className="h-full bg-primary rounded-full"
+            className="h-full rounded-full"
+            style={{
+              background: 'linear-gradient(90deg, var(--gold-3), var(--gold-2))'
+            }}
             animate={{ width: `${((currentIndex + 1) / cards.length) * 100}%` }}
             transition={{ duration: 0.3 }}
           />
@@ -66,7 +87,7 @@ export function LessonCardView({ cards, onComplete, topicTitle }: LessonCardView
       </div>
 
       {/* Card content */}
-      <div className="flex-1 px-4 py-6 overflow-hidden">
+      <div className="flex-1 px-4 py-2 overflow-hidden">
         <AnimatePresence mode="wait" custom={direction}>
           <motion.div
             key={currentIndex}
@@ -78,35 +99,59 @@ export function LessonCardView({ cards, onComplete, topicTitle }: LessonCardView
             transition={{ duration: 0.2 }}
             className="h-full"
           >
-            <div className="lesson-card h-full flex flex-col">
-              <h2 className="font-editorial text-xl font-bold mb-4">
-                {currentCard.title}
-              </h2>
+            {/* Teaching Card */}
+            <div className="teach-card">
+              {/* Gold corner brackets */}
+              <div className="corner-tl" />
+              <div className="corner-tr" />
+              <div className="corner-bl" />
+              <div className="corner-br" />
 
-              <p className="text-foreground/90 leading-relaxed mb-6">
-                {currentCard.body}
-              </p>
+              <div className="teach-card-inner">
+                {/* Kick */}
+                <div className="teach-kick">
+                  Card {String(currentIndex + 1).padStart(2, '0')} · Concept
+                </div>
 
-              {currentCard.keyFact && (
-                <div className="mt-auto p-4 bg-primary/5 border border-primary/20 rounded-xl">
-                  <div className="flex items-start gap-3">
-                    <Lightbulb size={18} className="text-primary flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-xs font-medium text-primary uppercase tracking-wider mb-1">
-                        Key Fact
-                      </p>
-                      <p className="text-sm text-foreground/80">
+                {/* Title - with gold emphasis on certain words */}
+                <h2 className="teach-title">
+                  {currentCard.title}
+                </h2>
+
+                {/* Body */}
+                <div className="teach-body">
+                  <p>{currentCard.body}</p>
+                </div>
+
+                {/* Key Fact */}
+                {currentCard.keyFact && (
+                  <div className="keyfact-v3">
+                    <div className="keyfact-stamp">Essential</div>
+                    <div className="keyfact-badge">
+                      <Lightbulb size={15} />
+                    </div>
+                    <div className="keyfact-content">
+                      <div className="keyfact-kick">Key Fact</div>
+                      <div className="keyfact-text">
                         {currentCard.keyFact}
-                      </p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              <button className="mt-4 flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors self-start">
-                <Bookmark size={16} />
-                Add Note
-              </button>
+                {/* Card footer */}
+                <div className="mt-4 flex items-center justify-between">
+                  <button className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors py-2">
+                    <Bookmark size={14} />
+                    <span className="text-xs uppercase tracking-wider font-medium">Note</span>
+                  </button>
+                  <div className="font-[var(--font-mono)] text-xs text-muted-foreground">
+                    <em className="text-[var(--gold-2)] not-italic">{String(currentIndex + 1).padStart(2, '0')}</em>
+                    <span className="mx-0.5">/</span>
+                    <span>{String(cards.length).padStart(2, '0')}</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </motion.div>
         </AnimatePresence>
@@ -119,7 +164,7 @@ export function LessonCardView({ cards, onComplete, topicTitle }: LessonCardView
           whileTap={{ scale: 0.98 }}
           onClick={goPrev}
           disabled={isFirst}
-          className="w-12 h-12 rounded-xl border border-border flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:border-primary/50 transition-colors"
+          className="w-12 h-12 rounded-lg border border-border flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:border-primary/50 transition-colors bg-[rgba(0,0,0,0.3)]"
         >
           <ChevronLeft size={24} />
         </motion.button>
@@ -128,10 +173,11 @@ export function LessonCardView({ cards, onComplete, topicTitle }: LessonCardView
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={goNext}
-          className="flex-1 h-12 bg-primary text-primary-foreground rounded-xl font-semibold flex items-center justify-center gap-2 hover:glow-yellow transition-all"
+          className="btn-primary-lg flex-1"
+          style={{ minHeight: '48px' }}
         >
-          {isLast ? 'Start Quiz' : 'Next'}
-          <ChevronRight size={18} />
+          {isLast ? 'Start Quiz' : 'Next Card'}
+          <ChevronRight size={16} strokeWidth={2.5} />
         </motion.button>
       </div>
     </div>

@@ -1,25 +1,30 @@
 /**
- * BattleCard - Individual battle card with visual states
- * Supports: locked, available, in-progress, completed, first-stop
+ * BattleCard - Operation card with visual states
+ * Design: History Academy Dark v2 - Theater Selection
  */
 
 import { motion } from 'framer-motion';
-import { Lock, Check, Play, Star } from 'lucide-react';
-import { WW2Battle, BattleStatus } from '@/types';
+import { Lock, Star, FileText, ArrowRight } from 'lucide-react';
+import { WW2Battle, BattleStatus, WW2Theater } from '@/types';
+import { cn } from '@/lib/utils';
 
 interface BattleCardProps {
   battle: WW2Battle;
   status: BattleStatus;
   onClick: () => void;
   index: number;
+  theater: WW2Theater;
 }
 
-export function BattleCard({ battle, status, onClick, index }: BattleCardProps) {
+export function BattleCard({ battle, status, onClick, index, theater }: BattleCardProps) {
   const isLocked = status === 'locked';
   const isCompleted = status === 'completed';
-  const isInProgress = status === 'in-progress';
   const isAvailable = status === 'available';
   const isFirstStop = battle.isFirstStop;
+  const isUnlocked = isAvailable || isFirstStop || isCompleted;
+
+  // Operation number
+  const opNum = index + 1 + (theater === 'european' ? 5 : 0);
 
   return (
     <motion.button
@@ -28,146 +33,164 @@ export function BattleCard({ battle, status, onClick, index }: BattleCardProps) 
       transition={{ delay: index * 0.1 }}
       onClick={onClick}
       disabled={isLocked}
-      className={`
-        relative w-full rounded-xl overflow-hidden
-        transition-all duration-300
-        ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}
-        ${isLocked ? 'opacity-60' : 'opacity-100'}
-      `}
-      whileHover={!isLocked ? { scale: 1.02 } : undefined}
-      whileTap={!isLocked ? { scale: 0.98 } : undefined}
+      className={cn(
+        'relative w-full text-left mb-3.5 bg-ink border overflow-hidden z-[2] transition-transform',
+        isLocked ? 'cursor-not-allowed' : 'cursor-pointer hover:-translate-y-0.5',
+        isUnlocked && !isLocked && 'border-gold-2 shadow-[0_0_0_1px_rgba(230,171,42,0.15),0_12px_30px_rgba(0,0,0,0.5)]',
+        isLocked && 'border-gold-2/15'
+      )}
     >
-      {/* Image Container */}
-      <div className="relative aspect-[16/10] overflow-hidden">
-        {/* Battle Image */}
+      {/* Corner accents for unlocked cards */}
+      {isUnlocked && !isLocked && (
+        <>
+          <div className="absolute -top-[1px] -left-[1px] w-[10px] h-[10px] border-l-[1.5px] border-t-[1.5px] border-gold-2 z-[5]" />
+          <div className="absolute -bottom-[1px] -right-[1px] w-[10px] h-[10px] border-r-[1.5px] border-b-[1.5px] border-gold-2 z-[5]" />
+        </>
+      )}
+
+      {/* Top Bar */}
+      <div className="flex justify-between items-center px-3.5 py-2.5 bg-black/55 relative z-[3] border-b border-off-white/[0.08]">
+        <span className={cn(
+          'font-mono text-[9px] tracking-[0.25em] font-bold uppercase',
+          isLocked ? 'text-off-white/32' : 'text-gold-2'
+        )}>
+          OP {String(opNum).padStart(2, '0')}
+        </span>
+        <span className={cn(
+          'font-mono text-[8.5px] tracking-[0.2em] font-bold uppercase flex items-center gap-1.5',
+          isUnlocked && !isLocked && 'text-gold-1',
+          isLocked && 'text-off-white/32',
+          isCompleted && 'text-[#3DD67A]'
+        )}>
+          {isUnlocked && !isCompleted && (
+            <>
+              <Star size={10} className="animate-pulse" style={{ filter: 'drop-shadow(0 0 4px rgba(246,227,85,0.8))' }} />
+              Start Here
+            </>
+          )}
+          {isCompleted && 'Completed'}
+          {isLocked && (
+            <>
+              <Lock size={10} />
+              Locked
+            </>
+          )}
+        </span>
+      </div>
+
+      {/* Hero Image */}
+      <div className="relative aspect-[16/9] overflow-hidden bg-ink-lift">
         <img
           src={battle.imageUrl}
           alt={battle.name}
-          className={`
-            w-full h-full object-cover
-            ${isLocked ? 'grayscale blur-[1px]' : ''}
-            transition-all duration-300
-          `}
+          className="w-full h-full object-cover"
         />
 
-        {/* Gradient Overlay */}
+        {/* Grain overlay */}
         <div
-          className={`
-            absolute inset-0
-            ${isLocked
-              ? 'bg-gradient-to-t from-black/80 via-black/40 to-black/20'
-              : 'bg-gradient-to-t from-black/70 via-black/30 to-transparent'
-            }
-          `}
+          className="absolute inset-0 mix-blend-overlay pointer-events-none"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .35 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
+          }}
         />
 
-        {/* First Stop Highlight - Pulsing Gold Border */}
-        {isFirstStop && !isCompleted && (
+        {/* Gradient overlay for title legibility */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent z-[2] pointer-events-none" />
+
+        {/* CLASSIFIED stamp for locked cards */}
+        {isLocked && (
           <>
-            <motion.div
-              className="absolute inset-0 border-2 sm:border-4 border-amber-400 rounded-xl pointer-events-none"
-              animate={{
-                boxShadow: [
-                  '0 0 0 0 rgba(251, 191, 36, 0.4)',
-                  '0 0 0 8px rgba(251, 191, 36, 0)',
-                ],
+            <div className="absolute inset-0 bg-gradient-to-b from-black/65 to-black/85 z-[1]" />
+            <div
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-[8deg] px-4 py-2 border-2 border-ha-red font-display text-[14px] font-bold tracking-[0.3em] uppercase z-[4] pointer-events-none opacity-90"
+              style={{
+                color: '#CD0E14',
+                background: 'rgba(15,5,5,0.75)',
+                textShadow: '0 0 10px rgba(205,14,20,0.5)',
               }}
-              transition={{
-                duration: 1.5,
-                repeat: Infinity,
-                ease: 'easeOut',
-              }}
-            />
-            {/* Start Here Badge */}
-            <div className="absolute top-1 left-1 sm:top-2 sm:left-2 px-1.5 sm:px-2 py-0.5 sm:py-1 bg-amber-500 rounded-md shadow-lg">
-              <div className="flex items-center gap-0.5 sm:gap-1">
-                <Star size={10} className="sm:hidden text-white fill-white" />
-                <Star size={12} className="hidden sm:block text-white fill-white" />
-                <span className="text-[8px] sm:text-[10px] font-bold text-white uppercase tracking-wide">
-                  Start Here
-                </span>
-              </div>
+            >
+              <span className="absolute -top-[3px] left-1/2 -translate-x-1/2 w-[60%] h-[1px] bg-ha-red/50" />
+              <span className="absolute -bottom-[3px] left-1/2 -translate-x-1/2 w-[60%] h-[1px] bg-ha-red/50" />
+              Classified
             </div>
           </>
         )}
 
-        {/* Status Indicators */}
-        {isLocked && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-black/60 flex items-center justify-center backdrop-blur-sm">
-              <Lock size={16} className="sm:hidden text-white/80" />
-              <Lock size={24} className="hidden sm:block text-white/80" />
-            </div>
+        {/* Title overlay at bottom */}
+        <div className="absolute left-0 right-0 bottom-0 px-4 py-3.5 z-[3]">
+          <div className={cn(
+            'flex items-center gap-1.5 font-mono text-[8px] tracking-[0.35em] uppercase font-semibold mb-1.5',
+            isLocked ? 'text-off-white/32' : 'text-gold-2'
+          )}>
+            <span className="text-ha-red text-[6px]">◆</span>
+            Chapter {String(opNum).padStart(2, '0')} · {battle.chapter || 'Operation'}
           </div>
-        )}
-
-        {isCompleted && (
-          <div className="absolute top-1 right-1 sm:top-2 sm:right-2">
-            <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-green-500 flex items-center justify-center shadow-lg">
-              <Check size={14} className="sm:hidden text-white" strokeWidth={3} />
-              <Check size={18} className="hidden sm:block text-white" strokeWidth={3} />
-            </div>
-          </div>
-        )}
-
-        {isInProgress && (
-          <div className="absolute top-1 right-1 sm:top-2 sm:right-2">
-            <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-amber-500 flex items-center justify-center shadow-lg animate-pulse">
-              <Play size={12} className="sm:hidden text-white fill-white ml-0.5" />
-              <Play size={16} className="hidden sm:block text-white fill-white ml-0.5" />
-            </div>
-          </div>
-        )}
-
-        {/* Bottom Content */}
-        <div className="absolute bottom-0 left-0 right-0 p-2 sm:p-3">
-          {/* Chapter Label */}
-          <div
-            className={`
-              text-[8px] sm:text-[10px] font-bold uppercase tracking-wider mb-0.5
-              ${isLocked ? 'text-white/50' : 'text-amber-400'}
-            `}
-          >
-            Chapter: {battle.name}
-          </div>
-
-          {/* Battle Name */}
-          <h3
-            className={`
-              text-sm sm:text-lg font-bold leading-tight
-              ${isLocked ? 'text-white/60' : 'text-white'}
-            `}
+          <h3 className={cn(
+            'font-display text-[22px] font-bold uppercase tracking-[-0.005em] leading-[0.95] mb-1 italic',
+            isLocked ? 'text-off-white/50' : 'text-off-white',
+            isUnlocked && !isLocked && 'text-[#FFF7E0]'
+          )}
+          style={isUnlocked && !isLocked ? { textShadow: '0 0 12px rgba(230,171,42,0.3)' } : undefined}
           >
             {battle.name}
           </h3>
-
-          {/* Subtitle - Date */}
-          <p
-            className={`
-              text-[10px] sm:text-xs mt-0.5
-              ${isLocked ? 'text-white/40' : 'text-white/70'}
-            `}
-          >
+          <p className={cn(
+            'font-serif italic text-[13px] tracking-[0.02em]',
+            isLocked ? 'text-off-white/32' : 'text-off-white/70'
+          )}>
             {battle.subtitle}
           </p>
-
-          {/* XP and Lessons Info */}
-          <div
-            className={`
-              flex items-center gap-2 sm:gap-3 mt-1 sm:mt-2 text-[10px] sm:text-xs
-              ${isLocked ? 'text-white/40' : 'text-white/60'}
-            `}
-          >
-            <span>{battle.lessonCount} Lessons</span>
-            <span className="text-amber-400">+{battle.xpReward} XP</span>
-          </div>
         </div>
       </div>
 
-      {/* Completed Overlay */}
-      {isCompleted && (
-        <div className="absolute inset-0 bg-green-500/10 pointer-events-none" />
-      )}
+      {/* Meta Strip */}
+      <div className="flex items-center justify-between gap-2.5 px-3.5 py-3 bg-black/45 border-t border-off-white/[0.08] z-[3] relative">
+        {/* Left - Stats */}
+        <div className="flex gap-3.5 items-center">
+          <div className={cn(
+            'flex items-center gap-1.5 font-mono text-[9.5px] tracking-[0.1em] font-semibold',
+            isLocked ? 'text-off-white/32' : 'text-off-white/70'
+          )}>
+            <FileText size={12} className={isLocked ? 'text-off-white/32' : 'text-gold-2'} />
+            <span className={cn(
+              'font-display text-[12px] font-bold tracking-[0.02em]',
+              isLocked ? 'text-off-white/32' : 'text-gold-1'
+            )}>
+              {battle.lessonCount}
+            </span>
+            Lessons
+          </div>
+          <div className={cn(
+            'flex items-center gap-1.5 font-mono text-[9.5px] tracking-[0.1em] font-semibold',
+            isLocked ? 'text-off-white/32' : 'text-off-white/70'
+          )}>
+            <Star size={12} className={isLocked ? 'text-off-white/32' : 'text-gold-2'} fill="currentColor" />
+            <span className={cn(
+              'font-display text-[12px] font-bold tracking-[0.02em]',
+              isLocked ? 'text-off-white/32' : 'text-gold-1'
+            )}>
+              +{battle.xpReward}
+            </span>
+            XP
+          </div>
+        </div>
+
+        {/* Right - CTA or Lock Message */}
+        {isUnlocked && !isLocked ? (
+          <div className="bg-ha-red text-off-white px-3.5 py-1.5 font-display text-[11px] font-bold uppercase tracking-[0.15em] flex items-center gap-1.5 relative">
+            {/* Corner accents */}
+            <div className="absolute -top-[1px] -left-[1px] w-[5px] h-[5px] border-t border-l border-gold-2" />
+            <div className="absolute -bottom-[1px] -right-[1px] w-[5px] h-[5px] border-b border-r border-gold-2" />
+            Deploy
+            <ArrowRight size={10} />
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5 font-mono text-[9px] text-off-white/50 tracking-[0.15em] uppercase font-semibold text-right">
+            <Lock size={11} className="text-off-white/32" />
+            Req: OP {String(opNum - 1).padStart(2, '0')}
+          </div>
+        )}
+      </div>
     </motion.button>
   );
 }

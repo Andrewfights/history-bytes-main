@@ -83,10 +83,23 @@ export function LearnTab({ initialTopicId, onSelectChapter }: LearnTabProps) {
           transition={{ duration: 0.2 }}
         >
           <div className="pt-6">
+            {/* Page Header */}
             <div className="px-4 mb-6">
-              <h1 className="font-serif text-2xl font-bold text-off-white mb-1">Learn</h1>
-              <div className="w-12 h-0.5 bg-ha-red mb-2" />
-              <p className="text-off-white/60 text-sm">Discover courses from history's greatest moments</p>
+              {/* Kicker */}
+              <div className="flex items-center gap-2.5 mb-2">
+                <div className="w-6 h-[1px] bg-ha-red" />
+                <span className="font-mono text-[10px] font-bold tracking-[0.3em] text-ha-red uppercase">
+                  The Library • Open
+                </span>
+              </div>
+              {/* Title */}
+              <h1 className="font-display text-[28px] sm:text-[36px] font-bold text-off-white uppercase tracking-tight leading-none mb-2">
+                The <span className="text-gold-2">Curriculum.</span>
+              </h1>
+              {/* Subtitle */}
+              <p className="text-off-white/60 text-[13px] sm:text-sm leading-relaxed">
+                Courses, instructors, certificates. Structured learning in the Academy style.
+              </p>
             </div>
             <CourseCatalog
               courseProgress={courseProgress}

@@ -1,20 +1,54 @@
 /**
  * Beat 2: The Radar Blip - 7:02 AM
- * Format: Branching Decision
+ * Format: Branching Decision with CRT Radar Display
  * XP: 50 | Duration: 5-6 min
  *
  * Narrative: Step into Private Lockard's shoes at Opana Point
  * when he detected the incoming Japanese attack on radar.
+ *
+ * Two-state design: Quiet scanning → Massive contact alert
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Radio, Sparkles, Award, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Award, AlertTriangle, Volume2, VolumeX } from 'lucide-react';
 import { WW2Host } from '@/types';
 import { usePearlHarborProgress } from '../hooks/usePearlHarborProgress';
-import { PreModuleVideoScreen, PostModuleVideoScreen } from '../shared';
+import { PreModuleVideoScreen, PostModuleVideoScreen, XPCompletionScreen } from '../shared';
 import { subscribeToWW2ModuleAssets, type PreModuleVideoConfig, type PostModuleVideoConfig } from '@/lib/firestore';
 import { playXPSound } from '@/lib/xpAudioManager';
+
+// CRT Radar color constants
+const PHOS = '#4AFF9E';
+const PHOS_DIM = '#2A9E5E';
+const PHOS_DK = '#1A5E38';
+const PHOS_GLOW = 'rgba(74,255,158,0.6)';
+const ALERT = '#FF3838';
+const ALERT_DIM = '#8A1A1A';
+const CRT_BG = '#051008';
+const CRT_RING = '#1A4028';
+
+// Blip type for live animation
+interface Blip {
+  id: number;
+  angle: number;
+  radius: number;
+  size: 'xs' | 'sm' | 'md' | 'lg';
+}
+
+// Helper to get blip size class based on radius
+function getBlipSize(radius: number): 'xs' | 'sm' | 'md' | 'lg' {
+  if (radius < 15) return 'lg';
+  if (radius < 28) return 'md';
+  if (radius < 38) return 'sm';
+  return 'xs';
+}
+
+// Helper to convert polar to XY percentage
+function polarToXY(angle: number, radius: number): { x: number; y: number } {
+  const rad = (angle - 90) * Math.PI / 180;
+  return { x: 50 + radius * Math.cos(rad), y: 50 + radius * Math.sin(rad) };
+}
 
 type Screen = 'pre-video' | 'intro' | 'radar-setup' | 'blip-appears' | 'decision' | 'outcome' | 'legacy' | 'post-video' | 'completion';
 const SCREENS: Screen[] = ['pre-video', 'intro', 'radar-setup', 'blip-appears', 'decision', 'outcome', 'legacy', 'post-video', 'completion'];
@@ -96,6 +130,12 @@ export function RadarBlipBeat({ host, onComplete, onSkip, onBack, isPreview = fa
   const [postModuleVideoConfig, setPostModuleVideoConfig] = useState<PostModuleVideoConfig | null>(null);
   const [hasLoadedConfig, setHasLoadedConfig] = useState(false);
 
+  // Live blip state for alert screen
+  const [liveBlips, setLiveBlips] = useState<Blip[]>([]);
+  const blipIdRef = useRef(0);
+  const [blipCount, setBlipCount] = useState(0);
+  const [estimatedRange, setEstimatedRange] = useState(137);
+
   const { saveCheckpoint, clearCheckpoint, getCheckpoint } = usePearlHarborProgress();
 
   // Pre-generate blip positions for the massive attack (20 blips)
@@ -168,6 +208,70 @@ export function RadarBlipBeat({ host, onComplete, onSkip, onBack, isPreview = fa
       return () => clearInterval(interval);
     }
   }, [screen]);
+
+  // Live blip management for alert screen
+  useEffect(() => {
+    if (screen !== 'blip-appears') {
+      setLiveBlips([]);
+      blipIdRef.current = 0;
+      return;
+    }
+
+    // Seed initial blips
+    const initialBlips: Blip[] = [
+      { id: blipIdRef.current++, angle: 355, radius: 44, size: 'xs' },
+      { id: blipIdRef.current++, angle: 2, radius: 45, size: 'xs' },
+      { id: blipIdRef.current++, angle: 350, radius: 42, size: 'xs' },
+      { id: blipIdRef.current++, angle: 8, radius: 46, size: 'xs' },
+      { id: blipIdRef.current++, angle: 358, radius: 40, size: 'xs' },
+      { id: blipIdRef.current++, angle: 5, radius: 43, size: 'xs' }
+    ].map(b => ({ ...b, size: getBlipSize(b.radius) }));
+    setLiveBlips(initialBlips);
+
+    // Spawn new blips periodically
+    const spawnInterval = setInterval(() => {
+      const numToSpawn = 2 + Math.floor(Math.random() * 3);
+      const newBlips: Blip[] = [];
+      for (let i = 0; i < numToSpawn; i++) {
+        const angleBase = 340 + Math.random() * 40;
+        const angle = angleBase >= 360 ? angleBase - 360 : angleBase;
+        const radius = 42 + Math.random() * 6;
+        newBlips.push({
+          id: blipIdRef.current++,
+          angle,
+          radius,
+          size: getBlipSize(radius)
+        });
+      }
+      setLiveBlips(prev => [...prev, ...newBlips]);
+    }, 2500 + Math.random() * 1500);
+
+    // Drift blips inward every sweep cycle
+    const driftInterval = setInterval(() => {
+      setLiveBlips(prev => {
+        const updated = prev.map(b => {
+          const newRadius = Math.max(0, b.radius - (2.5 + Math.random() * 1.5));
+          return { ...b, radius: newRadius, size: getBlipSize(newRadius) };
+        }).filter(b => b.radius > 4);
+        return updated;
+      });
+    }, 5000);
+
+    return () => {
+      clearInterval(spawnInterval);
+      clearInterval(driftInterval);
+    };
+  }, [screen]);
+
+  // Update blip count and range
+  useEffect(() => {
+    setBlipCount(liveBlips.length);
+    if (liveBlips.length > 0) {
+      const minRadius = Math.min(...liveBlips.map(b => b.radius));
+      const miles = Math.max(5, Math.round((minRadius / 50) * 250 / 5) * 5);
+      setEstimatedRange(miles);
+    }
+  }, [liveBlips]);
 
   // Restore checkpoint
   useEffect(() => {
@@ -424,117 +528,443 @@ export function RadarBlipBeat({ host, onComplete, onSkip, onBack, isPreview = fa
             </motion.div>
           )}
 
-          {/* RADAR SETUP */}
+          {/* RADAR SETUP - State 1: Quiet */}
           {screen === 'radar-setup' && (
-            <motion.div key="radar-setup" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full p-6">
-              <div className="flex-1 flex flex-col items-center justify-center">
-                {/* Radar Display */}
-                <div className="relative w-64 h-64 rounded-full bg-black border-4 border-green-900 mb-6 overflow-hidden">
-                  <div className="absolute inset-0 bg-[radial-gradient(circle,transparent_0%,rgba(0,50,0,0.3)_100%)]" />
-                  {/* Grid lines */}
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-full h-px bg-green-900/50" />
-                  </div>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="h-full w-px bg-green-900/50" />
-                  </div>
-                  {/* Sweep line */}
-                  <motion.div
-                    className="absolute top-1/2 left-1/2 w-1/2 h-0.5 bg-gradient-to-r from-green-400 to-transparent origin-left"
-                    style={{ rotate: radarPulse }}
-                  />
-                  {/* Center dot */}
-                  <div className="absolute top-1/2 left-1/2 w-2 h-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-green-400" />
-                  {/* Static noise */}
-                  <div className="absolute inset-0 opacity-20">
-                    {[...Array(20)].map((_, i) => (
-                      <div
-                        key={i}
-                        className="absolute w-1 h-1 rounded-full bg-green-400"
-                        style={{ left: `${Math.random() * 100}%`, top: `${Math.random() * 100}%`, opacity: Math.random() * 0.5 }}
-                      />
-                    ))}
-                  </div>
+            <motion.div key="radar-setup" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full">
+              {/* Station Header */}
+              <div className="pt-4 pb-2 text-center">
+                <div className="flex items-center justify-center gap-2 mb-1">
+                  <div className="w-3.5 h-px" style={{ background: PHOS_DK }} />
+                  <span className="font-mono text-[8px] tracking-[0.38em] uppercase font-bold" style={{ color: PHOS_DIM }}>
+                    ◆ Signal Corps · U.S. Army
+                  </span>
+                  <div className="w-3.5 h-px" style={{ background: PHOS_DK }} />
                 </div>
-                <h3 className="text-xl font-bold text-white mb-2">Opana Point Radar Station</h3>
-                <p className="text-white/60 text-center max-w-sm mb-4">
-                  The SCR-270 radar was experimental technology. Most officers didn't trust it. You've been trained for only a few months.
+                <h3 className="font-mono text-[11px] font-bold uppercase tracking-[0.22em] mb-0.5" style={{ color: PHOS, textShadow: `0 0 8px ${PHOS_GLOW}` }}>
+                  Opana Point Radar
+                </h3>
+                <p className="font-mono text-[8px] tracking-[0.26em] text-off-white/35 uppercase font-semibold">
+                  SCR-270-B · Scanning
                 </p>
-                <div className="bg-white/5 rounded-xl p-4 max-w-sm">
-                  <p className="text-white/70 text-sm">
-                    <strong className="text-amber-400">Time:</strong> 7:02 AM<br />
-                    <strong className="text-amber-400">Status:</strong> Scheduled shutdown passed<br />
-                    <strong className="text-amber-400">Visibility:</strong> Clear morning
-                  </p>
+              </div>
+
+              {/* CRT Housing */}
+              <div className="flex justify-center px-4 py-2">
+                <div
+                  className="relative w-[280px] max-w-full aspect-square p-3.5 rounded-full"
+                  style={{
+                    background: 'radial-gradient(circle at 30% 20%, #3a2a1a 0%, #1a120a 40%, #0a0604 100%)',
+                    boxShadow: `inset 0 0 0 1px rgba(230,171,42,0.25), inset 0 0 30px rgba(0,0,0,0.9), 0 0 0 3px #0a0604, 0 0 0 5px rgba(230,171,42,0.15), 0 0 60px ${PHOS_GLOW}, 0 20px 50px rgba(0,0,0,0.7)`,
+                    animation: 'crtFlicker 3s infinite'
+                  }}
+                >
+                  {/* Brass screws */}
+                  {[
+                    { top: '-3px', left: '14px' },
+                    { top: '-3px', right: '14px' },
+                    { bottom: '-3px', left: '14px' },
+                    { bottom: '-3px', right: '14px' }
+                  ].map((pos, i) => (
+                    <div
+                      key={i}
+                      className="absolute w-2.5 h-2.5 rounded-full z-10"
+                      style={{
+                        ...pos,
+                        background: 'radial-gradient(circle at 35% 30%, #6a4a2a, #2a1a0a)',
+                        boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.6), 0 1px 1px rgba(230,171,42,0.15)'
+                      }}
+                    >
+                      <div className="absolute inset-[3px] rounded-full" style={{ background: 'linear-gradient(45deg, transparent 45%, #4a3018 45%, #4a3018 55%, transparent 55%)' }} />
+                    </div>
+                  ))}
+
+                  {/* CRT Screen */}
+                  <div
+                    className="relative w-full h-full rounded-full overflow-hidden"
+                    style={{
+                      background: `radial-gradient(circle at 40% 35%, rgba(74,255,158,0.04) 0%, rgba(26,64,40,0.2) 30%, rgba(5,16,8,0.95) 70%, #030906 100%)`,
+                      boxShadow: `inset 0 0 40px rgba(0,0,0,0.9), inset 0 0 80px rgba(74,255,158,0.05), 0 0 0 1px rgba(74,255,158,0.15)`
+                    }}
+                  >
+                    {/* Grid SVG */}
+                    <svg className="absolute inset-0 w-full h-full opacity-35" viewBox="0 0 200 200">
+                      <g stroke={CRT_RING} strokeWidth="0.4" fill="none" opacity="0.7">
+                        <line x1="100" y1="0" x2="100" y2="200" />
+                        <line x1="0" y1="100" x2="200" y2="100" />
+                        <line x1="13.4" y1="50" x2="186.6" y2="150" />
+                        <line x1="50" y1="13.4" x2="150" y2="186.6" />
+                        <line x1="50" y1="186.6" x2="150" y2="13.4" />
+                        <line x1="13.4" y1="150" x2="186.6" y2="50" />
+                      </g>
+                      <g fill={PHOS_DIM} fontFamily="monospace" fontSize="5" fontWeight="700" textAnchor="middle" opacity="0.8">
+                        <text x="100" y="8">N</text>
+                        <text x="100" y="198">S</text>
+                        <text x="5" y="102">W</text>
+                        <text x="195" y="102">E</text>
+                      </g>
+                    </svg>
+
+                    {/* Concentric rings */}
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[25%] h-[25%] rounded-full border" style={{ borderColor: CRT_RING }} />
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[50%] h-[50%] rounded-full border opacity-70" style={{ borderColor: CRT_RING }} />
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[75%] h-[75%] rounded-full border opacity-50" style={{ borderColor: CRT_RING }} />
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full rounded-full border-[1.5px] opacity-80" style={{ borderColor: PHOS_DK }} />
+
+                    {/* Cross lines */}
+                    <div className="absolute top-1/2 left-0 right-0 h-px -translate-y-1/2" style={{ background: CRT_RING }} />
+                    <div className="absolute left-1/2 top-0 bottom-0 w-px -translate-x-1/2" style={{ background: CRT_RING }} />
+
+                    {/* Labels */}
+                    <div className="absolute top-[8%] left-1/2 -translate-x-1/2 font-mono text-[7px] tracking-[0.28em] uppercase font-bold" style={{ color: PHOS_DIM, textShadow: `0 0 4px ${PHOS_GLOW}` }}>
+                      250 MI
+                    </div>
+                    <div className="absolute bottom-[8%] left-1/2 -translate-x-1/2 font-mono text-[7px] tracking-[0.28em] uppercase font-bold" style={{ color: PHOS_DIM, textShadow: `0 0 4px ${PHOS_GLOW}` }}>
+                      OPANA
+                    </div>
+
+                    {/* Sweep beam */}
+                    <motion.div
+                      className="absolute top-1/2 left-1/2 w-1/2 h-1/2 origin-top-left"
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 5, repeat: Infinity, ease: 'linear' }}
+                    >
+                      <div
+                        className="absolute top-0 left-0 w-full h-[1.5px]"
+                        style={{
+                          background: `linear-gradient(90deg, ${PHOS} 0%, rgba(74,255,158,0.5) 30%, rgba(74,255,158,0.15) 70%, transparent 100%)`,
+                          boxShadow: `0 0 6px ${PHOS_GLOW}, 0 0 12px rgba(74,255,158,0.3)`
+                        }}
+                      />
+                      <div
+                        className="absolute top-0 left-0 w-full h-full origin-top-left"
+                        style={{ background: `conic-gradient(from 0deg at 0 0, rgba(74,255,158,0.15) 0deg, rgba(74,255,158,0.05) 20deg, transparent 45deg)` }}
+                      />
+                    </motion.div>
+
+                    {/* Center dot */}
+                    <div
+                      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full z-10"
+                      style={{ background: PHOS, boxShadow: `0 0 8px ${PHOS_GLOW}, 0 0 16px rgba(74,255,158,0.4)` }}
+                    />
+
+                    {/* Scanlines overlay */}
+                    <div
+                      className="absolute inset-0 pointer-events-none z-20 mix-blend-multiply"
+                      style={{ background: 'repeating-linear-gradient(180deg, transparent 0, transparent 2px, rgba(0,0,0,0.35) 2px, rgba(0,0,0,0.35) 3px)' }}
+                    />
+
+                    {/* Glare */}
+                    <div
+                      className="absolute inset-0 pointer-events-none z-20"
+                      style={{ background: 'radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.06) 0%, transparent 35%), radial-gradient(ellipse at 70% 85%, rgba(255,255,255,0.03) 0%, transparent 30%)' }}
+                    />
+
+                    {/* Vignette */}
+                    <div
+                      className="absolute inset-0 pointer-events-none z-20"
+                      style={{ background: 'radial-gradient(circle at 50% 50%, transparent 45%, rgba(0,0,0,0.65) 100%)' }}
+                    />
+                  </div>
                 </div>
               </div>
-              <div style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))' }}>
-                <button onClick={nextScreen} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors">
-                  Keep Watching...
+
+              {/* State body */}
+              <div className="flex-1 flex flex-col gap-3 px-5 pt-2">
+                {/* Status indicator */}
+                <div
+                  className="flex items-center justify-center gap-2 py-2 px-3 rounded"
+                  style={{ background: 'rgba(74,255,158,0.05)', border: '1px solid rgba(74,255,158,0.18)' }}
+                >
+                  <motion.div
+                    className="w-[7px] h-[7px] rounded-full"
+                    style={{ background: PHOS, boxShadow: `0 0 6px ${PHOS_GLOW}` }}
+                    animate={{ opacity: [1, 0.5, 1] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  />
+                  <span className="font-mono text-[8.5px] tracking-[0.28em] uppercase font-bold" style={{ color: PHOS, textShadow: `0 0 4px rgba(74,255,158,0.3)` }}>
+                    System Normal · Scanning
+                  </span>
+                </div>
+
+                {/* Narrator */}
+                <p className="font-serif italic text-sm text-off-white/70 text-center leading-relaxed px-1">
+                  The SCR-270 was experimental technology. Most officers didn't trust it. You've been trained for only a few months.
+                </p>
+
+                {/* Tech card */}
+                <div
+                  className="rounded-md p-3 flex flex-col gap-1"
+                  style={{ background: 'rgba(20,14,8,0.6)', border: '1px solid rgba(230,171,42,0.15)' }}
+                >
+                  {[
+                    { label: 'Time', value: '7:02 AM HST' },
+                    { label: 'Status', value: 'Shutdown passed' },
+                    { label: 'Visibility', value: 'Clear morning' }
+                  ].map((row, i) => (
+                    <div key={i} className="flex items-center justify-between font-mono text-[9px] tracking-[0.16em] uppercase">
+                      <span className="text-gold-2 font-bold">{row.label}</span>
+                      <span className="text-off-white font-semibold">{row.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* CTA */}
+              <div className="px-5 pb-4 pt-3" style={{ paddingBottom: 'max(1rem, calc(env(safe-area-inset-bottom) + 0.5rem))' }}>
+                <button
+                  onClick={nextScreen}
+                  className="relative w-full py-4 bg-gold-2 hover:bg-gold-1 text-void font-display text-[13px] font-bold tracking-[0.2em] uppercase rounded-full transition-colors"
+                  style={{ boxShadow: '0 4px 14px rgba(230,171,42,0.25), inset 0 -2px 4px rgba(0,0,0,0.15)' }}
+                >
+                  {/* Corner decorations */}
+                  <div className="absolute inset-1 pointer-events-none">
+                    <div className="absolute top-0 left-5 w-2.5 h-2.5 border-l-[1.5px] border-t-[1.5px] border-black/30" />
+                    <div className="absolute bottom-0 right-5 w-2.5 h-2.5 border-r-[1.5px] border-b-[1.5px] border-black/30" />
+                  </div>
+                  Keep Watching
                 </button>
               </div>
             </motion.div>
           )}
 
-          {/* BLIP APPEARS */}
+          {/* BLIP APPEARS - State 2: Alert */}
           {screen === 'blip-appears' && (
-            <motion.div key="blip-appears" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full p-6">
-              <div className="flex-1 flex flex-col items-center justify-center">
-                {/* Radar with massive blip swarm */}
-                <div className="relative w-64 h-64 rounded-full bg-black border-4 border-green-900 mb-6 overflow-hidden">
-                  <div className="absolute inset-0 bg-[radial-gradient(circle,transparent_0%,rgba(0,50,0,0.3)_100%)]" />
-                  <div className="absolute inset-0 flex items-center justify-center"><div className="w-full h-px bg-green-900/50" /></div>
-                  <div className="absolute inset-0 flex items-center justify-center"><div className="h-full w-px bg-green-900/50" /></div>
-                  <motion.div className="absolute top-1/2 left-1/2 w-1/2 h-0.5 bg-gradient-to-r from-green-400 to-transparent origin-left" style={{ rotate: radarPulse }} />
-                  <div className="absolute top-1/2 left-1/2 w-2 h-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-green-400" />
-                  {/* MASSIVE ATTACK - 20 blips representing incoming Japanese aircraft */}
-                  {attackBlips.map((blip) => (
-                    <motion.div
-                      key={`blip-${blip.id}`}
-                      initial={{ opacity: 0 }}
-                      animate={{
-                        opacity: [0.6, 1, 0.6],
-                        scale: [0.9, 1.2, 0.9]
-                      }}
-                      transition={{
-                        duration: blip.duration,
-                        repeat: Infinity,
-                        delay: blip.delay,
-                        ease: "easeInOut"
-                      }}
-                      className="absolute rounded-full bg-green-400"
+            <motion.div key="blip-appears" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full">
+              {/* Station Header - Alert State */}
+              <div className="pt-4 pb-2 text-center">
+                <div className="flex items-center justify-center gap-2 mb-1">
+                  <div className="w-3.5 h-px" style={{ background: ALERT_DIM }} />
+                  <motion.span
+                    className="font-mono text-[8px] tracking-[0.38em] uppercase font-bold"
+                    style={{ color: ALERT }}
+                    animate={{ opacity: [1, 0.35, 1] }}
+                    transition={{ duration: 1, repeat: Infinity }}
+                  >
+                    ◆ Alert · Bearing Due North
+                  </motion.span>
+                  <div className="w-3.5 h-px" style={{ background: ALERT_DIM }} />
+                </div>
+                <motion.h3
+                  className="font-mono text-[11px] font-bold uppercase tracking-[0.22em] mb-0.5"
+                  style={{ color: ALERT, textShadow: '0 0 8px rgba(255,56,56,0.5)' }}
+                  animate={{ opacity: [1, 0.35, 1] }}
+                  transition={{ duration: 1, repeat: Infinity }}
+                >
+                  Contact Detected
+                </motion.h3>
+                <p className="font-mono text-[8px] tracking-[0.26em] text-off-white/35 uppercase font-semibold">
+                  SCR-270-B · Tracking
+                </p>
+              </div>
+
+              {/* CRT Housing - Alert State */}
+              <div className="flex justify-center px-4 py-2">
+                <div
+                  className="relative w-[280px] max-w-full aspect-square p-3.5 rounded-full"
+                  style={{
+                    background: 'radial-gradient(circle at 30% 20%, #3a2a1a 0%, #1a120a 40%, #0a0604 100%)',
+                    boxShadow: `inset 0 0 0 1px rgba(255,56,56,0.25), inset 0 0 30px rgba(0,0,0,0.9), 0 0 0 3px #0a0604, 0 0 0 5px rgba(205,14,20,0.2), 0 0 60px rgba(255,56,56,0.12), 0 20px 50px rgba(0,0,0,0.7)`
+                  }}
+                >
+                  {/* Brass screws */}
+                  {[
+                    { top: '-3px', left: '14px' },
+                    { top: '-3px', right: '14px' },
+                    { bottom: '-3px', left: '14px' },
+                    { bottom: '-3px', right: '14px' }
+                  ].map((pos, i) => (
+                    <div
+                      key={i}
+                      className="absolute w-2.5 h-2.5 rounded-full z-10"
                       style={{
-                        top: `${blip.top}%`,
-                        left: `${blip.left}%`,
-                        width: `${blip.size}px`,
-                        height: `${blip.size}px`,
-                        boxShadow: `0 0 ${blip.size * 2}px rgba(74,222,128,0.8), 0 0 ${blip.size}px rgba(74,222,128,1)`,
-                        transform: 'translate(-50%, -50%)',
+                        ...pos,
+                        background: 'radial-gradient(circle at 35% 30%, #6a4a2a, #2a1a0a)',
+                        boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.6), 0 1px 1px rgba(230,171,42,0.15)'
                       }}
+                    >
+                      <div className="absolute inset-[3px] rounded-full" style={{ background: 'linear-gradient(45deg, transparent 45%, #4a3018 45%, #4a3018 55%, transparent 55%)' }} />
+                    </div>
+                  ))}
+
+                  {/* CRT Screen */}
+                  <div
+                    className="relative w-full h-full rounded-full overflow-hidden"
+                    style={{
+                      background: `radial-gradient(circle at 40% 35%, rgba(74,255,158,0.04) 0%, rgba(26,64,40,0.2) 30%, rgba(5,16,8,0.95) 70%, #030906 100%)`,
+                      boxShadow: `inset 0 0 40px rgba(0,0,0,0.9), inset 0 0 80px rgba(74,255,158,0.05), 0 0 0 1px rgba(74,255,158,0.15)`
+                    }}
+                  >
+                    {/* Grid SVG */}
+                    <svg className="absolute inset-0 w-full h-full opacity-35" viewBox="0 0 200 200">
+                      <g stroke={CRT_RING} strokeWidth="0.4" fill="none" opacity="0.7">
+                        <line x1="100" y1="0" x2="100" y2="200" />
+                        <line x1="0" y1="100" x2="200" y2="100" />
+                        <line x1="13.4" y1="50" x2="186.6" y2="150" />
+                        <line x1="50" y1="13.4" x2="150" y2="186.6" />
+                        <line x1="50" y1="186.6" x2="150" y2="13.4" />
+                        <line x1="13.4" y1="150" x2="186.6" y2="50" />
+                      </g>
+                      <g fill={PHOS_DIM} fontFamily="monospace" fontSize="5" fontWeight="700" textAnchor="middle" opacity="0.8">
+                        <text x="100" y="8">N</text>
+                        <text x="100" y="198">S</text>
+                        <text x="5" y="102">W</text>
+                        <text x="195" y="102">E</text>
+                      </g>
+                    </svg>
+
+                    {/* Concentric rings */}
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[25%] h-[25%] rounded-full border" style={{ borderColor: CRT_RING }} />
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[50%] h-[50%] rounded-full border opacity-70" style={{ borderColor: CRT_RING }} />
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[75%] h-[75%] rounded-full border opacity-50" style={{ borderColor: CRT_RING }} />
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full rounded-full border-[1.5px] opacity-80" style={{ borderColor: PHOS_DK }} />
+
+                    {/* Cross lines */}
+                    <div className="absolute top-1/2 left-0 right-0 h-px -translate-y-1/2" style={{ background: CRT_RING }} />
+                    <div className="absolute left-1/2 top-0 bottom-0 w-px -translate-x-1/2" style={{ background: CRT_RING }} />
+
+                    {/* Labels */}
+                    <div className="absolute top-[8%] left-1/2 -translate-x-1/2 font-mono text-[7px] tracking-[0.28em] uppercase font-bold" style={{ color: PHOS_DIM, textShadow: `0 0 4px ${PHOS_GLOW}` }}>
+                      250 MI
+                    </div>
+                    <div className="absolute bottom-[8%] left-1/2 -translate-x-1/2 font-mono text-[7px] tracking-[0.28em] uppercase font-bold" style={{ color: PHOS_DIM, textShadow: `0 0 4px ${PHOS_GLOW}` }}>
+                      OPANA
+                    </div>
+
+                    {/* Sweep beam */}
+                    <motion.div
+                      className="absolute top-1/2 left-1/2 w-1/2 h-1/2 origin-top-left"
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 5, repeat: Infinity, ease: 'linear' }}
+                    >
+                      <div
+                        className="absolute top-0 left-0 w-full h-[1.5px]"
+                        style={{
+                          background: `linear-gradient(90deg, ${PHOS} 0%, rgba(74,255,158,0.5) 30%, rgba(74,255,158,0.15) 70%, transparent 100%)`,
+                          boxShadow: `0 0 6px ${PHOS_GLOW}, 0 0 12px rgba(74,255,158,0.3)`
+                        }}
+                      />
+                      <div
+                        className="absolute top-0 left-0 w-full h-full origin-top-left"
+                        style={{ background: `conic-gradient(from 0deg at 0 0, rgba(74,255,158,0.15) 0deg, rgba(74,255,158,0.05) 20deg, transparent 45deg)` }}
+                      />
+                    </motion.div>
+
+                    {/* Center dot */}
+                    <div
+                      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full z-10"
+                      style={{ background: PHOS, boxShadow: `0 0 8px ${PHOS_GLOW}, 0 0 16px rgba(74,255,158,0.4)` }}
                     />
+
+                    {/* LIVE BLIPS */}
+                    {liveBlips.map((blip) => {
+                      const pos = polarToXY(blip.angle, blip.radius);
+                      const sizeMap = { xs: 3, sm: 5, md: 8, lg: 11 };
+                      const size = sizeMap[blip.size];
+                      return (
+                        <motion.div
+                          key={blip.id}
+                          className="absolute rounded-full z-[6] pointer-events-none"
+                          initial={{ opacity: 0, scale: 0.2 }}
+                          animate={{
+                            opacity: [0.7, 1, 0.7],
+                            scale: [1, 1.15, 1],
+                            left: `${pos.x}%`,
+                            top: `${pos.y}%`
+                          }}
+                          transition={{
+                            opacity: { duration: 2 + (blip.id % 3) * 0.5, repeat: Infinity },
+                            scale: { duration: 2 + (blip.id % 3) * 0.5, repeat: Infinity },
+                            left: { duration: 1.2, ease: [0.4, 0, 0.2, 1] },
+                            top: { duration: 1.2, ease: [0.4, 0, 0.2, 1] }
+                          }}
+                          style={{
+                            width: size,
+                            height: size,
+                            marginLeft: -size / 2,
+                            marginTop: -size / 2,
+                            background: PHOS,
+                            boxShadow: `0 0 ${size * 1.5}px ${PHOS_GLOW}, 0 0 ${size * 2}px rgba(74,255,158,0.5)`
+                          }}
+                        />
+                      );
+                    })}
+
+                    {/* Scanlines overlay */}
+                    <div
+                      className="absolute inset-0 pointer-events-none z-20 mix-blend-multiply"
+                      style={{ background: 'repeating-linear-gradient(180deg, transparent 0, transparent 2px, rgba(0,0,0,0.35) 2px, rgba(0,0,0,0.35) 3px)' }}
+                    />
+
+                    {/* Glare */}
+                    <div
+                      className="absolute inset-0 pointer-events-none z-20"
+                      style={{ background: 'radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.06) 0%, transparent 35%), radial-gradient(ellipse at 70% 85%, rgba(255,255,255,0.03) 0%, transparent 30%)' }}
+                    />
+
+                    {/* Vignette */}
+                    <div
+                      className="absolute inset-0 pointer-events-none z-20"
+                      style={{ background: 'radial-gradient(circle at 50% 50%, transparent 45%, rgba(0,0,0,0.65) 100%)' }}
+                    />
+
+                    {/* Alert wash */}
+                    <motion.div
+                      className="absolute inset-0 pointer-events-none z-[21]"
+                      style={{ background: 'radial-gradient(circle at 50% 50%, transparent 55%, rgba(205,14,20,0.08) 85%, rgba(205,14,20,0.15) 100%)' }}
+                      animate={{ opacity: [1, 0.35, 1] }}
+                      transition={{ duration: 1.5, repeat: Infinity }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* State body - Alert */}
+              <div className="flex-1 flex flex-col gap-3 px-5 pt-2">
+                {/* Alert banner */}
+                <motion.div
+                  className="flex items-center justify-center gap-2.5 py-2.5 px-3 rounded"
+                  style={{ background: 'rgba(255,56,56,0.08)', border: '1.5px solid rgba(255,56,56,0.4)' }}
+                  animate={{ opacity: [1, 0.35, 1], x: [-1, 1, -1] }}
+                  transition={{ opacity: { duration: 1.2, repeat: Infinity }, x: { duration: 0.4, repeat: Infinity } }}
+                >
+                  <AlertTriangle size={18} style={{ color: ALERT, filter: 'drop-shadow(0 0 6px rgba(255,56,56,0.6))' }} />
+                  <span className="font-display text-[13px] font-bold uppercase tracking-[0.14em]" style={{ color: ALERT, textShadow: '0 0 8px rgba(255,56,56,0.5)' }}>
+                    Massive Contact
+                  </span>
+                </motion.div>
+
+                {/* Alert data panel */}
+                <div
+                  className="rounded-md p-3 flex flex-col gap-1.5 relative"
+                  style={{ background: 'rgba(20,0,0,0.7)', border: '1px solid rgba(255,56,56,0.3)' }}
+                >
+                  <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${ALERT}, transparent)` }} />
+                  {[
+                    { label: 'Bearing:', value: <><strong className="text-off-white font-bold">003°</strong> · Due North</> },
+                    { label: 'Range:', value: <><span className="text-off-white font-bold">{estimatedRange}</span> miles<motion.span className="inline-block w-1.5 h-2.5 ml-0.5 align-middle" style={{ background: ALERT }} animate={{ opacity: [1, 0, 1] }} transition={{ duration: 1, repeat: Infinity }} /></> },
+                    { label: 'Contacts:', value: <><span className="text-off-white font-bold">{blipCount || '—'}</span> <strong className="text-off-white">{blipCount === 0 ? 'tracking…' : blipCount < 6 ? 'inbound' : blipCount < 14 ? 'formation' : blipCount < 24 ? 'large formation' : 'massive'}</strong></> },
+                    { label: 'Estimate:', value: <>50+ <strong className="text-off-white font-bold">maybe 180+</strong></> }
+                  ].map((row, i) => (
+                    <div key={i} className="flex items-baseline gap-2.5 font-mono text-[10px] leading-tight">
+                      <span className="font-bold tracking-[0.12em] uppercase min-w-[70px] text-right flex-shrink-0" style={{ color: ALERT }}>{row.label}</span>
+                      <span className="tracking-[0.04em] flex-1" style={{ color: '#FAF4E4' }}>{row.value}</span>
+                    </div>
                   ))}
                 </div>
-
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center">
-                  <div className="flex items-center justify-center gap-2 text-red-400 mb-3">
-                    <AlertTriangle size={24} />
-                    <span className="font-bold text-lg">MASSIVE CONTACT DETECTED</span>
-                  </div>
-                  <div className="bg-red-500/10 rounded-xl p-4 max-w-sm border border-red-500/30 mb-4">
-                    <p className="text-white font-mono text-sm">
-                      <span className="text-red-400">BEARING:</span> Due North<br />
-                      <span className="text-red-400">RANGE:</span> 137 miles<br />
-                      <span className="text-red-400">SIZE:</span> Largest contact ever seen<br />
-                      <span className="text-red-400">ESTIMATE:</span> 50+ aircraft... maybe 180+
-                    </p>
-                  </div>
-                  <p className="text-white/70 text-sm max-w-sm">
-                    This is no flock of birds. This is bigger than anything you've ever seen on the scope. Your heart races as you double-check the readings.
-                  </p>
-                </motion.div>
               </div>
-              <div style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))' }}>
-                <button onClick={nextScreen} className="w-full py-4 bg-red-500 hover:bg-red-400 text-white font-bold rounded-xl transition-colors">
+
+              {/* CTA - Alert */}
+              <div className="px-5 pb-4 pt-3" style={{ paddingBottom: 'max(1rem, calc(env(safe-area-inset-bottom) + 0.5rem))' }}>
+                <button
+                  onClick={nextScreen}
+                  className="relative w-full py-4 bg-ha-red hover:bg-ha-red/90 text-cream font-display text-[13px] font-bold tracking-[0.2em] uppercase rounded-full transition-colors"
+                  style={{ boxShadow: '0 4px 14px rgba(205,14,20,0.35), inset 0 -2px 4px rgba(0,0,0,0.25)' }}
+                >
+                  {/* Corner decorations */}
+                  <div className="absolute inset-1 pointer-events-none">
+                    <div className="absolute top-0 left-5 w-2.5 h-2.5 border-l-[1.5px] border-t-[1.5px] border-black/30" />
+                    <div className="absolute bottom-0 right-5 w-2.5 h-2.5 border-r-[1.5px] border-b-[1.5px] border-black/30" />
+                  </div>
                   What Do You Do?
                 </button>
               </div>
@@ -643,34 +1073,14 @@ export function RadarBlipBeat({ host, onComplete, onSkip, onBack, isPreview = fa
 
           {/* COMPLETION */}
           {screen === 'completion' && (
-            <motion.div
-              key="completion"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex flex-col h-full p-6"
-              onAnimationComplete={() => {
-                if (!skipped) playXPSound();
-              }}
-            >
-              <div className="flex-1 flex flex-col items-center justify-center">
-                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="text-6xl mb-6">📡</motion.div>
-                <h2 className="text-2xl font-bold text-white mb-2">Beat 2 Complete!</h2>
-                <p className="text-white/60 mb-6">The Radar Blip - 7:02 AM</p>
-                <div className="flex items-center gap-2 px-6 py-3 bg-amber-500/20 rounded-full mb-8">
-                  <Sparkles className="text-amber-400" />
-                  <span className="text-amber-400 font-bold text-xl">+{skipped ? 0 : LESSON_DATA.xpReward} XP</span>
-                </div>
-                <p className="text-white/50 text-sm text-center max-w-sm">
-                  Next: Tora! Tora! Tora! - Experience the attack minute by minute
-                </p>
-              </div>
-              <div style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))' }}>
-                <button onClick={nextScreen} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors">
-                  Continue
-                </button>
-              </div>
-            </motion.div>
+            <XPCompletionScreen
+              beatNumber={2}
+              beatTitle="The Radar Blip"
+              xpEarned={skipped ? 0 : LESSON_DATA.xpReward}
+              host={host}
+              onContinue={nextScreen}
+              nextBeatPreview="Tora! Tora! Tora! - Experience the attack"
+            />
           )}
         </AnimatePresence>
       </div>
