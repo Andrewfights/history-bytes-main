@@ -1,155 +1,94 @@
 /**
- * Beat 14: Code Talkers - The Navajo Secret
- * Format: Audio Vocabulary (Reusable type)
+ * Beat 11: Code Talkers - The Navajo Secret
+ * Format: Interactive Dossier (Consolidated from 10 screens to 1)
  * XP: 55 | Duration: 6-7 min
  *
- * Narrative: Learn about the unbreakable Navajo code and try speaking it.
- * Interactive pronunciation game with audio learning.
- *
- * This is a REUSABLE beat type: audio-vocabulary
- * Can be used for any language learning, pronunciation, or audio-based vocabulary.
+ * Learn about the unbreakable Navajo code through an interactive vocabulary game.
+ * Users tap word cards to hear AI pronunciation and mark as learned.
+ * Complete beat when all 6 terms are learned.
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Sparkles, Volume2, VolumeX, Mic, Check, X, Play, Pause, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Check, Play, X, Volume2, Sparkles, ChevronLeft, ChevronRight, Award } from 'lucide-react';
 import { WW2Host } from '@/types';
 import { PreModuleVideoScreen, PostModuleVideoScreen, XPCompletionScreen } from '../shared';
 import { subscribeToWW2ModuleAssets, type PreModuleVideoConfig, type PostModuleVideoConfig } from '@/lib/firestore';
-import { playXPSound } from '@/lib/xpAudioManager';
 import { usePearlHarborProgress } from '../hooks/usePearlHarborProgress';
 
-type Screen =
-  | 'pre-video'
-  | 'intro'
-  | 'code-war'
-  | 'navajo-intro'
-  | 'pronunciation-game'
-  | 'iwo-jima'
-  | 'reflection'
-  | 'post-video'
-  | 'completion';
-
-const SCREENS: Screen[] = [
-  'pre-video',
-  'intro',
-  'code-war',
-  'navajo-intro',
-  'pronunciation-game',
-  'iwo-jima',
-  'reflection',
-  'post-video',
-  'completion'
-];
+type Screen = 'pre-video' | 'dossier' | 'post-video' | 'completion';
 
 const LESSON_DATA = {
   id: 'ph-beat-11',
   xpReward: 55,
 };
 
-// Navajo vocabulary for the pronunciation game
+// Navajo vocabulary - 6 military terms
 interface NavajoWord {
   id: string;
   english: string;
   navajo: string;
-  pronunciation: string;
-  meaning: string;
+  literal: string;
+  phonetic: string;
+  context: string;
   audioKey: string;
-  category: 'military' | 'letter' | 'number';
 }
 
 const NAVAJO_WORDS: NavajoWord[] = [
   {
     id: 'fighter-plane',
     english: 'Fighter Plane',
-    navajo: "Da-he-tih-hi",
-    pronunciation: 'dah-heh-tih-hee',
-    meaning: "Hummingbird (swift and agile)",
+    navajo: 'Da-he-tih-hi',
+    literal: 'Hummingbird',
+    phonetic: 'dah-heh-TEE-hee',
+    context: 'The hummingbird is swift and agile — darting through the sky the way a P-38 Lightning or Corsair fighter moves in combat. Code Talkers chose animals whose behavior matched the machine.',
     audioKey: 'code-talkers-fighter-plane',
-    category: 'military',
   },
   {
     id: 'bomber',
     english: 'Bomber',
     navajo: 'Jay-sho',
-    pronunciation: 'jay-show',
-    meaning: 'Buzzard (large bird that carries destruction)',
+    literal: 'Buzzard',
+    phonetic: 'JAY-shoh',
+    context: 'The buzzard — a large bird that carries destruction in its circling shadow. Perfect metaphor for the B-17 Flying Fortress or B-29 Superfortress dropping tons of ordnance below.',
     audioKey: 'code-talkers-bomber',
-    category: 'military',
   },
   {
     id: 'submarine',
     english: 'Submarine',
     navajo: 'Besh-lo',
-    pronunciation: 'besh-low',
-    meaning: 'Iron Fish',
+    literal: 'Iron Fish',
+    phonetic: 'behsh-LOH',
+    context: 'Iron fish — exactly what a submarine is. Underwater, metal-hulled, moves like a fish. The Navajo had no pre-existing word for "submarine," so the Code Talkers invented one that was both technically accurate and impossible to translate.',
     audioKey: 'code-talkers-submarine',
-    category: 'military',
   },
   {
     id: 'battleship',
     english: 'Battleship',
     navajo: 'Lo-tso',
-    pronunciation: 'low-tso',
-    meaning: 'Whale (large and powerful)',
+    literal: 'Whale',
+    phonetic: 'LOH-tsoh',
+    context: 'The whale — massive, powerful, cutting through the Pacific. The battleship was the whale of the fleet, and the metaphor carried both the scale and the gravity of what the term represented.',
     audioKey: 'code-talkers-battleship',
-    category: 'military',
   },
   {
     id: 'tank',
     english: 'Tank',
     navajo: 'Chay-da-gahi',
-    pronunciation: 'chay-dah-gah-hee',
-    meaning: 'Tortoise (armored and slow)',
+    literal: 'Tortoise',
+    phonetic: 'CHAY-dah-GAH-hee',
+    context: 'The tortoise — armored, slow, relentless. The Sherman tank shared every property of the tortoise except one: it could kill. Japanese intercepts never made the connection.',
     audioKey: 'code-talkers-tank',
-    category: 'military',
   },
   {
     id: 'grenade',
     english: 'Grenade',
     navajo: 'Ni-ma-si',
-    pronunciation: 'nee-mah-see',
-    meaning: 'Potato (shape)',
+    literal: 'Potato',
+    phonetic: 'nee-MAH-see',
+    context: 'A potato — small, round, thrown. GI slang already called hand grenades "potato mashers," and the Navajo word captured the same ordinary shape that hid extraordinary power.',
     audioKey: 'code-talkers-grenade',
-    category: 'military',
   },
-  {
-    id: 'america',
-    english: 'America',
-    navajo: 'Ne-he-mah',
-    pronunciation: 'neh-heh-mah',
-    meaning: 'Our Mother',
-    audioKey: 'code-talkers-america',
-    category: 'military',
-  },
-  {
-    id: 'attack',
-    english: 'Attack',
-    navajo: 'Al-tah-je-jay',
-    pronunciation: 'al-tah-jeh-jay',
-    meaning: 'Strike or assault',
-    audioKey: 'code-talkers-attack',
-    category: 'military',
-  },
-  {
-    id: 'victory',
-    english: 'Victory',
-    navajo: 'A-do-nee-jay',
-    pronunciation: 'ah-doe-nee-jay',
-    meaning: 'Success or triumph',
-    audioKey: 'code-talkers-victory',
-    category: 'military',
-  },
-];
-
-// Historical facts about code talkers
-const CODE_TALKER_FACTS = [
-  'The Navajo code was never broken by the enemy during the war.',
-  'About 400-500 Navajo Code Talkers served in the Marine Corps.',
-  'Major Howard Connor said, "Were it not for the Navajos, the Marines would never have taken Iwo Jima."',
-  'Code Talkers transmitted messages about tactics, troop movements, and orders.',
-  'The program was kept classified until 1968.',
-  'In 2001, the original 29 Code Talkers received Congressional Gold Medals.',
 ];
 
 interface CodeTalkersBeatProps {
@@ -161,17 +100,17 @@ interface CodeTalkersBeatProps {
 }
 
 export function CodeTalkersBeat({ host, onComplete, onSkip, onBack, isPreview = false }: CodeTalkersBeatProps) {
-  const [screen, setScreen] = useState<Screen>('intro');
+  const [screen, setScreen] = useState<Screen>('dossier');
   const [skipped, setSkipped] = useState(false);
   const [preModuleVideoConfig, setPreModuleVideoConfig] = useState<PreModuleVideoConfig | null>(null);
   const [postModuleVideoConfig, setPostModuleVideoConfig] = useState<PostModuleVideoConfig | null>(null);
   const [hasLoadedConfig, setHasLoadedConfig] = useState(false);
 
-  // Pronunciation game state
-  const [currentWordIndex, setCurrentWordIndex] = useState(0);
-  const [wordsLearned, setWordsLearned] = useState<Set<string>>(new Set());
+  // Game state
+  const [activeWordIndex, setActiveWordIndex] = useState(0);
+  const [learnedWords, setLearnedWords] = useState<Set<string>>(new Set());
   const [isPlaying, setIsPlaying] = useState(false);
-  const [showAnswer, setShowAnswer] = useState(false);
+  const [showDetailSheet, setShowDetailSheet] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Audio URLs from Firestore
@@ -179,38 +118,12 @@ export function CodeTalkersBeat({ host, onComplete, onSkip, onBack, isPreview = 
 
   const { saveCheckpoint, clearCheckpoint, getCheckpoint } = usePearlHarborProgress();
 
-  // Select a subset of words for the game
-  const gameWords = NAVAJO_WORDS.slice(0, 6);
-  const currentWord = gameWords[currentWordIndex];
-
-  // Restore from checkpoint
-  useEffect(() => {
-    const checkpoint = getCheckpoint();
-    if (checkpoint?.lessonId === LESSON_DATA.id && checkpoint.screen) {
-      const savedScreen = checkpoint.screen as Screen;
-      if (SCREENS.includes(savedScreen) && savedScreen !== 'completion') {
-        setScreen(savedScreen);
-      }
-    }
-  }, []);
-
-  // Save checkpoint on screen change - only after config is loaded
-  useEffect(() => {
-    if (hasLoadedConfig && screen !== 'completion') {
-      saveCheckpoint({
-        lessonId: LESSON_DATA.id,
-        screen,
-        screenIndex: SCREENS.indexOf(screen),
-        timestamp: Date.now(),
-        state: { wordsLearned: Array.from(wordsLearned), currentWordIndex },
-      });
-    }
-  }, [hasLoadedConfig, screen, saveCheckpoint, wordsLearned, currentWordIndex]);
+  const activeWord = NAVAJO_WORDS[activeWordIndex];
+  const allLearned = learnedWords.size === NAVAJO_WORDS.length;
 
   // Subscribe to Firestore for assets
   useEffect(() => {
     const unsubscribe = subscribeToWW2ModuleAssets((assets) => {
-      // Pre/Post module videos
       const preModuleVideo = assets?.preModuleVideos?.[LESSON_DATA.id];
       if (preModuleVideo?.enabled && preModuleVideo?.videoUrl) {
         setPreModuleVideoConfig(preModuleVideo);
@@ -244,7 +157,7 @@ export function CodeTalkersBeat({ host, onComplete, onSkip, onBack, isPreview = 
 
   // Set initial screen based on pre-module video
   useEffect(() => {
-    if (hasLoadedConfig && screen === 'intro') {
+    if (hasLoadedConfig && screen === 'dossier') {
       const checkpoint = getCheckpoint();
       const shouldShowPreVideo = (isPreview || checkpoint?.lessonId !== LESSON_DATA.id) &&
         preModuleVideoConfig?.enabled &&
@@ -255,8 +168,21 @@ export function CodeTalkersBeat({ host, onComplete, onSkip, onBack, isPreview = 
     }
   }, [hasLoadedConfig, preModuleVideoConfig, isPreview]);
 
+  // Save checkpoint
+  useEffect(() => {
+    if (hasLoadedConfig && screen === 'dossier') {
+      saveCheckpoint({
+        lessonId: LESSON_DATA.id,
+        screen: 'dossier',
+        screenIndex: 0,
+        timestamp: Date.now(),
+        state: { learnedWords: Array.from(learnedWords), activeWordIndex },
+      });
+    }
+  }, [hasLoadedConfig, screen, learnedWords, activeWordIndex, saveCheckpoint]);
+
   // Audio playback
-  const playAudio = (wordId: string) => {
+  const playAudio = useCallback((wordId: string) => {
     if (audioRef.current) {
       audioRef.current.pause();
     }
@@ -266,575 +192,629 @@ export function CodeTalkersBeat({ host, onComplete, onSkip, onBack, isPreview = 
       audioRef.current.play();
       setIsPlaying(true);
       audioRef.current.onended = () => setIsPlaying(false);
-    }
-  };
-
-  const nextScreen = useCallback(() => {
-    const currentIndex = SCREENS.indexOf(screen);
-    if (currentIndex < SCREENS.length - 1) {
-      let nextScreenIndex = currentIndex + 1;
-      if (SCREENS[nextScreenIndex] === 'post-video' && !postModuleVideoConfig?.enabled) {
-        nextScreenIndex++;
-      }
-      if (nextScreenIndex < SCREENS.length) {
-        setScreen(SCREENS[nextScreenIndex]);
-      } else {
-        clearCheckpoint();
-        onComplete(skipped ? 0 : LESSON_DATA.xpReward);
-      }
     } else {
-      clearCheckpoint();
-      onComplete(skipped ? 0 : LESSON_DATA.xpReward);
+      // Simulate audio playing for demo
+      setIsPlaying(true);
+      setTimeout(() => setIsPlaying(false), 1600);
     }
-  }, [screen, skipped, clearCheckpoint, onComplete, postModuleVideoConfig]);
+  }, [audioUrls]);
 
-  const handleWordLearned = () => {
-    setWordsLearned(prev => new Set(prev).add(currentWord.id));
-    setShowAnswer(false);
-    if (currentWordIndex < gameWords.length - 1) {
-      setCurrentWordIndex(currentWordIndex + 1);
+  // Select a word
+  const selectWord = useCallback((index: number) => {
+    setActiveWordIndex(index);
+    setShowDetailSheet(true);
+    playAudio(NAVAJO_WORDS[index].id);
+  }, [playAudio]);
+
+  // Mark word as learned
+  const markLearned = useCallback(() => {
+    setLearnedWords(prev => new Set(prev).add(activeWord.id));
+    setShowDetailSheet(false);
+  }, [activeWord]);
+
+  // Navigate words
+  const prevWord = useCallback(() => {
+    const newIndex = (activeWordIndex - 1 + NAVAJO_WORDS.length) % NAVAJO_WORDS.length;
+    setActiveWordIndex(newIndex);
+    playAudio(NAVAJO_WORDS[newIndex].id);
+  }, [activeWordIndex, playAudio]);
+
+  const nextWord = useCallback(() => {
+    const newIndex = (activeWordIndex + 1) % NAVAJO_WORDS.length;
+    setActiveWordIndex(newIndex);
+    playAudio(NAVAJO_WORDS[newIndex].id);
+  }, [activeWordIndex, playAudio]);
+
+  // Complete beat
+  const handleComplete = useCallback(() => {
+    if (postModuleVideoConfig?.enabled) {
+      setScreen('post-video');
     } else {
-      nextScreen();
+      setScreen('completion');
     }
-  };
+  }, [postModuleVideoConfig]);
 
-  const handleReplayWord = () => {
-    playAudio(currentWord.id);
-  };
+  // Sound wave bars component
+  const SoundWaveBars = () => (
+    <div className="flex items-center gap-[2px] h-5">
+      {[0, 0.1, 0.2, 0.15, 0.05].map((delay, i) => (
+        <motion.div
+          key={i}
+          className="w-[2px] bg-gold-br rounded-sm"
+          animate={{
+            height: isPlaying ? ['8px', '16px', '8px'] : '8px',
+          }}
+          transition={{
+            duration: 0.6,
+            repeat: isPlaying ? Infinity : 0,
+            delay,
+          }}
+        />
+      ))}
+    </div>
+  );
 
   return (
-    <div className="fixed inset-0 z-[60] pt-safe bg-black flex flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
-        <button onClick={onBack} className="p-2 -ml-2 text-white/60 hover:text-white transition-colors">
-          <ArrowLeft size={24} />
-        </button>
-        <div className="text-center">
-          <h1 className="text-white font-bold">Code Talkers</h1>
-          <p className="text-white/50 text-xs">Beat 11 of 13</p>
-        </div>
-        <div className="w-10 h-10 rounded-full overflow-hidden bg-amber-500/20">
-          <img src={host.imageUrl || '/assets/hosts/default.png'} alt={host.name} className="w-full h-full object-cover" />
-        </div>
-      </div>
+    <div className="fixed inset-0 z-[60] pt-safe bg-void flex flex-col">
+      {/* PRE-VIDEO */}
+      {screen === 'pre-video' && preModuleVideoConfig && (
+        <PreModuleVideoScreen
+          config={preModuleVideoConfig}
+          beatTitle="Code Talkers"
+          onComplete={() => setScreen('dossier')}
+        />
+      )}
 
-      {/* Progress */}
-      <div className="h-1 bg-white/10">
-        <motion.div className="h-full bg-amber-500" animate={{ width: `${((SCREENS.indexOf(screen) + 1) / SCREENS.length) * 100}%` }} />
-      </div>
+      {/* MAIN DOSSIER SCREEN */}
+      {screen === 'dossier' && (
+        <>
+          {/* Header */}
+          <div className="relative px-4 py-3 border-b border-ha-red/30 bg-gradient-to-b from-[#131009] to-[#0a0805]">
+            {/* Red top line */}
+            <div className="absolute top-0 left-0 right-0 h-px bg-ha-red/60" />
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto">
-        <AnimatePresence mode="wait">
-          {/* PRE-MODULE VIDEO */}
-          {screen === 'pre-video' && preModuleVideoConfig && (
-            <PreModuleVideoScreen
-              config={preModuleVideoConfig}
-              beatTitle="Code Talkers"
-              onComplete={() => setScreen('intro')}
-            />
-          )}
+            <div className="flex items-center justify-between gap-3">
+              <button onClick={onBack} className="flex items-center gap-1.5 text-off-white/50 hover:text-gold transition-colors">
+                <ArrowLeft size={16} strokeWidth={2.2} />
+                <span className="font-mono text-[10px] tracking-[0.28em] uppercase font-bold hidden sm:inline">Pacific Theater</span>
+              </button>
 
-          {/* INTRO */}
-          {screen === 'intro' && (
-            <motion.div key="intro" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full relative overflow-hidden">
-              {/* Gold atmospheric background */}
-              <div
-                className="absolute inset-0 z-0"
-                style={{
-                  background: `
-                    radial-gradient(ellipse at 50% 40%, rgba(230,171,42,0.1) 0%, transparent 55%),
-                    radial-gradient(ellipse at 30% 80%, rgba(120,80,30,0.2) 0%, transparent 55%),
-                    linear-gradient(180deg, #1a1208 0%, #0a0604 50%, #050302 100%)
-                  `
-                }}
-              />
+              <div className="flex items-center gap-2">
+                <div className="w-[7px] h-[7px] rounded-full bg-ha-red shadow-[0_0_8px_var(--ha-red)] animate-pulse" />
+                <span className="font-mono text-[9.5px] tracking-[0.42em] text-[#E84046] uppercase font-bold">Active Briefing</span>
+              </div>
 
-              {/* Gold light rays */}
-              <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-[800px] h-[500px] z-[1] pointer-events-none">
-                {[...Array(6)].map((_, i) => (
-                  <div
-                    key={i}
-                    className="absolute top-1/2 left-1/2 w-px h-[260px] origin-top"
-                    style={{
-                      background: 'linear-gradient(180deg, rgba(230,171,42,0.15), transparent)',
-                      transform: `translate(-50%, 0) rotate(${-30 + i * 12}deg)`
-                    }}
+              <span className="font-mono text-[9px] tracking-[0.28em] text-off-white/50 uppercase font-semibold">
+                Beat <span className="text-gold">11</span>/13
+              </span>
+            </div>
+
+            {/* Title row */}
+            <div className="flex items-baseline justify-between gap-4 mt-2 flex-wrap">
+              <div className="flex flex-col gap-1">
+                <span className="font-mono text-[9px] tracking-[0.32em] text-gold uppercase font-bold">WWII · Pacific · Intelligence</span>
+                <h1 className="font-oswald font-black text-[28px] sm:text-[34px] text-off-white uppercase leading-none tracking-[0.01em]">
+                  Code <span className="font-playfair italic font-bold text-gold normal-case">Talkers</span>
+                </h1>
+              </div>
+
+              {/* Progress bar */}
+              <div className="flex items-center gap-2.5">
+                <span className="font-mono text-[9px] tracking-[0.24em] text-off-white/50 uppercase font-bold whitespace-nowrap">
+                  Beat <span className="text-gold">11</span>/13
+                </span>
+                <div className="w-[120px] sm:w-[180px] h-[3px] bg-gold/15 rounded-sm overflow-hidden">
+                  <motion.div
+                    className="h-full bg-gradient-to-r from-gold-dp via-gold to-gold-br rounded-sm shadow-[0_0_8px_rgba(230,171,42,0.4)]"
+                    initial={{ width: 0 }}
+                    animate={{ width: '85%' }}
+                    transition={{ duration: 0.8 }}
                   />
-                ))}
+                </div>
               </div>
+            </div>
+          </div>
 
-              {/* Grain overlay */}
-              <div className="absolute inset-0 z-[5] opacity-35 mix-blend-overlay pointer-events-none"
+          {/* Scrollable content */}
+          <div className="flex-1 overflow-y-auto">
+            <div className="p-4 sm:p-6 space-y-4 sm:space-y-5 relative"
+              style={{
+                background: 'linear-gradient(180deg, #0a0805 0%, #080503 100%)',
+              }}
+            >
+              {/* Grid overlay */}
+              <div className="absolute inset-0 opacity-70 pointer-events-none"
                 style={{
-                  backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='ng'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.35 0 0 0 0 0.15 0 0 0 0.3 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23ng)'/%3E%3C/svg%3E")`
+                  backgroundImage: `repeating-linear-gradient(90deg, transparent 0, transparent 39px, rgba(230,171,42,0.02) 39px, rgba(230,171,42,0.02) 40px),
+                    repeating-linear-gradient(0deg, transparent 0, transparent 39px, rgba(230,171,42,0.02) 39px, rgba(230,171,42,0.02) 40px)`
                 }}
               />
 
-              {/* Scrollable content area */}
-              <div className="flex-1 overflow-y-auto relative z-10">
-                <div className="flex flex-col items-center text-center px-6 py-8 min-h-full">
-                  {/* Kick label */}
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="flex items-center gap-2.5 mb-4"
-                  >
-                    <div className="w-6 h-px bg-ha-red" />
-                    <span className="font-mono text-[10px] tracking-[0.4em] text-ha-red font-bold uppercase">
-                      ◆ Scene · An Unbreakable Code
-                    </span>
-                    <div className="w-6 h-px bg-ha-red" />
-                  </motion.div>
+              {/* Subtitle */}
+              <p className="relative z-10 font-cormorant italic text-[14px] sm:text-[15px] text-off-white/70 text-center leading-relaxed">
+                The Navajo Marines whose language became America's unbreakable code.
+              </p>
 
-                  {/* Title */}
-                  <motion.h1
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
-                    className="font-playfair italic text-[42px] sm:text-[54px] font-bold text-off-white leading-[0.95] tracking-tight mb-4"
-                    style={{ textShadow: '0 4px 24px rgba(0,0,0,0.8)' }}
-                  >
-                    The <em className="text-gold">Navajo secret.</em>
-                  </motion.h1>
-
-                  {/* Subtitle */}
-                  <motion.p
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.15 }}
-                    className="font-cormorant italic text-lg text-off-white/70 max-w-[520px] leading-relaxed mb-6"
-                    style={{ textShadow: '0 2px 12px rgba(0,0,0,0.6)' }}
-                  >
-                    In WWII, 420 Navajo Marines created a code no cryptographer could crack. Based on a language the Japanese had never heard. Not one message, across three years of fighting, was ever broken.
-                  </motion.p>
-
-                  {/* Cipher panel */}
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.2 }}
-                    className="relative w-full max-w-[480px] rounded p-5 sm:p-6 mb-6"
-                    style={{
-                      background: 'rgba(20,14,8,0.78)',
-                      backdropFilter: 'blur(10px)',
-                      border: '1px solid rgba(230,171,42,0.3)'
-                    }}
-                  >
-                    {/* Gold top bar */}
-                    <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-gold-dp via-gold-br to-gold-dp" />
-
-                    {/* Header */}
-                    <div className="flex justify-between items-center mb-3 font-mono text-[8.5px] tracking-[0.3em] text-off-white/50 uppercase font-bold">
-                      <span>◆ Diné Bizaad · Cipher Preview</span>
-                      <span
-                        className="text-ha-red font-bold py-0.5 px-2 animate-pulse"
-                        style={{
-                          border: '1px solid rgba(205,14,20,0.35)',
-                          background: 'rgba(205,14,20,0.08)'
-                        }}
-                      >
-                        Classified until 1968
-                      </span>
-                    </div>
-
-                    {/* Cipher rows */}
-                    <div className="flex flex-col gap-2.5 mb-4">
-                      {[
-                        { en: 'Battleship', na: 'Lo-tso' },
-                        { en: 'Submarine', na: 'Besh-lo' },
-                        { en: 'Fighter Plane', na: 'Da-he-tih-hi' },
-                        { en: 'America', na: 'Ne-he-mah' },
-                      ].map((row, i) => (
-                        <div key={i} className="grid grid-cols-[100px_16px_1fr] gap-3 items-center">
-                          <span className="font-mono text-[11.5px] tracking-[0.15em] text-off-white/70 uppercase font-semibold text-right">{row.en}</span>
-                          <span className="font-mono text-sm text-gold-dp text-center">→</span>
-                          <span className="font-playfair italic text-[17px] text-gold font-bold text-left tracking-wide">{row.na}</span>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Footer */}
-                    <div className="pt-3 border-t border-dashed border-off-white/[0.08] flex justify-between font-mono text-[8px] tracking-[0.18em] text-off-white/50 uppercase font-semibold">
-                      <span>◆ 211 Coded Terms</span>
-                      <span className="text-gold font-bold">Never broken</span>
-                    </div>
-                  </motion.div>
-
-                  {/* Quote */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
-                    className="w-full max-w-[480px] rounded p-4 mb-4"
-                    style={{
-                      background: 'rgba(15,10,6,0.7)',
-                      backdropFilter: 'blur(8px)',
-                      border: '1px solid rgba(230,171,42,0.3)',
-                      borderLeft: '3px solid var(--gold, #E6AB2A)'
-                    }}
-                  >
-                    <p className="font-cormorant italic text-[17px] text-off-white leading-relaxed mb-2">
-                      <span className="text-gold text-[26px] leading-none align-[-6px] mr-0.5">"</span>
-                      Were it not for the Navajos, the Marines would never have taken Iwo Jima.
-                      <span className="text-gold text-[26px] leading-none align-[-14px] ml-0.5">"</span>
-                    </p>
-                    <p className="font-mono text-[9px] tracking-[0.22em] text-gold uppercase font-bold text-right">
-                      — Major Howard Connor · 5th Marine Div. Signal Officer
-                    </p>
-                  </motion.div>
-
-                  {/* Spacer for scroll */}
-                  <div className="h-8 flex-shrink-0" />
-                </div>
-              </div>
-
-              {/* Bottom CTA - Fixed at bottom */}
-              <div className="relative z-20 px-6 pb-6 pt-4 bg-gradient-to-t from-[#0a0604] via-[#0a0604]/95 to-transparent backdrop-blur-sm border-t border-off-white/[0.06] flex-shrink-0">
-                <div className="flex flex-col items-center gap-3.5 max-w-sm mx-auto">
-                  {/* CTA Button */}
-                  <motion.button
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.35 }}
-                    onClick={nextScreen}
-                    className="relative w-full py-4 bg-ha-red hover:bg-ha-red/90 text-off-white font-oswald text-[13px] font-bold uppercase tracking-[0.2em] transition-colors flex items-center justify-center gap-3"
-                  >
-                    {/* Corner brackets */}
-                    <span className="absolute top-[-1px] left-[-1px] w-[11px] h-[11px] border-l-[1.5px] border-t-[1.5px] border-gold" />
-                    <span className="absolute bottom-[-1px] right-[-1px] w-[11px] h-[11px] border-r-[1.5px] border-b-[1.5px] border-gold" />
-                    Learn the Code
-                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <path d="M5 12h14M13 6l6 6-6 6" />
-                    </svg>
-                  </motion.button>
-
-                  {/* Skip link */}
-                  <button
-                    onClick={() => { setSkipped(true); onSkip(); }}
-                    className="font-mono text-[9.5px] tracking-[0.28em] text-off-white/35 uppercase font-semibold hover:text-off-white/50 transition-colors py-1 px-2.5"
-                  >
-                    Skip this beat
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {/* CODE WAR - Why codes mattered */}
-          {screen === 'code-war' && (
-            <motion.div key="code-war" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full p-6">
-              <div className="text-center mb-6">
-                <span className="text-4xl">🔐</span>
-                <h3 className="text-xl font-bold text-white mt-2">The Code War</h3>
-                <p className="text-white/60 text-sm">Why communication security mattered</p>
-              </div>
-
-              <div className="flex-1 space-y-4">
-                <div className="bg-red-500/10 rounded-xl p-4 border border-red-500/30">
-                  <h4 className="text-red-400 font-bold mb-2">The Problem</h4>
-                  <p className="text-white/70 text-sm">
-                    Japanese codebreakers could decipher most American codes within hours. Radio messages were being intercepted and decoded, costing American lives.
-                  </p>
-                </div>
-
-                <div className="bg-green-500/10 rounded-xl p-4 border border-green-500/30">
-                  <h4 className="text-green-400 font-bold mb-2">The Solution</h4>
-                  <p className="text-white/70 text-sm">
-                    The Navajo language had no written form and was spoken by fewer than 30 non-Navajos worldwide. It was perfect for creating an unbreakable code.
-                  </p>
-                </div>
-
-                <div className="bg-amber-500/10 rounded-xl p-4 border border-amber-500/30">
-                  <h4 className="text-amber-400 font-bold mb-2">The Result</h4>
-                  <p className="text-white/70 text-sm">
-                    Code Talkers could transmit a message in 20 seconds that would take a machine 30 minutes to encode and decode. The Japanese never broke it.
-                  </p>
-                </div>
-              </div>
-
-              <div style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))' }}>
-                <button onClick={nextScreen} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors">
-                  How It Worked
-                </button>
-              </div>
-            </motion.div>
-          )}
-
-          {/* NAVAJO INTRO - How the code worked */}
-          {screen === 'navajo-intro' && (
-            <motion.div key="navajo-intro" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full p-6">
-              <div className="text-center mb-6">
-                <span className="text-4xl">🗣️</span>
-                <h3 className="text-xl font-bold text-white mt-2">The Navajo Code</h3>
-                <p className="text-white/60 text-sm">Nature-based military terminology</p>
-              </div>
-
-              <div className="flex-1">
-                <p className="text-white/70 mb-4 text-center">
-                  Code Talkers used Navajo words for animals and nature to represent military terms:
-                </p>
-
-                <div className="grid grid-cols-2 gap-3 mb-6">
-                  {NAVAJO_WORDS.slice(0, 4).map((word, idx) => (
-                    <motion.div
-                      key={word.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: idx * 0.1 }}
-                      className="bg-white/5 rounded-xl p-3 border border-white/10"
-                    >
-                      <p className="text-amber-400 font-bold text-sm">{word.english}</p>
-                      <p className="text-white text-lg font-serif">{word.navajo}</p>
-                      <p className="text-white/50 text-xs mt-1">{word.meaning}</p>
-                    </motion.div>
-                  ))}
-                </div>
-
-                <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                  <p className="text-white/80 text-sm text-center">
-                    The code was so complex that even Navajo speakers who weren't trained couldn't understand it - military terms were never used in everyday Navajo.
-                  </p>
-                </div>
-              </div>
-
-              <div style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))' }}>
-                <button onClick={nextScreen} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors">
-                  Try Speaking the Code
-                </button>
-              </div>
-            </motion.div>
-          )}
-
-          {/* PRONUNCIATION GAME */}
-          {screen === 'pronunciation-game' && currentWord && (
-            <motion.div key="pronunciation-game" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full p-6">
-              {/* Progress */}
-              <div className="flex items-center justify-between mb-6">
-                <p className="text-white/50 text-sm">Word {currentWordIndex + 1} of {gameWords.length}</p>
-                <div className="flex gap-1">
-                  {gameWords.map((w, idx) => (
-                    <div
-                      key={w.id}
-                      className={`w-2 h-2 rounded-full ${
-                        wordsLearned.has(w.id)
-                          ? 'bg-green-400'
-                          : idx === currentWordIndex
-                            ? 'bg-amber-500'
-                            : 'bg-white/20'
-                      }`}
+              {/* Story + Stats Cards */}
+              <div className="relative z-10 grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-4">
+                {/* Story Card - Problem/Solution/Result */}
+                <div className="relative bg-card border border-gold/15 rounded-lg p-4 sm:p-5 overflow-hidden">
+                  {/* Brass fasteners */}
+                  {['top-[6px] left-[6px]', 'top-[6px] right-[6px]', 'bottom-[6px] left-[6px]', 'bottom-[6px] right-[6px]'].map((pos, i) => (
+                    <div key={i} className={`absolute ${pos} w-[9px] h-[9px] rounded-full z-10`}
+                      style={{
+                        background: 'radial-gradient(circle at 30% 30%, #F6E355, #E6AB2A 50%, #B2641F)',
+                        border: '1px solid #6A3A12',
+                        boxShadow: 'inset 0 -1px 1px rgba(0,0,0,0.35), 0 1px 2px rgba(0,0,0,0.5)'
+                      }}
                     />
                   ))}
-                </div>
-              </div>
 
-              {/* Word Card */}
-              <div className="flex-1 flex flex-col items-center justify-center">
-                <motion.div
-                  key={currentWord.id}
-                  initial={{ scale: 0.9, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  className="w-full max-w-sm"
-                >
-                  {/* English Word */}
-                  <div className="text-center mb-6">
-                    <p className="text-white/50 text-sm uppercase tracking-wider">English</p>
-                    <h3 className="text-3xl font-bold text-white">{currentWord.english}</h3>
+                  {/* Header */}
+                  <div className="flex items-center gap-2 mb-3 pb-2.5 border-b border-dashed border-off-white/[0.08]">
+                    <div className="w-3.5 h-px bg-gold" />
+                    <span className="font-mono text-[9px] tracking-[0.38em] text-gold uppercase font-bold">The Code War</span>
                   </div>
 
-                  {/* Navajo Word Card */}
-                  <div className="bg-gradient-to-b from-amber-900/30 to-amber-900/10 rounded-2xl p-6 border border-amber-500/30 mb-6">
-                    <p className="text-amber-400 text-sm uppercase tracking-wider text-center mb-2">Navajo</p>
-                    <h2 className="text-4xl font-bold text-white text-center font-serif mb-4">{currentWord.navajo}</h2>
-
-                    {/* Audio Button */}
-                    <button
-                      onClick={() => playAudio(currentWord.id)}
-                      className={`w-full py-3 rounded-xl flex items-center justify-center gap-2 transition-colors ${
-                        audioUrls[currentWord.id]
-                          ? 'bg-amber-500 hover:bg-amber-400 text-black'
-                          : 'bg-white/20 text-white/50'
-                      }`}
-                      disabled={!audioUrls[currentWord.id]}
-                    >
-                      {isPlaying ? <Pause size={20} /> : <Volume2 size={20} />}
-                      <span className="font-bold">Listen</span>
-                    </button>
-
-                    {!audioUrls[currentWord.id] && (
-                      <p className="text-white/40 text-xs text-center mt-2">
-                        Audio: {currentWord.audioKey}
+                  {/* Rows */}
+                  <div className="space-y-3">
+                    {/* Problem */}
+                    <div className="grid grid-cols-[64px_1fr] gap-3 items-start">
+                      <span className="font-oswald font-black text-[9px] tracking-[0.18em] uppercase text-center py-1 px-1.5 rounded-sm border-[1.5px] border-ha-red text-[#E84046] bg-ha-red/[0.15]">
+                        Problem
+                      </span>
+                      <p className="font-cormorant italic text-[13px] sm:text-[14px] text-off-white/70 leading-[1.45]">
+                        Japanese codebreakers could decipher <span className="text-[#E84046] font-bold">most American codes within hours.</span> Radio messages were being intercepted and decoded, costing American lives.
                       </p>
-                    )}
+                    </div>
+
+                    {/* Solution */}
+                    <div className="grid grid-cols-[64px_1fr] gap-3 items-start">
+                      <span className="font-oswald font-black text-[9px] tracking-[0.18em] uppercase text-center py-1 px-1.5 rounded-sm border-[1.5px] border-green-500 text-green-400 bg-green-500/[0.12]">
+                        Solution
+                      </span>
+                      <p className="font-cormorant italic text-[13px] sm:text-[14px] text-off-white/70 leading-[1.45]">
+                        The Navajo language had <span className="text-green-400 font-bold">no written form</span> and was spoken by fewer than 30 non-Navajos worldwide. It was perfect for creating an unbreakable code.
+                      </p>
+                    </div>
+
+                    {/* Result */}
+                    <div className="grid grid-cols-[64px_1fr] gap-3 items-start">
+                      <span className="font-oswald font-black text-[9px] tracking-[0.18em] uppercase text-center py-1 px-1.5 rounded-sm border-[1.5px] border-gold text-gold-br bg-gold/[0.1]">
+                        Result
+                      </span>
+                      <p className="font-cormorant italic text-[13px] sm:text-[14px] text-off-white/70 leading-[1.45]">
+                        Code Talkers could transmit a message in <span className="text-gold font-bold">20 seconds</span> that would take a machine <span className="text-gold font-bold">30 minutes</span> to encode and decode. The Japanese never broke it.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Stats Card - Iwo Jima */}
+                <div className="relative bg-card border border-gold/15 rounded-lg p-4 sm:p-5 overflow-hidden flex flex-col gap-3">
+                  {/* Brass fasteners */}
+                  {['top-[6px] left-[6px]', 'top-[6px] right-[6px]', 'bottom-[6px] left-[6px]', 'bottom-[6px] right-[6px]'].map((pos, i) => (
+                    <div key={i} className={`absolute ${pos} w-[9px] h-[9px] rounded-full z-10`}
+                      style={{
+                        background: 'radial-gradient(circle at 30% 30%, #F6E355, #E6AB2A 50%, #B2641F)',
+                        border: '1px solid #6A3A12',
+                        boxShadow: 'inset 0 -1px 1px rgba(0,0,0,0.35), 0 1px 2px rgba(0,0,0,0.5)'
+                      }}
+                    />
+                  ))}
+
+                  {/* Header */}
+                  <div className="flex items-center gap-2">
+                    <div className="w-3.5 h-px bg-[#E84046]" />
+                    <span className="font-mono text-[9px] tracking-[0.38em] text-[#E84046] uppercase font-bold">Field Report · Iwo Jima</span>
                   </div>
 
-                  {/* Pronunciation Guide */}
-                  <AnimatePresence>
-                    {showAnswer ? (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="bg-white/5 rounded-xl p-4 border border-white/10 mb-4"
-                      >
-                        <p className="text-white/50 text-xs uppercase tracking-wider mb-1">Pronunciation</p>
-                        <p className="text-white text-lg font-mono">{currentWord.pronunciation}</p>
-                        <p className="text-white/60 text-sm mt-2">
-                          <span className="text-amber-400">Meaning:</span> {currentWord.meaning}
-                        </p>
-                      </motion.div>
-                    ) : (
+                  <h3 className="font-playfair italic font-bold text-[17px] text-off-white leading-tight">
+                    The <span className="text-gold">Battle of Iwo Jima</span>
+                  </h3>
+
+                  {/* Stats row */}
+                  <div className="grid grid-cols-2 gap-2.5 mt-1">
+                    <div className="relative p-3 bg-black/40 border border-off-white/[0.08] rounded text-center">
+                      <p className="font-dm-serif italic text-[28px] text-gold-br leading-none mb-0.5"
+                        style={{ textShadow: '0 0 14px rgba(230,171,42,0.3)' }}>
+                        800+
+                      </p>
+                      <p className="font-mono text-[8px] tracking-[0.28em] text-off-white/50 uppercase font-bold">Messages Sent</p>
+                    </div>
+                    <div className="relative p-3 bg-black/40 border border-off-white/[0.08] rounded text-center">
+                      <p className="font-dm-serif italic text-[28px] text-green-400 leading-none mb-0.5"
+                        style={{ textShadow: '0 0 14px rgba(61,214,122,0.25)' }}>
+                        0
+                      </p>
+                      <p className="font-mono text-[8px] tracking-[0.28em] text-off-white/50 uppercase font-bold">Errors</p>
+                    </div>
+                  </div>
+
+                  <p className="font-cormorant italic text-[12.5px] text-off-white/50 leading-relaxed">
+                    February 1945. Six Code Talkers worked around the clock. <span className="text-gold font-bold">Every message transmitted and decoded perfectly.</span>
+                  </p>
+                </div>
+              </div>
+
+              {/* Word Grid Section */}
+              <div className="relative z-10">
+                {/* Header */}
+                <div className="flex items-start justify-between gap-3 mb-3 flex-wrap">
+                  <div className="flex flex-col gap-0.5">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3.5 h-px bg-[#E84046]" />
+                      <span className="font-mono text-[9px] tracking-[0.38em] text-[#E84046] uppercase font-bold">The Navajo Code</span>
+                    </div>
+                    <h2 className="font-oswald font-bold text-[17px] sm:text-[19px] text-off-white leading-tight tracking-[0.015em]">
+                      Tap any term to <span className="font-playfair italic font-bold text-gold">hear it spoken</span>
+                    </h2>
+                    <p className="font-cormorant italic text-[12px] sm:text-[13px] text-off-white/50 leading-relaxed">
+                      Nature-based military terminology. Press a card to play the Navajo pronunciation.
+                    </p>
+                  </div>
+                  <div className="font-mono text-[9px] tracking-[0.26em] text-off-white/70 uppercase font-bold py-1 px-2 border border-gold/15 rounded bg-black/40">
+                    Terms learned: <span className="text-gold font-bold">{learnedWords.size}</span>/6
+                  </div>
+                </div>
+
+                {/* Word Grid - 2x3 */}
+                <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+                  {NAVAJO_WORDS.map((word, index) => {
+                    const isActive = index === activeWordIndex && showDetailSheet;
+                    const isLearned = learnedWords.has(word.id);
+
+                    return (
                       <motion.button
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        onClick={() => setShowAnswer(true)}
-                        className="w-full py-3 bg-white/10 rounded-xl text-white/70 hover:text-white transition-colors mb-4"
+                        key={word.id}
+                        onClick={() => selectWord(index)}
+                        className={`relative text-left p-3 sm:p-4 rounded-md min-h-[100px] sm:min-h-[110px] flex flex-col justify-between transition-all ${
+                          isActive
+                            ? 'border-gold bg-gradient-to-br from-[rgba(40,28,10,0.9)] to-[rgba(20,14,8,0.7)] shadow-[0_0_26px_rgba(230,171,42,0.25)]'
+                            : isLearned
+                              ? 'border-green-500/30 bg-gradient-to-b from-[rgba(20,40,20,0.3)] to-[rgba(15,25,15,0.5)]'
+                              : 'border-gold/15 bg-card hover:border-gold/35 hover:bg-[rgba(20,14,8,0.8)] hover:-translate-y-0.5'
+                        } border overflow-hidden`}
+                        whileTap={{ scale: 0.98 }}
                       >
-                        Show Pronunciation
+                        {/* Brass fasteners */}
+                        {['top-[5px] left-[5px]', 'top-[5px] right-[5px]'].map((pos, i) => (
+                          <div key={i} className={`absolute ${pos} w-[7px] h-[7px] rounded-full z-10`}
+                            style={{
+                              background: isActive
+                                ? 'radial-gradient(circle at 30% 30%, #fff2a8, #F6E355 50%, #E6AB2A)'
+                                : 'radial-gradient(circle at 30% 30%, #F6E355, #E6AB2A 50%, #B2641F)',
+                              border: '1px solid #6A3A12',
+                              boxShadow: isActive
+                                ? '0 0 8px rgba(246,227,85,0.6), inset 0 -1px 1px rgba(0,0,0,0.35)'
+                                : 'inset 0 -1px 1px rgba(0,0,0,0.35)'
+                            }}
+                          />
+                        ))}
+
+                        {/* Top row: English + Check */}
+                        <div className="flex items-start justify-between gap-2">
+                          <span className={`font-oswald font-black text-[11px] sm:text-[13px] tracking-[0.08em] uppercase leading-tight ${
+                            isLearned ? 'text-off-white/50' : 'text-off-white'
+                          }`}>
+                            {word.english}
+                          </span>
+
+                          {/* Check badge */}
+                          <motion.div
+                            className="w-[20px] h-[20px] sm:w-[22px] sm:h-[22px] rounded-full bg-green-500/15 border-[1.5px] border-green-500 flex items-center justify-center flex-shrink-0"
+                            initial={{ opacity: 0, scale: 0.7 }}
+                            animate={{
+                              opacity: isLearned ? 1 : 0,
+                              scale: isLearned ? 1 : 0.7
+                            }}
+                            transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                          >
+                            <Check size={10} className="text-green-500" strokeWidth={3} />
+                          </motion.div>
+                        </div>
+
+                        {/* Bottom: Navajo + Literal */}
+                        <div className="flex flex-col gap-0.5 mt-2">
+                          <span className={`font-playfair italic font-bold text-[18px] sm:text-[20px] leading-tight ${
+                            isLearned ? 'text-green-400' : 'text-gold'
+                          }`}>
+                            {word.navajo}
+                          </span>
+                          <span className="font-cormorant italic text-[10px] sm:text-[11.5px] text-off-white/50 leading-tight">
+                            {word.literal}
+                          </span>
+                        </div>
+
+                        {/* Play button */}
+                        <div className={`absolute bottom-2.5 right-2.5 w-[24px] h-[24px] sm:w-[26px] sm:h-[26px] rounded-full flex items-center justify-center transition-all ${
+                          isPlaying && isActive ? 'opacity-0' : 'opacity-85'
+                        }`}
+                          style={{
+                            background: 'radial-gradient(circle at 30% 25%, #fef0d0, #E6AB2A 50%, #B2641F)',
+                            border: '1.5px solid #1a0b02',
+                            boxShadow: '0 0 10px rgba(230,171,42,0.3), inset 0 1px 0 rgba(255,255,255,0.3)'
+                          }}
+                        >
+                          <Play size={10} className="text-[#1a0b02] ml-0.5" fill="#1a0b02" />
+                        </div>
+
+                        {/* Sound wave bars when playing */}
+                        {isPlaying && isActive && (
+                          <div className="absolute bottom-2.5 right-2.5 h-[26px] px-2 flex items-center gap-0.5 bg-black/70 border border-gold rounded-full">
+                            <SoundWaveBars />
+                          </div>
+                        )}
                       </motion.button>
-                    )}
-                  </AnimatePresence>
-                </motion.div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="space-y-3" style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))' }}>
-                <div className="flex gap-3">
-                  <button
-                    onClick={handleReplayWord}
-                    className="flex-1 py-4 bg-white/10 hover:bg-white/20 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2"
-                    disabled={!audioUrls[currentWord.id]}
-                  >
-                    <RefreshCw size={20} />
-                    Replay
-                  </button>
-                  <button
-                    onClick={handleWordLearned}
-                    className="flex-1 py-4 bg-green-500 hover:bg-green-400 text-black font-bold rounded-xl transition-colors flex items-center justify-center gap-2"
-                  >
-                    <Check size={20} />
-                    Got It!
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {/* IWO JIMA - Historical impact */}
-          {screen === 'iwo-jima' && (
-            <motion.div key="iwo-jima" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full p-6">
-              <div className="flex-1 flex flex-col items-center justify-center text-center">
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="w-24 h-24 rounded-full bg-gradient-to-b from-amber-500/30 to-amber-900/20 flex items-center justify-center mb-6"
-                >
-                  <span className="text-5xl">🏝️</span>
-                </motion.div>
-
-                <h3 className="text-2xl font-bold text-white mb-4">The Battle of Iwo Jima</h3>
-
-                <div className="bg-white/5 rounded-xl p-6 max-w-sm border border-white/10 mb-6">
-                  <p className="text-white/80 leading-relaxed mb-4">
-                    During the battle for Iwo Jima in February 1945, six Code Talkers worked around the clock, sending and receiving over 800 messages without a single error.
-                  </p>
-                  <p className="text-amber-400 font-bold">
-                    All messages were transmitted and decoded perfectly.
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 max-w-sm w-full">
-                  <div className="bg-amber-500/10 rounded-xl p-3 text-center border border-amber-500/20">
-                    <p className="text-2xl font-bold text-amber-400">800+</p>
-                    <p className="text-white/60 text-xs">Messages Sent</p>
-                  </div>
-                  <div className="bg-green-500/10 rounded-xl p-3 text-center border border-green-500/20">
-                    <p className="text-2xl font-bold text-green-400">0</p>
-                    <p className="text-white/60 text-xs">Errors</p>
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))' }}>
-                <button onClick={nextScreen} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors">
-                  Continue
-                </button>
-              </div>
-            </motion.div>
-          )}
-
-          {/* REFLECTION */}
-          {screen === 'reflection' && (
-            <motion.div key="reflection" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full p-6">
-              <div className="flex-1 flex flex-col items-center justify-center text-center">
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="w-16 h-16 rounded-full bg-amber-500/20 flex items-center justify-center mb-6"
-                >
-                  <span className="text-3xl">🎖️</span>
-                </motion.div>
-
-                <h3 className="text-xl font-bold text-white mb-4">Honoring the Code Talkers</h3>
-
-                <div className="bg-white/5 rounded-xl p-6 max-w-sm border border-white/10 mb-6">
-                  <p className="text-white/80 leading-relaxed">
-                    The Code Talkers' contribution was kept secret until 1968. In 2001, the original 29 Code Talkers received the Congressional Gold Medal, America's highest civilian honor.
-                  </p>
-                </div>
-
-                {/* Words Learned Summary */}
-                <div className="bg-amber-500/10 rounded-xl p-4 max-w-sm border border-amber-500/30 mb-4">
-                  <p className="text-amber-200 text-sm">
-                    You learned <strong>{wordsLearned.size}</strong> Navajo military terms!
-                  </p>
-                </div>
-
-                <div className="flex flex-wrap justify-center gap-2 max-w-sm">
-                  {Array.from(wordsLearned).map(wordId => {
-                    const word = NAVAJO_WORDS.find(w => w.id === wordId);
-                    return word ? (
-                      <div key={wordId} className="px-3 py-1 bg-green-500/20 rounded-full text-green-400 text-sm">
-                        {word.navajo}
-                      </div>
-                    ) : null;
+                    );
                   })}
                 </div>
               </div>
 
-              <div style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))' }}>
-                <button onClick={nextScreen} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors">
-                  Complete Beat
+              {/* Completion Banner */}
+              <div className="relative z-10 bg-gradient-to-br from-[rgba(60,40,16,0.4)] to-[rgba(20,14,8,0.7)] border border-gold/35 rounded-lg p-4 sm:p-5 overflow-hidden">
+                {/* Brass fasteners */}
+                {['top-[6px] left-[6px]', 'top-[6px] right-[6px]', 'bottom-[6px] left-[6px]', 'bottom-[6px] right-[6px]'].map((pos, i) => (
+                  <div key={i} className={`absolute ${pos} w-[9px] h-[9px] rounded-full z-10`}
+                    style={{
+                      background: 'radial-gradient(circle at 30% 30%, #F6E355, #E6AB2A 50%, #B2641F)',
+                      border: '1px solid #6A3A12',
+                      boxShadow: 'inset 0 -1px 1px rgba(0,0,0,0.35), 0 1px 2px rgba(0,0,0,0.5)'
+                    }}
+                  />
+                ))}
+
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-gold text-[8px]">◆</span>
+                      <span className="font-mono text-[9px] tracking-[0.4em] text-gold-br uppercase font-bold">Completion Requirement</span>
+                    </div>
+                    <h3 className="font-playfair italic font-black text-[18px] sm:text-[22px] text-off-white leading-tight mb-2">
+                      Learn all <span className="text-gold">six terms</span> to declassify this briefing
+                    </h3>
+                    <p className="font-cormorant italic text-[13px] sm:text-[14px] text-off-white/70 leading-relaxed mb-3">
+                      Kept secret until 1968. In 2001, the original <span className="font-playfair font-bold text-gold-br">29 Code Talkers</span> received the Congressional Gold Medal — America's highest civilian honor.
+                    </p>
+
+                    {/* Chips */}
+                    <div className="flex flex-wrap gap-1.5">
+                      {NAVAJO_WORDS.map(word => (
+                        <span key={word.id} className={`font-playfair italic font-bold text-[12px] sm:text-[13px] py-1 px-2.5 rounded-full border ${
+                          learnedWords.has(word.id)
+                            ? 'text-green-400 bg-green-500/15 border-green-500/40'
+                            : 'text-off-white/40 bg-black/30 border-off-white/10'
+                        }`}>
+                          {word.navajo}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* CTA Button */}
+                  <button
+                    onClick={handleComplete}
+                    disabled={!allLearned}
+                    className={`relative flex items-center justify-center gap-2.5 py-3.5 px-5 sm:px-6 rounded font-oswald font-black text-[11.5px] tracking-[0.28em] uppercase whitespace-nowrap transition-all ${
+                      allLearned
+                        ? 'text-[#1a0b02] cursor-pointer hover:brightness-105'
+                        : 'text-off-white/50 cursor-not-allowed opacity-50'
+                    }`}
+                    style={allLearned ? {
+                      background: 'linear-gradient(180deg, #F6E355 0%, #E6AB2A 45%, #B2641F 100%)',
+                      boxShadow: '0 8px 22px rgba(230,171,42,0.3), inset 0 1px 0 rgba(255,255,255,0.3)'
+                    } : {
+                      background: 'rgba(230,171,42,0.2)',
+                      border: '1px solid rgba(230,171,42,0.2)'
+                    }}
+                  >
+                    {/* Corner brackets */}
+                    <span className="absolute -top-px -left-px w-[9px] h-[9px] border-t-[1.5px] border-l-[1.5px] border-ha-red pointer-events-none" />
+                    <span className="absolute -bottom-px -right-px w-[9px] h-[9px] border-b-[1.5px] border-r-[1.5px] border-ha-red pointer-events-none" />
+                    <Award size={14} strokeWidth={2.6} />
+                    Complete Beat
+                  </button>
+                </div>
+              </div>
+
+              {/* Skip link */}
+              <div className="relative z-10 text-center pb-4">
+                <button
+                  onClick={() => { setSkipped(true); onSkip(); }}
+                  className="font-mono text-[9.5px] tracking-[0.28em] text-off-white/35 uppercase font-semibold hover:text-off-white/50 transition-colors py-1 px-2.5"
+                >
+                  Skip this beat
                 </button>
               </div>
-            </motion.div>
-          )}
+            </div>
+          </div>
 
-          {/* POST-MODULE VIDEO */}
-          {screen === 'post-video' && postModuleVideoConfig && (
-            <PostModuleVideoScreen
-              config={postModuleVideoConfig}
-              beatTitle="Code Talkers"
-              onComplete={() => setScreen('completion')}
-            />
-          )}
+          {/* Bottom Sheet - Mobile Detail Panel */}
+          <AnimatePresence>
+            {showDetailSheet && (
+              <>
+                {/* Overlay */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setShowDetailSheet(false)}
+                  className="fixed inset-0 bg-black/55 backdrop-blur-[4px] z-50"
+                />
 
-          {/* COMPLETION */}
-          {screen === 'completion' && (
-            <XPCompletionScreen
-              beatNumber={11}
-              beatTitle="Code Talkers"
-              xpEarned={skipped ? 0 : LESSON_DATA.xpReward}
-              host={host}
-              onContinue={() => {
-                clearCheckpoint();
-                onComplete(skipped ? 0 : LESSON_DATA.xpReward);
-              }}
-              nextBeatPreview="Mastery Run - Test your knowledge of Pearl Harbor!"
-            />
-          )}
-        </AnimatePresence>
-      </div>
+                {/* Sheet */}
+                <motion.div
+                  initial={{ y: '100%' }}
+                  animate={{ y: 0 }}
+                  exit={{ y: '100%' }}
+                  transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+                  className="fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-b from-[#1a130a] to-[#0a0805] border-t border-gold/35 rounded-t-[20px] max-h-[85vh] overflow-hidden flex flex-col"
+                  style={{ boxShadow: '0 -18px 40px rgba(0,0,0,0.65), 0 0 30px rgba(230,171,42,0.1)' }}
+                >
+                  {/* Corner brackets */}
+                  <div className="absolute top-2 left-2 w-3 h-3 border-t-2 border-l-2 border-gold z-10" />
+                  <div className="absolute top-2 right-2 w-3 h-3 border-t-2 border-r-2 border-gold z-10" />
+
+                  {/* Handle */}
+                  <div className="flex justify-center pt-2 pb-1">
+                    <div className="w-9 h-1 bg-gold/40 rounded-full" />
+                  </div>
+
+                  {/* Close button */}
+                  <button
+                    onClick={() => setShowDetailSheet(false)}
+                    className="absolute top-3 right-3.5 w-[26px] h-[26px] flex items-center justify-center bg-[rgba(20,14,8,0.8)] border border-gold/35 rounded-full z-10"
+                  >
+                    <X size={11} className="text-off-white/70" strokeWidth={2.4} />
+                  </button>
+
+                  {/* Content */}
+                  <div className="flex-1 overflow-y-auto px-4 sm:px-5 pb-safe">
+                    {/* Selected Term header */}
+                    <div className="text-center py-3 border-b border-dashed border-off-white/[0.08]">
+                      <div className="flex items-center justify-center gap-2 mb-1">
+                        <div className="w-4 h-px bg-[#E84046]" />
+                        <span className="font-mono text-[9px] tracking-[0.42em] text-[#E84046] uppercase font-bold">Selected Term</span>
+                        <div className="w-4 h-px bg-[#E84046]" />
+                      </div>
+                      <h2 className="font-oswald font-black text-[22px] sm:text-[26px] text-off-white uppercase tracking-[0.04em]">
+                        {activeWord.english}
+                      </h2>
+                    </div>
+
+                    {/* Navajo word display */}
+                    <div className="relative my-4 py-5 px-4 rounded-lg overflow-hidden text-center"
+                      style={{
+                        background: 'radial-gradient(ellipse at 50% 30%, rgba(80,50,18,0.4), rgba(20,14,8,0.8))',
+                        border: '1px solid rgba(230,171,42,0.35)'
+                      }}
+                    >
+                      {/* Top/bottom lines */}
+                      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[60%] h-px bg-gradient-to-r from-transparent via-gold to-transparent opacity-50" />
+                      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[60%] h-px bg-gradient-to-r from-transparent via-gold-dp to-transparent opacity-40" />
+
+                      <span className="font-mono text-[9.5px] tracking-[0.42em] text-gold uppercase font-bold">Navajo</span>
+                      <h3 className="font-playfair italic font-black text-[36px] sm:text-[40px] text-off-white leading-none mt-2 mb-2"
+                        style={{ textShadow: '0 0 24px rgba(230,171,42,0.25)' }}>
+                        {activeWord.navajo}
+                      </h3>
+                      <p className="font-cormorant italic text-[14px] text-off-white/70">
+                        Meaning: <span className="text-gold-br font-bold">{activeWord.literal}</span>
+                      </p>
+                    </div>
+
+                    {/* AI Pronounce Button */}
+                    <button
+                      onClick={() => playAudio(activeWord.id)}
+                      className={`relative w-full flex items-center justify-center gap-2.5 py-3.5 rounded-md font-oswald font-black text-[11.5px] tracking-[0.3em] uppercase mb-2 ${
+                        isPlaying ? 'animate-pulse' : ''
+                      }`}
+                      style={{
+                        background: isPlaying
+                          ? 'linear-gradient(180deg, #fff2a8 0%, #F6E355 45%, #E6AB2A 100%)'
+                          : 'linear-gradient(180deg, #F6E355 0%, #E6AB2A 45%, #B2641F 100%)',
+                        color: '#1a0b02',
+                        boxShadow: '0 8px 22px rgba(230,171,42,0.3), inset 0 1px 0 rgba(255,255,255,0.3), inset 0 -2px 4px rgba(138,80,20,0.3)'
+                      }}
+                    >
+                      {/* Corner brackets */}
+                      <span className="absolute -top-px -left-px w-[9px] h-[9px] border-t-[1.5px] border-l-[1.5px] border-ha-red pointer-events-none" />
+                      <span className="absolute -bottom-px -right-px w-[9px] h-[9px] border-b-[1.5px] border-r-[1.5px] border-ha-red pointer-events-none" />
+                      <Volume2 size={14} />
+                      {isPlaying ? 'Playing...' : 'Hear AI Pronunciation'}
+                    </button>
+
+                    {/* AI tag */}
+                    <div className="flex items-center justify-center gap-1.5 mb-3">
+                      <Sparkles size={9} className="text-gold" strokeWidth={2} />
+                      <span className="font-mono text-[8px] tracking-[0.32em] text-off-white/50 uppercase font-bold">
+                        Voiced by {host.name} · Your War Correspondent
+                      </span>
+                    </div>
+
+                    {/* Phonetic guide */}
+                    <div className="flex items-center justify-between gap-2.5 py-2.5 px-3.5 bg-black/40 border border-dashed border-off-white/[0.08] rounded mb-3">
+                      <span className="font-mono text-[8.5px] tracking-[0.28em] text-off-white/50 uppercase font-bold">Phonetic</span>
+                      <span className="font-mono text-[14px] text-gold-br tracking-wide">{activeWord.phonetic}</span>
+                    </div>
+
+                    {/* Context */}
+                    <div className="py-3.5 px-4 bg-black/25 border-l-2 border-gold rounded mb-4">
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <span className="text-gold text-[7px]">◆</span>
+                        <span className="font-mono text-[8.5px] tracking-[0.38em] text-gold uppercase font-bold">Why This Word</span>
+                      </div>
+                      <p className="font-cormorant italic text-[13px] sm:text-[13.5px] text-off-white/70 leading-[1.5]">
+                        {activeWord.context.split(/(<em>|<\/em>)/).map((part, i) =>
+                          part === '<em>' || part === '</em>' ? null :
+                          activeWord.context.substring(0, activeWord.context.indexOf(part)).includes('<em>') &&
+                          !activeWord.context.substring(0, activeWord.context.indexOf(part)).endsWith('</em>')
+                            ? <span key={i} className="text-gold font-bold">{part}</span>
+                            : part
+                        )}
+                      </p>
+                    </div>
+
+                    {/* Navigation buttons */}
+                    <div className="flex gap-2 py-3 border-t border-off-white/[0.08]">
+                      <button
+                        onClick={prevWord}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 bg-[rgba(20,14,8,0.6)] border border-gold/15 rounded text-off-white/70 font-oswald font-bold text-[10.5px] tracking-[0.22em] uppercase hover:text-gold hover:border-gold/35 transition-colors"
+                      >
+                        <ChevronLeft size={11} strokeWidth={2.4} />
+                        Prev
+                      </button>
+                      <button
+                        onClick={markLearned}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded font-oswald font-bold text-[10.5px] tracking-[0.22em] uppercase"
+                        style={{
+                          background: 'linear-gradient(180deg, #3DD67A 0%, #1A8A3E 100%)',
+                          color: '#0a1f10',
+                          boxShadow: '0 4px 12px rgba(26,138,62,0.3), inset 0 1px 0 rgba(255,255,255,0.25)'
+                        }}
+                      >
+                        <Check size={11} strokeWidth={3} />
+                        Got It
+                      </button>
+                      <button
+                        onClick={nextWord}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 bg-[rgba(20,14,8,0.6)] border border-gold/15 rounded text-off-white/70 font-oswald font-bold text-[10.5px] tracking-[0.22em] uppercase hover:text-gold hover:border-gold/35 transition-colors"
+                      >
+                        Next
+                        <ChevronRight size={11} strokeWidth={2.4} />
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
+        </>
+      )}
+
+      {/* POST-VIDEO */}
+      {screen === 'post-video' && postModuleVideoConfig && (
+        <PostModuleVideoScreen
+          config={postModuleVideoConfig}
+          beatTitle="Code Talkers"
+          onComplete={() => setScreen('completion')}
+        />
+      )}
+
+      {/* COMPLETION */}
+      {screen === 'completion' && (
+        <XPCompletionScreen
+          beatNumber={11}
+          beatTitle="Code Talkers"
+          xpEarned={skipped ? 0 : LESSON_DATA.xpReward}
+          host={host}
+          onContinue={() => {
+            clearCheckpoint();
+            onComplete(skipped ? 0 : LESSON_DATA.xpReward);
+          }}
+          nextBeatPreview="Mastery Run - Test your knowledge!"
+        />
+      )}
     </div>
   );
 }
