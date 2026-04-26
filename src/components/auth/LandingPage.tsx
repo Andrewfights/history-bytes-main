@@ -423,12 +423,8 @@ export function LandingPage({ onAuthSuccess }: LandingPageProps) {
             </div>
           </div>
 
-          {/* Desktop Nav - Center section with flex-1 */}
-          <div className="hidden md:flex items-center justify-center flex-1 gap-8">
-            <a href="#features" className="font-mono text-[11px] tracking-[0.2em] uppercase text-off-white/70 hover:text-gold-2 transition-colors">Features</a>
-            <a href="#campaigns" className="font-mono text-[11px] tracking-[0.2em] uppercase text-off-white/70 hover:text-gold-2 transition-colors">Campaigns</a>
-            <a href="#guides" className="font-mono text-[11px] tracking-[0.2em] uppercase text-off-white/70 hover:text-gold-2 transition-colors">Guides</a>
-          </div>
+          {/* Spacer for layout balance */}
+          <div className="hidden md:flex flex-1" />
 
           {/* Right side - Sign In & Get Started */}
           <div className="hidden md:flex items-center gap-4">
@@ -456,10 +452,6 @@ export function LandingPage({ onAuthSuccess }: LandingPageProps) {
               className="md:hidden bg-ink border-t border-off-white/[0.06] overflow-hidden"
             >
               <div className="px-4 py-4 space-y-3">
-                <a href="#features" className="block font-mono text-sm text-off-white/70 py-2">Features</a>
-                <a href="#campaigns" className="block font-mono text-sm text-off-white/70 py-2">Campaigns</a>
-                <a href="#guides" className="block font-mono text-sm text-off-white/70 py-2">Guides</a>
-                <hr className="border-off-white/10" />
                 <button onClick={() => { setMode('signin'); setMobileMenuOpen(false); }} className="block w-full text-left font-mono text-sm text-off-white/70 py-2">Sign In</button>
                 <button onClick={() => { setMode('signup'); setMobileMenuOpen(false); }} className="block w-full bg-ha-red text-off-white px-4 py-3 rounded-md font-display text-sm font-bold uppercase tracking-wider">Get Started</button>
               </div>
