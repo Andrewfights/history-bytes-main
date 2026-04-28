@@ -1484,6 +1484,7 @@ export interface FirestoreJourneyUIAssets {
   featuredJourneyImage?: string;     // Background image for Featured Journey hero
   featuredJourneyIcon?: string;      // Custom icon for Featured Journey
   rankBadgeImages?: Record<string, string>;  // Tier-based rank badge images (bronze, silver, gold, etc.)
+  lessonCardImages?: Record<string, string>;  // Lesson-specific card images (key: lesson ID, e.g., 'ph-beat-14')
   pantheonImage?: string;            // Background/icon for Pantheon section
   pantheonIcon?: string;             // Custom icon for Pantheon
   trophyRoomImage?: string;          // Background/icon for Trophy Room section

@@ -7,8 +7,9 @@ import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   Image, Upload, Loader2, Cloud, CloudOff, Wand2, Trash2,
-  Trophy, Crown, Sparkles, Map, RefreshCw
+  Trophy, Crown, Sparkles, Map, RefreshCw, BookOpen
 } from 'lucide-react';
+import { PEARL_HARBOR_LESSONS } from '@/data/pearlHarborLessons';
 import { toast } from 'sonner';
 import { generateImage, base64ToDataUrl, isGeminiConfigured, buildHistoricalPrompt } from '@/lib/gemini';
 import { uploadToFirebaseStorage } from '@/lib/firebaseStorage';
@@ -101,9 +102,10 @@ export default function JourneyUIEditor() {
     try {
       let uploadUrl: string | null = null;
 
-      // Check if this is a rank badge upload
+      // Check if this is a rank badge or lesson card upload
       const isRankBadge = currentUploadTarget.startsWith('rank-');
-      const storagePath = isRankBadge ? 'journey-ui/ranks' : 'journey-ui';
+      const isLessonCard = currentUploadTarget.startsWith('lesson-');
+      const storagePath = isRankBadge ? 'journey-ui/ranks' : isLessonCard ? 'journey-ui/lessons' : 'journey-ui';
 
       if (isFirebaseConfigured()) {
         uploadUrl = await uploadToFirebaseStorage(file, storagePath);
@@ -117,6 +119,17 @@ export default function JourneyUIEditor() {
           const updatedAssets = {
             ...assets,
             rankBadgeImages: { ...currentBadges, [tierId]: uploadUrl },
+          };
+          // Optimistically update local state
+          setAssets(updatedAssets as FirestoreJourneyUIAssets);
+          await saveJourneyUIAssets(updatedAssets);
+        } else if (isLessonCard) {
+          // Handle lesson card upload - save to nested lessonCardImages object
+          const lessonId = currentUploadTarget.replace('lesson-', '');
+          const currentCards = assets?.lessonCardImages || {};
+          const updatedAssets = {
+            ...assets,
+            lessonCardImages: { ...currentCards, [lessonId]: uploadUrl },
           };
           // Optimistically update local state
           setAssets(updatedAssets as FirestoreJourneyUIAssets);
@@ -299,6 +312,27 @@ export default function JourneyUIEditor() {
       setAssets(updatedAssets as FirestoreJourneyUIAssets);
       await saveJourneyUIAssets(updatedAssets);
       toast.success('Badge removed');
+    } catch (error) {
+      toast.error('Failed to remove');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleRemoveLessonCard = async (lessonId: string) => {
+    if (!assets?.lessonCardImages) return;
+
+    setIsSaving(true);
+    try {
+      const { [lessonId]: _, ...rest } = assets.lessonCardImages;
+      const updatedAssets = {
+        ...assets,
+        lessonCardImages: rest,
+      };
+      // Optimistically update local state
+      setAssets(updatedAssets as FirestoreJourneyUIAssets);
+      await saveJourneyUIAssets(updatedAssets);
+      toast.success('Card image removed');
     } catch (error) {
       toast.error('Failed to remove');
     } finally {
@@ -530,6 +564,79 @@ export default function JourneyUIEditor() {
                       </button>
                     )}
                   </div>
+                </div>
+              );
+            })}
+          </div>
+        </motion.div>
+
+        {/* Lesson Card Images Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-4 rounded-xl bg-card border border-border"
+        >
+          <h3 className="font-semibold text-foreground flex items-center gap-2 mb-4">
+            <BookOpen size={18} className="text-primary" />
+            Lesson Card Images
+          </h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Custom card images for Pearl Harbor lessons (shown on dossier cards)
+          </p>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            {PEARL_HARBOR_LESSONS.map((lesson) => {
+              const cardUrl = assets?.lessonCardImages?.[lesson.id];
+              const isUploadingThis = isUploading === `lesson-${lesson.id}`;
+
+              return (
+                <div key={lesson.id} className="text-center">
+                  {/* Card Preview */}
+                  <div className="relative w-full aspect-[4/3] mx-auto rounded-lg overflow-hidden bg-muted mb-2">
+                    {cardUrl ? (
+                      <>
+                        <img
+                          src={cardUrl}
+                          alt={lesson.title}
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          onClick={() => handleRemoveLessonCard(lesson.id)}
+                          className="absolute top-1 right-1 p-1 rounded-full bg-black/50 text-white hover:bg-red-500 transition-colors"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </>
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center">
+                        <span className="text-2xl">{lesson.icon}</span>
+                      </div>
+                    )}
+                    {isUploadingThis && (
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                        <Loader2 className="animate-spin text-white" size={20} />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Lesson Info */}
+                  <p className="text-xs font-medium text-foreground mb-1 truncate" title={lesson.title}>
+                    {lesson.number}. {lesson.title}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground mb-2">{lesson.type}</p>
+
+                  {/* Upload Button */}
+                  <button
+                    onClick={() => {
+                      setCurrentUploadTarget(`lesson-${lesson.id}`);
+                      fileInputRef.current?.click();
+                    }}
+                    disabled={isUploadingThis}
+                    className="w-full p-1.5 rounded-lg bg-muted hover:bg-muted/80 transition-colors disabled:opacity-50 text-xs flex items-center justify-center gap-1"
+                  >
+                    <Upload size={12} />
+                    {cardUrl ? 'Replace' : 'Upload'}
+                  </button>
                 </div>
               );
             })}

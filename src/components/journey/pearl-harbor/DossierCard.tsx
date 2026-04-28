@@ -20,6 +20,7 @@ interface DossierCardProps {
   onClick: () => void;
   showRightColumn?: boolean;
   completedTime?: string;
+  cardImageUrl?: string;  // Optional custom image for the card
 }
 
 // Map state to CSS class
@@ -61,6 +62,7 @@ export function DossierCard({
   onClick,
   showRightColumn = false,
   completedTime,
+  cardImageUrl,
 }: DossierCardProps) {
   const isClickable = state !== 'lock';
   const lessonNumber = String(index + 1).padStart(2, '0');
@@ -110,26 +112,34 @@ export function DossierCard({
 
       {/* Photo cell */}
       <div className="doss-photo">
-        {/* Scene placeholder - gradient silhouette */}
-        <div
-          className="absolute inset-0 flex items-center justify-center"
-          style={{
-            background:
-              state === 'cur'
-                ? 'radial-gradient(ellipse at 40% 30%, rgba(205,14,20,0.25), transparent 60%), linear-gradient(135deg, #3a1810, #0a0604)'
-                : 'linear-gradient(135deg, #2a1810, #0a0604)',
-          }}
-        >
-          {state !== 'lock' && (
-            <div
-              className="w-[60%] h-[50%] rounded-lg"
-              style={{
-                background:
-                  'radial-gradient(ellipse at 50% 40%, rgba(120,80,40,0.5), rgba(40,30,20,0.8))',
-              }}
-            />
-          )}
-        </div>
+        {/* Custom image or placeholder */}
+        {cardImageUrl && state !== 'lock' ? (
+          <img
+            src={cardImageUrl}
+            alt={lesson.title}
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        ) : (
+          <div
+            className="absolute inset-0 flex items-center justify-center"
+            style={{
+              background:
+                state === 'cur'
+                  ? 'radial-gradient(ellipse at 40% 30%, rgba(205,14,20,0.25), transparent 60%), linear-gradient(135deg, #3a1810, #0a0604)'
+                  : 'linear-gradient(135deg, #2a1810, #0a0604)',
+            }}
+          >
+            {state !== 'lock' && (
+              <div
+                className="w-[60%] h-[50%] rounded-lg"
+                style={{
+                  background:
+                    'radial-gradient(ellipse at 50% 40%, rgba(120,80,40,0.5), rgba(40,30,20,0.8))',
+                }}
+              />
+            )}
+          </div>
+        )}
 
         {/* Gradient overlay */}
         <div className="doss-photo-ovl" />

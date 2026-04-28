@@ -4,10 +4,12 @@
  * Option B design system with brass fasteners, desktop sidebar, and dossier cards
  */
 
+import { useState, useEffect } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { DossierCard, DossierState } from './DossierCard';
 import { PearlHarborLesson } from '@/data/pearlHarborLessons';
+import { subscribeToJourneyUIAssets, type FirestoreJourneyUIAssets } from '@/lib/firestore';
 
 interface DossierJourneyMapProps {
   moduleTitle: string;
@@ -34,6 +36,14 @@ export function DossierJourneyMap({
   onLessonClick,
   onBack,
 }: DossierJourneyMapProps) {
+  // Subscribe to journey UI assets for custom lesson card images
+  const [journeyAssets, setJourneyAssets] = useState<FirestoreJourneyUIAssets | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = subscribeToJourneyUIAssets(setJourneyAssets);
+    return () => unsubscribe();
+  }, []);
+
   const completedCount = completedLessons.size;
   const totalCount = lessons.length;
   const progressPercent = (completedCount / totalCount) * 100;
@@ -195,6 +205,7 @@ export function DossierJourneyMap({
           <div className="brf-dossier-list">
             {lessons.map((lesson, index) => {
               const state = getLessonState(lesson.id, index);
+              const cardImageUrl = journeyAssets?.lessonCardImages?.[lesson.id];
               return (
                 <DossierCard
                   key={lesson.id}
@@ -203,6 +214,7 @@ export function DossierJourneyMap({
                   index={index}
                   onClick={() => onLessonClick(lesson.id)}
                   showRightColumn={true}
+                  cardImageUrl={cardImageUrl}
                 />
               );
             })}
