@@ -752,6 +752,10 @@ export function JourneyTab() {
           host={host}
           onContinue={handleWW2GreetingContinue}
           onChangeGuide={handleWW2ChangeGuide}
+          onBack={() => {
+            setShowWW2HostGreeting(false);
+            setView('landing');
+          }}
         />
       );
     }

@@ -3,7 +3,7 @@
  */
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, RefreshCw } from 'lucide-react';
+import { Play, RefreshCw, ArrowLeft } from 'lucide-react';
 import { WW2Host } from '@/types';
 import { useState } from 'react';
 import { VideoPlayer916 } from '@/components/video/VideoPlayer916';
@@ -12,9 +12,10 @@ interface WW2HostGreetingProps {
   host: WW2Host;
   onContinue: () => void;
   onChangeGuide: () => void;
+  onBack?: () => void;
 }
 
-export function WW2HostGreeting({ host, onContinue, onChangeGuide }: WW2HostGreetingProps) {
+export function WW2HostGreeting({ host, onContinue, onChangeGuide, onBack }: WW2HostGreetingProps) {
   const [isPlayingVideo, setIsPlayingVideo] = useState(false);
 
   return (
@@ -25,6 +26,17 @@ export function WW2HostGreeting({ host, onContinue, onChangeGuide }: WW2HostGree
       className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-gradient-to-b from-slate-900 via-slate-950 to-black px-4 sm:px-6"
       style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
     >
+      {/* Back button */}
+      {onBack && (
+        <button
+          onClick={onBack}
+          className="absolute left-4 top-4 z-20 w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+          aria-label="Go back"
+        >
+          <ArrowLeft size={20} />
+        </button>
+      )}
+
       {/* Film grain overlay */}
       <div
         className="absolute inset-0 opacity-10 pointer-events-none"
