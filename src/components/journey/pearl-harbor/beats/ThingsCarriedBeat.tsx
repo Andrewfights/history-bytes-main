@@ -12,12 +12,13 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence, PanInfo, useMotionValue, useTransform } from 'framer-motion';
-import { ArrowLeft, Sparkles, Package, ChevronLeft, ChevronRight, ZoomIn, X, Info } from 'lucide-react';
+import { ChevronLeft as ChevronLeftIcon, X, Sparkles, Package, ChevronRight, ZoomIn, Info } from 'lucide-react';
 import { WW2Host } from '@/types';
 import { PreModuleVideoScreen, PostModuleVideoScreen, XPCompletionScreen } from '../shared';
 import { subscribeToWW2ModuleAssets, type PreModuleVideoConfig, type PostModuleVideoConfig } from '@/lib/firestore';
 import { playXPSound } from '@/lib/xpAudioManager';
 import { usePearlHarborProgress } from '../hooks/usePearlHarborProgress';
+import { useScreenHistory } from '../hooks/useScreenHistory';
 
 type Screen =
   | 'pre-video'
@@ -154,7 +155,19 @@ interface ThingsCarriedBeatProps {
 }
 
 export function ThingsCarriedBeat({ host, onComplete, onSkip, onBack, isPreview = false }: ThingsCarriedBeatProps) {
-  const [screen, setScreen] = useState<Screen>('intro');
+  // Use screen history hook for proper back navigation
+  const {
+    screen,
+    isFirstScreen,
+    goToScreen,
+    goBack: goToPrevScreen,
+    resetHistory,
+  } = useScreenHistory<Screen>({
+    initialScreen: 'intro',
+    screens: SCREENS,
+    onExit: onBack,
+  });
+
   const [skipped, setSkipped] = useState(false);
   const [preModuleVideoConfig, setPreModuleVideoConfig] = useState<PreModuleVideoConfig | null>(null);
   const [postModuleVideoConfig, setPostModuleVideoConfig] = useState<PostModuleVideoConfig | null>(null);
@@ -181,10 +194,10 @@ export function ThingsCarriedBeat({ host, onComplete, onSkip, onBack, isPreview 
     if (checkpoint?.lessonId === LESSON_DATA.id && checkpoint.screen) {
       const savedScreen = checkpoint.screen as Screen;
       if (SCREENS.includes(savedScreen) && savedScreen !== 'completion') {
-        setScreen(savedScreen);
+        resetHistory(savedScreen);
       }
     }
-  }, []);
+  }, [resetHistory]);
 
   // Save checkpoint on screen change - only after config is loaded
   useEffect(() => {
@@ -242,10 +255,10 @@ export function ThingsCarriedBeat({ host, onComplete, onSkip, onBack, isPreview 
         preModuleVideoConfig?.enabled &&
         preModuleVideoConfig?.videoUrl;
       if (shouldShowPreVideo) {
-        setScreen('pre-video');
+        resetHistory('pre-video');
       }
     }
-  }, [hasLoadedConfig, preModuleVideoConfig, isPreview]);
+  }, [hasLoadedConfig, preModuleVideoConfig, isPreview, resetHistory]);
 
   // Mark current artifact as viewed
   useEffect(() => {
@@ -266,7 +279,7 @@ export function ThingsCarriedBeat({ host, onComplete, onSkip, onBack, isPreview 
         nextScreenIndex++;
       }
       if (nextScreenIndex < SCREENS.length) {
-        setScreen(SCREENS[nextScreenIndex]);
+        goToScreen(SCREENS[nextScreenIndex]);
       } else {
         clearCheckpoint();
         onComplete(skipped ? 0 : LESSON_DATA.xpReward);
@@ -275,7 +288,7 @@ export function ThingsCarriedBeat({ host, onComplete, onSkip, onBack, isPreview 
       clearCheckpoint();
       onComplete(skipped ? 0 : LESSON_DATA.xpReward);
     }
-  }, [screen, skipped, clearCheckpoint, onComplete, postModuleVideoConfig]);
+  }, [screen, skipped, clearCheckpoint, onComplete, postModuleVideoConfig, goToScreen]);
 
   const goToNextArtifact = () => {
     if (currentArtifactIndex < ARTIFACTS.length - 1) {
@@ -305,8 +318,8 @@ export function ThingsCarriedBeat({ host, onComplete, onSkip, onBack, isPreview 
     <div className="fixed inset-0 z-[60] pt-safe bg-black flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
-        <button onClick={onBack} className="p-2 -ml-2 text-white/60 hover:text-white transition-colors">
-          <ArrowLeft size={24} />
+        <button onClick={goToPrevScreen} className="p-2 -ml-2 text-white/60 hover:text-white transition-colors">
+          {isFirstScreen ? <X size={24} /> : <ChevronLeftIcon size={24} />}
         </button>
         <div className="text-center">
           <h1 className="text-white font-bold">The Things They Carried</h1>
@@ -330,7 +343,7 @@ export function ThingsCarriedBeat({ host, onComplete, onSkip, onBack, isPreview 
             <PreModuleVideoScreen
               config={preModuleVideoConfig}
               beatTitle="The Things They Carried"
-              onComplete={() => setScreen('intro')}
+              onComplete={() => goToScreen('intro')}
             />
           )}
 
@@ -600,7 +613,7 @@ export function ThingsCarriedBeat({ host, onComplete, onSkip, onBack, isPreview 
             <PostModuleVideoScreen
               config={postModuleVideoConfig}
               beatTitle="The Things They Carried"
-              onComplete={() => setScreen('completion')}
+              onComplete={() => goToScreen('completion')}
             />
           )}
 

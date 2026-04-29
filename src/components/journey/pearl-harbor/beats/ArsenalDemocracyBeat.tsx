@@ -9,12 +9,13 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Sparkles, Factory, Globe, AlertTriangle, TrendingUp } from 'lucide-react';
+import { ChevronLeft, X, Sparkles, Factory, Globe, AlertTriangle, TrendingUp } from 'lucide-react';
 import { WW2Host } from '@/types';
 import { TimedChallenge, TimedQuestion, PreModuleVideoScreen, PostModuleVideoScreen, XPCompletionScreen } from '../shared';
 import { subscribeToWW2ModuleAssets, type PreModuleVideoConfig, type PostModuleVideoConfig } from '@/lib/firestore';
 import { playXPSound } from '@/lib/xpAudioManager';
 import { usePearlHarborProgress } from '../hooks/usePearlHarborProgress';
+import { useScreenHistory } from '../hooks/useScreenHistory';
 
 type Screen = 'pre-video' | 'intro' | 'production' | 'timed-challenge' | 'strategy' | 'dark-side' | 'post-video' | 'completion';
 const SCREENS: Screen[] = ['pre-video', 'intro', 'production', 'timed-challenge', 'strategy', 'dark-side', 'post-video', 'completion'];
@@ -92,7 +93,19 @@ interface ArsenalDemocracyBeatProps {
 }
 
 export function ArsenalDemocracyBeat({ host, onComplete, onSkip, onBack, isPreview = false }: ArsenalDemocracyBeatProps) {
-  const [screen, setScreen] = useState<Screen>('intro');
+  // Use screen history hook for proper back navigation
+  const {
+    screen,
+    isFirstScreen,
+    goToScreen,
+    goBack: goToPrevScreen,
+    resetHistory,
+  } = useScreenHistory<Screen>({
+    initialScreen: 'intro',
+    screens: SCREENS,
+    onExit: onBack,
+  });
+
   const [challengeComplete, setChallengeComplete] = useState(false);
   const [challengeScore, setChallengeScore] = useState(0);
   const [skipped, setSkipped] = useState(false);
@@ -102,15 +115,16 @@ export function ArsenalDemocracyBeat({ host, onComplete, onSkip, onBack, isPrevi
 
   const { saveCheckpoint, clearCheckpoint, getCheckpoint } = usePearlHarborProgress();
 
+  // Restore checkpoint on mount
   useEffect(() => {
     const checkpoint = getCheckpoint();
     if (checkpoint?.lessonId === LESSON_DATA.id && checkpoint.screen) {
       const savedScreen = checkpoint.screen as Screen;
       if (SCREENS.includes(savedScreen) && savedScreen !== 'completion') {
-        setScreen(savedScreen);
+        resetHistory(savedScreen);
       }
     }
-  }, []);
+  }, [resetHistory]);
 
   useEffect(() => {
     if (hasLoadedConfig && screen !== 'completion') {
@@ -154,10 +168,10 @@ export function ArsenalDemocracyBeat({ host, onComplete, onSkip, onBack, isPrevi
         preModuleVideoConfig?.enabled &&
         preModuleVideoConfig?.videoUrl;
       if (shouldShowPreVideo) {
-        setScreen('pre-video');
+        resetHistory('pre-video');
       }
     }
-  }, [hasLoadedConfig, preModuleVideoConfig, isPreview]);
+  }, [hasLoadedConfig, preModuleVideoConfig, isPreview, resetHistory]);
 
   const nextScreen = useCallback(() => {
     const currentIndex = SCREENS.indexOf(screen);
@@ -168,7 +182,7 @@ export function ArsenalDemocracyBeat({ host, onComplete, onSkip, onBack, isPrevi
         nextScreenIndex++;
       }
       if (nextScreenIndex < SCREENS.length) {
-        setScreen(SCREENS[nextScreenIndex]);
+        goToScreen(SCREENS[nextScreenIndex]);
       } else {
         clearCheckpoint();
         onComplete(skipped ? 0 : LESSON_DATA.xpReward);
@@ -177,7 +191,7 @@ export function ArsenalDemocracyBeat({ host, onComplete, onSkip, onBack, isPrevi
       clearCheckpoint();
       onComplete(skipped ? 0 : LESSON_DATA.xpReward);
     }
-  }, [screen, skipped, clearCheckpoint, onComplete, postModuleVideoConfig]);
+  }, [screen, skipped, clearCheckpoint, onComplete, postModuleVideoConfig, goToScreen]);
 
   const handleChallengeComplete = (score: number, total: number, streak: number) => {
     setChallengeScore(score);
@@ -189,8 +203,8 @@ export function ArsenalDemocracyBeat({ host, onComplete, onSkip, onBack, isPrevi
     <div className="fixed inset-0 z-[60] pt-safe bg-black flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
-        <button onClick={onBack} className="p-2 -ml-2 text-white/60 hover:text-white transition-colors">
-          <ArrowLeft size={24} />
+        <button onClick={goToPrevScreen} className="p-2 -ml-2 text-white/60 hover:text-white transition-colors">
+          {isFirstScreen ? <X size={24} /> : <ChevronLeft size={24} />}
         </button>
         <div className="text-center">
           <h1 className="text-white font-bold">Arsenal of Democracy</h1>
@@ -214,7 +228,7 @@ export function ArsenalDemocracyBeat({ host, onComplete, onSkip, onBack, isPrevi
             <PreModuleVideoScreen
               config={preModuleVideoConfig}
               beatTitle="Arsenal of Democracy"
-              onComplete={() => setScreen('intro')}
+              onComplete={() => goToScreen('intro')}
             />
           )}
 
@@ -413,7 +427,7 @@ export function ArsenalDemocracyBeat({ host, onComplete, onSkip, onBack, isPrevi
             <PostModuleVideoScreen
               config={postModuleVideoConfig}
               beatTitle="Arsenal of Democracy"
-              onComplete={() => setScreen('completion')}
+              onComplete={() => goToScreen('completion')}
             />
           )}
 

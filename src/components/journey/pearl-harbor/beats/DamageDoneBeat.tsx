@@ -9,9 +9,10 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Sparkles, Clock, ChevronRight } from 'lucide-react';
+import { ChevronLeft, X, Sparkles, Clock, ChevronRight } from 'lucide-react';
 import { WW2Host } from '@/types';
 import { usePearlHarborProgress } from '../hooks/usePearlHarborProgress';
+import { useScreenHistory } from '../hooks/useScreenHistory';
 import { PreModuleVideoScreen, PostModuleVideoScreen, XPCompletionScreen } from '../shared';
 import { subscribeToWW2ModuleAssets, type PreModuleVideoConfig, type PostModuleVideoConfig } from '@/lib/firestore';
 import { playXPSound } from '@/lib/xpAudioManager';
@@ -104,7 +105,19 @@ interface DamageDoneBeatProps {
 }
 
 export function DamageDoneBeat({ host, onComplete, onSkip, onBack, isPreview = false }: DamageDoneBeatProps) {
-  const [screen, setScreen] = useState<Screen>('intro');
+  // Use screen history hook for proper back navigation
+  const {
+    screen,
+    isFirstScreen,
+    goToScreen,
+    goBack: goToPrevScreen,
+    resetHistory,
+  } = useScreenHistory<Screen>({
+    initialScreen: 'intro',
+    screens: SCREENS,
+    onExit: onBack,
+  });
+
   const [currentBeat, setCurrentBeat] = useState(2); // Start at "First wave arrives"
   const [skipped, setSkipped] = useState(false);
   const [preModuleVideoConfig, setPreModuleVideoConfig] = useState<PreModuleVideoConfig | null>(null);
@@ -148,10 +161,10 @@ export function DamageDoneBeat({ host, onComplete, onSkip, onBack, isPreview = f
         preModuleVideoConfig?.enabled &&
         preModuleVideoConfig?.videoUrl;
       if (shouldShowPreVideo) {
-        setScreen('pre-video');
+        resetHistory('pre-video');
       }
     }
-  }, [hasLoadedConfig, preModuleVideoConfig, isPreview]);
+  }, [hasLoadedConfig, preModuleVideoConfig, isPreview, resetHistory]);
 
   // Load checkpoint on mount
   useEffect(() => {
@@ -159,13 +172,13 @@ export function DamageDoneBeat({ host, onComplete, onSkip, onBack, isPreview = f
     if (checkpoint?.lessonId === LESSON_DATA.id && checkpoint.screen) {
       const savedScreen = checkpoint.screen as Screen;
       if (SCREENS.includes(savedScreen) && savedScreen !== 'completion') {
-        setScreen(savedScreen);
+        resetHistory(savedScreen);
         if (checkpoint.state?.currentBeat !== undefined) {
           setCurrentBeat(checkpoint.state.currentBeat);
         }
       }
     }
-  }, []);
+  }, [resetHistory]);
 
   // Save checkpoint on screen/state change - only after config is loaded to avoid race condition
   useEffect(() => {
@@ -205,7 +218,7 @@ export function DamageDoneBeat({ host, onComplete, onSkip, onBack, isPreview = f
         nextScreenIndex++;
       }
       if (nextScreenIndex < SCREENS.length) {
-        setScreen(SCREENS[nextScreenIndex]);
+        goToScreen(SCREENS[nextScreenIndex]);
       } else {
         clearCheckpoint();
         onComplete(skipped ? 0 : LESSON_DATA.xpReward);
@@ -214,7 +227,7 @@ export function DamageDoneBeat({ host, onComplete, onSkip, onBack, isPreview = f
       clearCheckpoint();
       onComplete(skipped ? 0 : LESSON_DATA.xpReward);
     }
-  }, [screen, skipped, clearCheckpoint, onComplete, postModuleVideoConfig]);
+  }, [screen, skipped, clearCheckpoint, onComplete, postModuleVideoConfig, goToScreen]);
 
   // Convert scrubber position to beat index
   const posToBeat = useCallback((clientX: number) => {
@@ -305,8 +318,8 @@ export function DamageDoneBeat({ host, onComplete, onSkip, onBack, isPreview = f
     <div className="fixed inset-0 z-[60] pt-safe bg-black flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
-        <button onClick={onBack} className="p-2 -ml-2 text-white/60 hover:text-white transition-colors">
-          <ArrowLeft size={24} />
+        <button onClick={goToPrevScreen} className="p-2 -ml-2 text-white/60 hover:text-white transition-colors">
+          {isFirstScreen ? <X size={24} /> : <ChevronLeft size={24} />}
         </button>
         <div className="text-center">
           <h1 className="text-white font-bold">Damage Done</h1>
@@ -330,7 +343,7 @@ export function DamageDoneBeat({ host, onComplete, onSkip, onBack, isPreview = f
             <PreModuleVideoScreen
               config={preModuleVideoConfig}
               beatTitle="Damage Done"
-              onComplete={() => setScreen('intro')}
+              onComplete={() => goToScreen('intro')}
             />
           )}
 
@@ -932,7 +945,7 @@ export function DamageDoneBeat({ host, onComplete, onSkip, onBack, isPreview = f
             <PostModuleVideoScreen
               config={postModuleVideoConfig}
               beatTitle="Damage Done - The Full Impact"
-              onComplete={() => setScreen('completion')}
+              onComplete={() => goToScreen('completion')}
             />
           )}
 

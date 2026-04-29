@@ -9,12 +9,13 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Sparkles, Trophy, Target, Award, Star } from 'lucide-react';
+import { ChevronLeft, X, Sparkles, Trophy, Target, Award, Star } from 'lucide-react';
 import { WW2Host } from '@/types';
 import { TimedChallenge, TimedQuestion, PreModuleVideoScreen, PostModuleVideoScreen, XPCompletionScreen } from '../shared';
 import { subscribeToWW2ModuleAssets, type PreModuleVideoConfig, type PostModuleVideoConfig } from '@/lib/firestore';
 import { playXPSound } from '@/lib/xpAudioManager';
 import { usePearlHarborProgress } from '../hooks/usePearlHarborProgress';
+import { useScreenHistory } from '../hooks/useScreenHistory';
 import { MASTERY_SCORING } from '@/data/pearlHarborLessons';
 
 type Screen = 'pre-video' | 'intro' | 'quiz' | 'results' | 'post-video' | 'completion';
@@ -144,7 +145,19 @@ interface MasteryRunBeatProps {
 }
 
 export function MasteryRunBeat({ host, onComplete, onSkip, onBack, isPreview = false }: MasteryRunBeatProps) {
-  const [screen, setScreen] = useState<Screen>('intro');
+  // Use screen history hook for proper back navigation
+  const {
+    screen,
+    isFirstScreen,
+    goToScreen,
+    goBack: goToPrevScreen,
+    resetHistory,
+  } = useScreenHistory<Screen>({
+    initialScreen: 'intro',
+    screens: SCREENS,
+    onExit: onBack,
+  });
+
   const [score, setScore] = useState(0);
   const [maxStreak, setMaxStreak] = useState(0);
   const [skipped, setSkipped] = useState(false);
@@ -154,15 +167,16 @@ export function MasteryRunBeat({ host, onComplete, onSkip, onBack, isPreview = f
 
   const { saveCheckpoint, clearCheckpoint, getCheckpoint } = usePearlHarborProgress();
 
+  // Restore from checkpoint
   useEffect(() => {
     const checkpoint = getCheckpoint();
     if (checkpoint?.lessonId === LESSON_DATA.id && checkpoint.screen) {
       const savedScreen = checkpoint.screen as Screen;
       if (SCREENS.includes(savedScreen) && savedScreen !== 'completion') {
-        setScreen(savedScreen);
+        resetHistory(savedScreen);
       }
     }
-  }, []);
+  }, [resetHistory]);
 
   useEffect(() => {
     if (hasLoadedConfig && screen !== 'completion') {
@@ -204,10 +218,10 @@ export function MasteryRunBeat({ host, onComplete, onSkip, onBack, isPreview = f
         preModuleVideoConfig?.enabled &&
         preModuleVideoConfig?.videoUrl;
       if (shouldShowPreVideo) {
-        setScreen('pre-video');
+        resetHistory('pre-video');
       }
     }
-  }, [hasLoadedConfig, preModuleVideoConfig, isPreview]);
+  }, [hasLoadedConfig, preModuleVideoConfig, isPreview, resetHistory]);
 
   const nextScreen = useCallback(() => {
     const currentIndex = SCREENS.indexOf(screen);
@@ -217,13 +231,13 @@ export function MasteryRunBeat({ host, onComplete, onSkip, onBack, isPreview = f
       if (SCREENS[nextIndex] === 'post-video' && !postModuleVideoConfig) {
         nextIndex++;
       }
-      setScreen(SCREENS[nextIndex]);
+      goToScreen(SCREENS[nextIndex]);
     } else {
       clearCheckpoint();
       const earnedXP = skipped ? 0 : calculateXP();
       onComplete(earnedXP);
     }
-  }, [screen, skipped, clearCheckpoint, onComplete, score, postModuleVideoConfig]);
+  }, [screen, skipped, clearCheckpoint, onComplete, score, postModuleVideoConfig, goToScreen]);
 
   const handleQuizComplete = (finalScore: number, total: number, streak: number) => {
     setScore(finalScore);
@@ -252,8 +266,8 @@ export function MasteryRunBeat({ host, onComplete, onSkip, onBack, isPreview = f
     <div className="fixed inset-0 z-[60] pt-safe bg-black flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
-        <button onClick={onBack} className="p-2 -ml-2 text-white/60 hover:text-white transition-colors">
-          <ArrowLeft size={24} />
+        <button onClick={goToPrevScreen} className="p-2 -ml-2 text-white/60 hover:text-white transition-colors">
+          {isFirstScreen ? <X size={24} /> : <ChevronLeft size={24} />}
         </button>
         <div className="text-center">
           <h1 className="text-white font-bold">Mastery Run</h1>
@@ -277,7 +291,7 @@ export function MasteryRunBeat({ host, onComplete, onSkip, onBack, isPreview = f
             <PreModuleVideoScreen
               config={preModuleVideoConfig}
               beatTitle="Mastery Run"
-              onComplete={() => setScreen('intro')}
+              onComplete={() => goToScreen('intro')}
             />
           )}
 

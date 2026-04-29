@@ -10,13 +10,15 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Check, Play, X, Volume2, Sparkles, ChevronLeft, ChevronRight, Award } from 'lucide-react';
+import { ChevronLeft as ChevronLeftIcon, X, Check, Play, Volume2, Sparkles, ChevronRight, Award } from 'lucide-react';
 import { WW2Host } from '@/types';
 import { PreModuleVideoScreen, PostModuleVideoScreen, XPCompletionScreen } from '../shared';
 import { subscribeToWW2ModuleAssets, type PreModuleVideoConfig, type PostModuleVideoConfig } from '@/lib/firestore';
 import { usePearlHarborProgress } from '../hooks/usePearlHarborProgress';
+import { useScreenHistory } from '../hooks/useScreenHistory';
 
 type Screen = 'pre-video' | 'dossier' | 'post-video' | 'completion';
+const SCREENS: Screen[] = ['pre-video', 'dossier', 'post-video', 'completion'];
 
 const LESSON_DATA = {
   id: 'ph-beat-11',
@@ -100,7 +102,19 @@ interface CodeTalkersBeatProps {
 }
 
 export function CodeTalkersBeat({ host, onComplete, onSkip, onBack, isPreview = false }: CodeTalkersBeatProps) {
-  const [screen, setScreen] = useState<Screen>('dossier');
+  // Use screen history hook for proper back navigation
+  const {
+    screen,
+    isFirstScreen,
+    goToScreen,
+    goBack: goToPrevScreen,
+    resetHistory,
+  } = useScreenHistory<Screen>({
+    initialScreen: 'dossier',
+    screens: SCREENS,
+    onExit: onBack,
+  });
+
   const [skipped, setSkipped] = useState(false);
   const [preModuleVideoConfig, setPreModuleVideoConfig] = useState<PreModuleVideoConfig | null>(null);
   const [postModuleVideoConfig, setPostModuleVideoConfig] = useState<PostModuleVideoConfig | null>(null);
@@ -163,10 +177,10 @@ export function CodeTalkersBeat({ host, onComplete, onSkip, onBack, isPreview = 
         preModuleVideoConfig?.enabled &&
         preModuleVideoConfig?.videoUrl;
       if (shouldShowPreVideo) {
-        setScreen('pre-video');
+        resetHistory('pre-video');
       }
     }
-  }, [hasLoadedConfig, preModuleVideoConfig, isPreview]);
+  }, [hasLoadedConfig, preModuleVideoConfig, isPreview, resetHistory]);
 
   // Save checkpoint
   useEffect(() => {
@@ -228,11 +242,11 @@ export function CodeTalkersBeat({ host, onComplete, onSkip, onBack, isPreview = 
   // Complete beat
   const handleComplete = useCallback(() => {
     if (postModuleVideoConfig?.enabled) {
-      setScreen('post-video');
+      goToScreen('post-video');
     } else {
-      setScreen('completion');
+      goToScreen('completion');
     }
-  }, [postModuleVideoConfig]);
+  }, [postModuleVideoConfig, goToScreen]);
 
   // Sound wave bars component
   const SoundWaveBars = () => (
@@ -261,7 +275,7 @@ export function CodeTalkersBeat({ host, onComplete, onSkip, onBack, isPreview = 
         <PreModuleVideoScreen
           config={preModuleVideoConfig}
           beatTitle="Code Talkers"
-          onComplete={() => setScreen('dossier')}
+          onComplete={() => goToScreen('dossier')}
         />
       )}
 
@@ -274,8 +288,8 @@ export function CodeTalkersBeat({ host, onComplete, onSkip, onBack, isPreview = 
             <div className="absolute top-0 left-0 right-0 h-px bg-ha-red/60" />
 
             <div className="flex items-center justify-between gap-3">
-              <button onClick={onBack} className="flex items-center gap-1.5 text-off-white/50 hover:text-gold transition-colors">
-                <ArrowLeft size={16} strokeWidth={2.2} />
+              <button onClick={goToPrevScreen} className="flex items-center gap-1.5 text-off-white/50 hover:text-gold transition-colors">
+                {isFirstScreen ? <X size={16} strokeWidth={2.2} /> : <ChevronLeftIcon size={16} strokeWidth={2.2} />}
                 <span className="font-mono text-[10px] tracking-[0.28em] uppercase font-bold hidden sm:inline">Pacific Theater</span>
               </button>
 
@@ -797,7 +811,7 @@ export function CodeTalkersBeat({ host, onComplete, onSkip, onBack, isPreview = 
         <PostModuleVideoScreen
           config={postModuleVideoConfig}
           beatTitle="Code Talkers"
-          onComplete={() => setScreen('completion')}
+          onComplete={() => goToScreen('completion')}
         />
       )}
 

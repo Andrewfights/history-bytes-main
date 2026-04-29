@@ -9,10 +9,11 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, ArrowRight, Map, Clock, Sparkles } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Map, Clock, Sparkles, ChevronLeft, X } from 'lucide-react';
 import { WW2Host } from '@/types';
 import { InteractiveMap, MapHotspot, TimedChallenge, TimedQuestion, PreModuleVideoScreen, PostModuleVideoScreen, XPCompletionScreen } from '../shared';
 import { usePearlHarborProgress } from '../hooks/usePearlHarborProgress';
+import { useScreenHistory } from '../hooks/useScreenHistory';
 import { subscribeToWW2ModuleAssets, type WW2BeatHotspotConfig, type PreModuleVideoConfig, type PostModuleVideoConfig } from '@/lib/firestore';
 import { BEAT_1_DEFAULT_IMAGE } from '@/data/pearlHarborDefaults';
 import { playXPSound } from '@/lib/xpAudioManager';
@@ -142,7 +143,21 @@ interface RoadToWarBeatProps {
 }
 
 export function RoadToWarBeat({ host, onComplete, onSkip, onBack, isPreview = false }: RoadToWarBeatProps) {
-  const [screen, setScreen] = useState<Screen>('intro');
+  // Use screen history hook for proper back navigation
+  const {
+    screen,
+    canGoBack,
+    isFirstScreen,
+    goToScreen,
+    goBack: goToPrevScreen,
+    goNext: goToNextScreen,
+    resetHistory,
+  } = useScreenHistory<Screen>({
+    initialScreen: 'intro',
+    screens: SCREENS,
+    onExit: onBack,
+  });
+
   const [viewedHotspots, setViewedHotspots] = useState<Set<string>>(new Set());
   const [challengeScore, setChallengeScore] = useState(0);
   const [skippedScreens, setSkippedScreens] = useState<Set<Screen>>(new Set());
@@ -217,10 +232,10 @@ export function RoadToWarBeat({ host, onComplete, onSkip, onBack, isPreview = fa
         preModuleVideoConfig?.enabled &&
         preModuleVideoConfig?.videoUrl;
       if (shouldShowPreVideo) {
-        setScreen('pre-video');
+        resetHistory('pre-video');
       }
     }
-  }, [hasLoadedConfig, preModuleVideoConfig, isPreview]);
+  }, [hasLoadedConfig, preModuleVideoConfig, isPreview, resetHistory]);
 
   // Restore checkpoint on mount
   useEffect(() => {
@@ -228,7 +243,7 @@ export function RoadToWarBeat({ host, onComplete, onSkip, onBack, isPreview = fa
     if (checkpoint?.lessonId === LESSON_DATA.id && checkpoint.screen) {
       const savedScreen = checkpoint.screen as Screen;
       if (SCREENS.includes(savedScreen) && savedScreen !== 'completion') {
-        setScreen(savedScreen);
+        resetHistory(savedScreen);
         if (checkpoint.state?.viewedHotspots) {
           setViewedHotspots(new Set(checkpoint.state.viewedHotspots));
         }
@@ -237,7 +252,7 @@ export function RoadToWarBeat({ host, onComplete, onSkip, onBack, isPreview = fa
         }
       }
     }
-  }, []);
+  }, [resetHistory]);
 
   // Save checkpoint on screen change - only after config is loaded to avoid race condition
   useEffect(() => {
@@ -267,7 +282,7 @@ export function RoadToWarBeat({ host, onComplete, onSkip, onBack, isPreview = fa
         nextScreenIndex++;
       }
       if (nextScreenIndex < SCREENS.length) {
-        setScreen(SCREENS[nextScreenIndex]);
+        goToScreen(SCREENS[nextScreenIndex]);
       } else {
         clearCheckpoint();
         const earnedXP = skippedScreens.size === 0 ? LESSON_DATA.xpReward : 0;
@@ -278,7 +293,7 @@ export function RoadToWarBeat({ host, onComplete, onSkip, onBack, isPreview = fa
       const earnedXP = skippedScreens.size === 0 ? LESSON_DATA.xpReward : 0;
       onComplete(earnedXP);
     }
-  }, [screen, skippedScreens, clearCheckpoint, onComplete, postModuleVideoConfig]);
+  }, [screen, skippedScreens, clearCheckpoint, onComplete, postModuleVideoConfig, goToScreen]);
 
   const handleHotspotView = (id: string) => {
     setViewedHotspots((prev) => new Set([...prev, id]));
@@ -324,10 +339,10 @@ export function RoadToWarBeat({ host, onComplete, onSkip, onBack, isPreview = fa
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
         <button
-          onClick={onBack}
+          onClick={goToPrevScreen}
           className="p-2 -ml-2 text-white/60 hover:text-white transition-colors"
         >
-          <ArrowLeft size={24} />
+          {isFirstScreen ? <X size={24} /> : <ChevronLeft size={24} />}
         </button>
         <div className="text-center">
           <h1 className="text-white font-bold">Why Pearl Harbor?</h1>
@@ -355,7 +370,7 @@ export function RoadToWarBeat({ host, onComplete, onSkip, onBack, isPreview = fa
             <PreModuleVideoScreen
               config={preModuleVideoConfig}
               beatTitle="Why Pearl Harbor?"
-              onComplete={() => setScreen('intro')}
+              onComplete={() => goToScreen('intro')}
             />
           )}
 
@@ -546,7 +561,7 @@ export function RoadToWarBeat({ host, onComplete, onSkip, onBack, isPreview = fa
             <PostModuleVideoScreen
               config={postModuleVideoConfig}
               beatTitle="Why Pearl Harbor? The Road to War"
-              onComplete={() => setScreen('completion')}
+              onComplete={() => goToScreen('completion')}
             />
           )}
 

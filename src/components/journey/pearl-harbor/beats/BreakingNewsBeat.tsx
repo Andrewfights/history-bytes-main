@@ -9,7 +9,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Sparkles, Radio, Play, Pause, Volume2, VolumeX } from 'lucide-react';
+import { ChevronLeft, X, Sparkles, Radio, Play, Pause, Volume2, VolumeX } from 'lucide-react';
 
 // Bakelite radio color constants
 const BAK_HI = '#6a2a18';
@@ -23,6 +23,7 @@ import { PreModuleVideoScreen, PostModuleVideoScreen, XPCompletionScreen } from 
 import { subscribeToWW2ModuleAssets, type PreModuleVideoConfig, type PostModuleVideoConfig, type BreakingNewsStationMedia } from '@/lib/firestore';
 import { playXPSound } from '@/lib/xpAudioManager';
 import { usePearlHarborProgress } from '../hooks/usePearlHarborProgress';
+import { useScreenHistory } from '../hooks/useScreenHistory';
 import { useWW2ModuleAssets } from '../hooks/useWW2ModuleAssets';
 
 // Media keys from WW2ModuleEditor
@@ -90,7 +91,19 @@ interface BreakingNewsBeatProps {
 }
 
 export function BreakingNewsBeat({ host, onComplete, onSkip, onBack, isPreview = false }: BreakingNewsBeatProps) {
-  const [screen, setScreen] = useState<Screen>('intro');
+  // Use screen history hook for proper back navigation
+  const {
+    screen,
+    isFirstScreen,
+    goToScreen,
+    goBack: goToPrevScreen,
+    resetHistory,
+  } = useScreenHistory<Screen>({
+    initialScreen: 'intro',
+    screens: SCREENS,
+    onExit: onBack,
+  });
+
   const [selectedStation, setSelectedStation] = useState<RadioStation | null>(null);
   const [stationsListened, setStationsListened] = useState<Set<string>>(new Set());
   const [skipped, setSkipped] = useState(false);
@@ -159,13 +172,13 @@ export function BreakingNewsBeat({ host, onComplete, onSkip, onBack, isPreview =
     if (checkpoint?.lessonId === LESSON_DATA.id && checkpoint.screen) {
       const savedScreen = checkpoint.screen as Screen;
       if (SCREENS.includes(savedScreen) && savedScreen !== 'completion') {
-        setScreen(savedScreen);
+        resetHistory(savedScreen);
         if (checkpoint.state?.stationsListened) {
           setStationsListened(new Set(checkpoint.state.stationsListened));
         }
       }
     }
-  }, []);
+  }, [resetHistory]);
 
   // Save checkpoint - only after config is loaded to avoid race condition
   useEffect(() => {
@@ -214,14 +227,14 @@ export function BreakingNewsBeat({ host, onComplete, onSkip, onBack, isPreview =
         preModuleVideoConfig?.enabled &&
         preModuleVideoConfig?.videoUrl;
       if (shouldShowPreVideo) {
-        setScreen('pre-video');
+        resetHistory('pre-video');
       }
     }
-  }, [hasLoadedConfig, preModuleVideoConfig, isPreview]);
+  }, [hasLoadedConfig, preModuleVideoConfig, isPreview, resetHistory]);
 
   // After pre-video ends, go directly to radio-stations
   const handlePreVideoComplete = () => {
-    setScreen('radio-stations');
+    goToScreen('radio-stations');
   };
 
   const nextScreen = useCallback(() => {
@@ -233,7 +246,7 @@ export function BreakingNewsBeat({ host, onComplete, onSkip, onBack, isPreview =
         nextIndex++;
       }
       if (nextIndex < SCREENS.length) {
-        setScreen(SCREENS[nextIndex]);
+        goToScreen(SCREENS[nextIndex]);
       } else {
         clearCheckpoint();
         onComplete(skipped ? 0 : LESSON_DATA.xpReward);
@@ -242,7 +255,7 @@ export function BreakingNewsBeat({ host, onComplete, onSkip, onBack, isPreview =
       clearCheckpoint();
       onComplete(skipped ? 0 : LESSON_DATA.xpReward);
     }
-  }, [screen, skipped, clearCheckpoint, onComplete, postModuleVideoConfig]);
+  }, [screen, skipped, clearCheckpoint, onComplete, postModuleVideoConfig, goToScreen]);
 
   const handleStationSelect = (station: RadioStation) => {
     setSelectedStation(station);
@@ -316,9 +329,9 @@ export function BreakingNewsBeat({ host, onComplete, onSkip, onBack, isPreview =
     // Go directly to post-video or completion
     if (videoEnded) {
       if (postModuleVideoConfig?.enabled && postModuleVideoConfig?.videoUrl) {
-        setScreen('post-video');
+        goToScreen('post-video');
       } else {
-        setScreen('completion');
+        goToScreen('completion');
       }
       return;
     }
@@ -326,13 +339,13 @@ export function BreakingNewsBeat({ host, onComplete, onSkip, onBack, isPreview =
     // If there's a station video that hasn't been watched, play it
     if (selectedStation && stationMedia[selectedStation.id]?.videoUrl && !isVideoPlaying) {
       setCurrentStationVideoUrl(stationMedia[selectedStation.id].videoUrl!);
-      setScreen('station-video');
+      goToScreen('station-video');
     } else {
       // No video - go directly to post-video or completion
       if (postModuleVideoConfig?.enabled && postModuleVideoConfig?.videoUrl) {
-        setScreen('post-video');
+        goToScreen('post-video');
       } else {
-        setScreen('completion');
+        goToScreen('completion');
       }
     }
   };
@@ -343,8 +356,8 @@ export function BreakingNewsBeat({ host, onComplete, onSkip, onBack, isPreview =
     <div className="fixed inset-0 z-[60] pt-safe bg-black flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
-        <button onClick={onBack} className="p-2 -ml-2 text-white/60 hover:text-white transition-colors">
-          <ArrowLeft size={24} />
+        <button onClick={goToPrevScreen} className="p-2 -ml-2 text-white/60 hover:text-white transition-colors">
+          {isFirstScreen ? <X size={24} /> : <ChevronLeft size={24} />}
         </button>
         <div className="text-center">
           <h1 className="text-white font-bold">Breaking News</h1>
@@ -983,9 +996,9 @@ export function BreakingNewsBeat({ host, onComplete, onSkip, onBack, isPreview =
                       onEnded={() => {
                         // Go to post-video if configured, otherwise completion
                         if (postModuleVideoConfig?.enabled && postModuleVideoConfig?.videoUrl) {
-                          setScreen('post-video');
+                          goToScreen('post-video');
                         } else {
-                          setScreen('completion');
+                          goToScreen('completion');
                         }
                       }}
                     />
@@ -997,9 +1010,9 @@ export function BreakingNewsBeat({ host, onComplete, onSkip, onBack, isPreview =
                       onClick={() => {
                         // Go to post-video if configured, otherwise completion
                         if (postModuleVideoConfig?.enabled && postModuleVideoConfig?.videoUrl) {
-                          setScreen('post-video');
+                          goToScreen('post-video');
                         } else {
-                          setScreen('completion');
+                          goToScreen('completion');
                         }
                       }}
                       className="w-full py-3 bg-white/10 hover:bg-white/20 text-white font-medium rounded-xl transition-colors"
@@ -1012,7 +1025,7 @@ export function BreakingNewsBeat({ host, onComplete, onSkip, onBack, isPreview =
                 // No video configured, auto-advance to completion
                 <motion.div
                   className="flex-1 flex items-center justify-center"
-                  onAnimationComplete={() => setScreen('completion')}
+                  onAnimationComplete={() => goToScreen('completion')}
                 >
                   <p className="text-white/50">Loading...</p>
                 </motion.div>
@@ -1026,7 +1039,7 @@ export function BreakingNewsBeat({ host, onComplete, onSkip, onBack, isPreview =
               <PostModuleVideoScreen
                 config={postModuleVideoConfig}
                 beatTitle="Breaking News"
-                onComplete={() => setScreen('completion')}
+                onComplete={() => goToScreen('completion')}
               />
             ) : (
               // No post-video configured, auto-advance to completion
@@ -1034,7 +1047,7 @@ export function BreakingNewsBeat({ host, onComplete, onSkip, onBack, isPreview =
                 key="post-video-skip"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                onAnimationComplete={() => setScreen('completion')}
+                onAnimationComplete={() => goToScreen('completion')}
                 className="flex-1 flex items-center justify-center"
               >
                 <p className="text-white/50">Loading...</p>

@@ -9,12 +9,13 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, HelpCircle, Sparkles, Trophy, Target } from 'lucide-react';
+import { ChevronLeft, X, HelpCircle, Sparkles, Trophy, Target } from 'lucide-react';
 import { WW2Host } from '@/types';
 import { FactOrMythSwiper, FactOrMythStatement, PreModuleVideoScreen, PostModuleVideoScreen, XPCompletionScreen } from '../shared';
 import { subscribeToWW2ModuleAssets, type PreModuleVideoConfig, type PostModuleVideoConfig } from '@/lib/firestore';
 import { playXPSound } from '@/lib/xpAudioManager';
 import { usePearlHarborProgress } from '../hooks/usePearlHarborProgress';
+import { useScreenHistory } from '../hooks/useScreenHistory';
 
 type Screen = 'pre-video' | 'intro' | 'swipe-quiz' | 'post-video' | 'completion';
 const SCREENS: Screen[] = ['pre-video', 'intro', 'swipe-quiz', 'post-video', 'completion'];
@@ -101,7 +102,19 @@ interface FactOrMythBeatProps {
 }
 
 export function FactOrMythBeat({ host, onComplete, onSkip, onBack, isPreview = false }: FactOrMythBeatProps) {
-  const [screen, setScreen] = useState<Screen>('intro');
+  // Use screen history hook for proper back navigation
+  const {
+    screen,
+    isFirstScreen,
+    goToScreen,
+    goBack: goToPrevScreen,
+    resetHistory,
+  } = useScreenHistory<Screen>({
+    initialScreen: 'intro',
+    screens: SCREENS,
+    onExit: onBack,
+  });
+
   const [finalScore, setFinalScore] = useState(0);
   const [skipped, setSkipped] = useState(false);
   const [preModuleVideoConfig, setPreModuleVideoConfig] = useState<PreModuleVideoConfig | null>(null);
@@ -116,13 +129,13 @@ export function FactOrMythBeat({ host, onComplete, onSkip, onBack, isPreview = f
     if (checkpoint?.lessonId === LESSON_DATA.id && checkpoint.screen) {
       const savedScreen = checkpoint.screen as Screen;
       if (SCREENS.includes(savedScreen) && savedScreen !== 'completion') {
-        setScreen(savedScreen);
+        resetHistory(savedScreen);
         if (checkpoint.state?.finalScore !== undefined) {
           setFinalScore(checkpoint.state.finalScore);
         }
       }
     }
-  }, []);
+  }, [resetHistory]);
 
   // Save checkpoint on screen change - only after config is loaded
   useEffect(() => {
@@ -169,10 +182,10 @@ export function FactOrMythBeat({ host, onComplete, onSkip, onBack, isPreview = f
         preModuleVideoConfig?.enabled &&
         preModuleVideoConfig?.videoUrl;
       if (shouldShowPreVideo) {
-        setScreen('pre-video');
+        resetHistory('pre-video');
       }
     }
-  }, [hasLoadedConfig, preModuleVideoConfig, isPreview]);
+  }, [hasLoadedConfig, preModuleVideoConfig, isPreview, resetHistory]);
 
   const nextScreen = useCallback(() => {
     const currentIndex = SCREENS.indexOf(screen);
@@ -183,7 +196,7 @@ export function FactOrMythBeat({ host, onComplete, onSkip, onBack, isPreview = f
         nextScreenIndex++;
       }
       if (nextScreenIndex < SCREENS.length) {
-        setScreen(SCREENS[nextScreenIndex]);
+        goToScreen(SCREENS[nextScreenIndex]);
       } else {
         clearCheckpoint();
         onComplete(skipped ? 0 : LESSON_DATA.xpReward);
@@ -193,7 +206,7 @@ export function FactOrMythBeat({ host, onComplete, onSkip, onBack, isPreview = f
       const earnedXP = skipped ? 0 : LESSON_DATA.xpReward;
       onComplete(earnedXP);
     }
-  }, [screen, skipped, clearCheckpoint, onComplete, postModuleVideoConfig]);
+  }, [screen, skipped, clearCheckpoint, onComplete, postModuleVideoConfig, goToScreen]);
 
   const handleQuizComplete = (score: number, total: number) => {
     setFinalScore(score);
@@ -225,10 +238,10 @@ export function FactOrMythBeat({ host, onComplete, onSkip, onBack, isPreview = f
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
         <button
-          onClick={onBack}
+          onClick={goToPrevScreen}
           className="p-2 -ml-2 text-white/60 hover:text-white transition-colors"
         >
-          <ArrowLeft size={24} />
+          {isFirstScreen ? <X size={24} /> : <ChevronLeft size={24} />}
         </button>
         <div className="text-center">
           <h1 className="text-white font-bold">Fact or Myth?</h1>
@@ -260,7 +273,7 @@ export function FactOrMythBeat({ host, onComplete, onSkip, onBack, isPreview = f
             <PreModuleVideoScreen
               config={preModuleVideoConfig}
               beatTitle="Fact or Myth"
-              onComplete={() => setScreen('intro')}
+              onComplete={() => goToScreen('intro')}
             />
           )}
 
@@ -354,7 +367,7 @@ export function FactOrMythBeat({ host, onComplete, onSkip, onBack, isPreview = f
             <PostModuleVideoScreen
               config={postModuleVideoConfig}
               beatTitle="Fact or Myth"
-              onComplete={() => setScreen('completion')}
+              onComplete={() => goToScreen('completion')}
             />
           )}
 

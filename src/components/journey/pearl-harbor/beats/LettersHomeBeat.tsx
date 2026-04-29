@@ -13,11 +13,12 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Play, Pause, Volume2, VolumeX, AlertTriangle } from 'lucide-react';
+import { ChevronLeft, X, Play, Pause, Volume2, VolumeX, AlertTriangle } from 'lucide-react';
 import { WW2Host } from '@/types';
 import { PreModuleVideoScreen, PostModuleVideoScreen, XPCompletionScreen } from '../shared';
 import { subscribeToWW2ModuleAssets, type PreModuleVideoConfig, type PostModuleVideoConfig } from '@/lib/firestore';
 import { usePearlHarborProgress } from '../hooks/usePearlHarborProgress';
+import { useScreenHistory } from '../hooks/useScreenHistory';
 
 // ═══════════════════════════════════════════════════════════
 // SVG INSIGNIA COMPONENTS
@@ -249,7 +250,19 @@ interface LettersHomeBeatProps {
 }
 
 export function LettersHomeBeat({ host, onComplete, onSkip, onBack, isPreview = false }: LettersHomeBeatProps) {
-  const [screen, setScreen] = useState<Screen>('intro');
+  // Use screen history hook for proper back navigation
+  const {
+    screen,
+    isFirstScreen,
+    goToScreen,
+    goBack: goToPrevScreen,
+    resetHistory,
+  } = useScreenHistory<Screen>({
+    initialScreen: 'intro',
+    screens: SCREENS,
+    onExit: onBack,
+  });
+
   const [skipped, setSkipped] = useState(false);
   const [preModuleVideoConfig, setPreModuleVideoConfig] = useState<PreModuleVideoConfig | null>(null);
   const [postModuleVideoConfig, setPostModuleVideoConfig] = useState<PostModuleVideoConfig | null>(null);
@@ -278,10 +291,10 @@ export function LettersHomeBeat({ host, onComplete, onSkip, onBack, isPreview = 
     if (checkpoint?.lessonId === LESSON_DATA.id && checkpoint.screen) {
       const savedScreen = checkpoint.screen as Screen;
       if (SCREENS.includes(savedScreen) && savedScreen !== 'completion') {
-        setScreen(savedScreen);
+        resetHistory(savedScreen);
       }
     }
-  }, []);
+  }, [resetHistory]);
 
   // Save checkpoint on screen change
   useEffect(() => {
@@ -344,10 +357,10 @@ export function LettersHomeBeat({ host, onComplete, onSkip, onBack, isPreview = 
         preModuleVideoConfig?.enabled &&
         preModuleVideoConfig?.videoUrl;
       if (shouldShowPreVideo) {
-        setScreen('pre-video');
+        resetHistory('pre-video');
       }
     }
-  }, [hasLoadedConfig, preModuleVideoConfig, isPreview]);
+  }, [hasLoadedConfig, preModuleVideoConfig, isPreview, resetHistory]);
 
   // Audio cleanup
   useEffect(() => {
@@ -423,7 +436,7 @@ export function LettersHomeBeat({ host, onComplete, onSkip, onBack, isPreview = 
         nextScreenIndex++;
       }
       if (nextScreenIndex < SCREENS.length) {
-        setScreen(SCREENS[nextScreenIndex]);
+        goToScreen(SCREENS[nextScreenIndex]);
       } else {
         clearCheckpoint();
         onComplete(skipped ? 0 : LESSON_DATA.xpReward);
@@ -432,7 +445,7 @@ export function LettersHomeBeat({ host, onComplete, onSkip, onBack, isPreview = 
       clearCheckpoint();
       onComplete(skipped ? 0 : LESSON_DATA.xpReward);
     }
-  }, [screen, skipped, clearCheckpoint, onComplete, postModuleVideoConfig]);
+  }, [screen, skipped, clearCheckpoint, onComplete, postModuleVideoConfig, goToScreen]);
 
   const goToLetter = (screenId: Screen) => {
     if (audioRef.current) {
@@ -440,7 +453,7 @@ export function LettersHomeBeat({ host, onComplete, onSkip, onBack, isPreview = 
       setIsPlaying(false);
       setAudioProgress(0);
     }
-    setScreen(screenId);
+    goToScreen(screenId);
   };
 
   const currentLetter = LETTERS.find(l => l.screenId === screen);
@@ -481,8 +494,8 @@ export function LettersHomeBeat({ host, onComplete, onSkip, onBack, isPreview = 
 
       {/* Header */}
       <div className="relative z-10 flex items-center justify-between px-5 py-4 border-b border-white/10">
-        <button onClick={onBack} className="w-8 h-8 flex items-center justify-center text-white/50 hover:text-gold transition-colors">
-          <ArrowLeft size={22} />
+        <button onClick={goToPrevScreen} className="w-8 h-8 flex items-center justify-center text-white/50 hover:text-gold transition-colors">
+          {isFirstScreen ? <X size={22} /> : <ChevronLeft size={22} />}
         </button>
         <div className="flex-1 text-center flex flex-col items-center gap-0.5">
           <h1 className="font-oswald font-black text-[26px] tracking-[0.035em] uppercase text-off-white leading-none">
@@ -518,7 +531,7 @@ export function LettersHomeBeat({ host, onComplete, onSkip, onBack, isPreview = 
             <PreModuleVideoScreen
               config={preModuleVideoConfig}
               beatTitle="Letters Home"
-              onComplete={() => setScreen('intro')}
+              onComplete={() => goToScreen('intro')}
             />
           )}
 
@@ -806,7 +819,7 @@ export function LettersHomeBeat({ host, onComplete, onSkip, onBack, isPreview = 
               <div className="pt-4 pb-6">
                 {lettersRead.size === LETTERS.length ? (
                   <button
-                    onClick={() => setScreen('reflection')}
+                    onClick={() => goToScreen('reflection')}
                     className="w-full py-4 flex items-center justify-center gap-3"
                     style={{
                       background: 'linear-gradient(180deg, #F6E355 0%, #E6AB2A 45%, #B2641F 100%)',
@@ -1061,7 +1074,7 @@ export function LettersHomeBeat({ host, onComplete, onSkip, onBack, isPreview = 
               {/* Footer buttons */}
               <div className="flex gap-3 pt-2 pb-4">
                 <button
-                  onClick={() => setScreen('letter-select')}
+                  onClick={() => goToScreen('letter-select')}
                   className="flex-1 py-3.5 flex items-center justify-center gap-2 rounded-md font-mono text-[10px] tracking-[0.25em] text-white/70 uppercase font-bold transition-colors hover:text-gold hover:border-gold/40"
                   style={{
                     background: 'rgba(20,14,8,0.55)',
@@ -1251,7 +1264,7 @@ export function LettersHomeBeat({ host, onComplete, onSkip, onBack, isPreview = 
             <PostModuleVideoScreen
               config={postModuleVideoConfig}
               beatTitle="Letters Home"
-              onComplete={() => setScreen('completion')}
+              onComplete={() => goToScreen('completion')}
             />
           )}
 

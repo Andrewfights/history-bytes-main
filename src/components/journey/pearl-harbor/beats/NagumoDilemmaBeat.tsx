@@ -9,12 +9,13 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Sparkles, Anchor, AlertTriangle, Target, Shield } from 'lucide-react';
+import { ChevronLeft, X, Sparkles, Anchor, AlertTriangle, Target, Shield } from 'lucide-react';
 import { WW2Host } from '@/types';
 import { PreModuleVideoScreen, PostModuleVideoScreen, XPCompletionScreen } from '../shared';
 import { subscribeToWW2ModuleAssets, type PreModuleVideoConfig, type PostModuleVideoConfig } from '@/lib/firestore';
 import { playXPSound } from '@/lib/xpAudioManager';
 import { usePearlHarborProgress } from '../hooks/usePearlHarborProgress';
+import { useScreenHistory } from '../hooks/useScreenHistory';
 
 type Screen = 'pre-video' | 'intro' | 'situation' | 'arguments' | 'decision' | 'consequences' | 'myth-check' | 'post-video' | 'completion';
 const SCREENS: Screen[] = ['pre-video', 'intro', 'situation', 'arguments', 'decision', 'consequences', 'myth-check', 'post-video', 'completion'];
@@ -110,7 +111,19 @@ interface NagumoDilemmaBeatProps {
 }
 
 export function NagumoDilemmaBeat({ host, onComplete, onSkip, onBack, isPreview = false }: NagumoDilemmaBeatProps) {
-  const [screen, setScreen] = useState<Screen>('intro');
+  // Use screen history hook for proper back navigation
+  const {
+    screen,
+    isFirstScreen,
+    goToScreen,
+    goBack: goToPrevScreen,
+    resetHistory,
+  } = useScreenHistory<Screen>({
+    initialScreen: 'intro',
+    screens: SCREENS,
+    onExit: onBack,
+  });
+
   const [selectedDecision, setSelectedDecision] = useState<Decision | null>(null);
   const [showAttackArgs, setShowAttackArgs] = useState(true);
   const [skipped, setSkipped] = useState(false);
@@ -125,13 +138,13 @@ export function NagumoDilemmaBeat({ host, onComplete, onSkip, onBack, isPreview 
     if (checkpoint?.lessonId === LESSON_DATA.id && checkpoint.screen) {
       const savedScreen = checkpoint.screen as Screen;
       if (SCREENS.includes(savedScreen) && savedScreen !== 'completion') {
-        setScreen(savedScreen);
+        resetHistory(savedScreen);
         if (checkpoint.state?.selectedDecision) {
           setSelectedDecision(checkpoint.state.selectedDecision);
         }
       }
     }
-  }, []);
+  }, [resetHistory]);
 
   useEffect(() => {
     if (hasLoadedConfig && screen !== 'completion') {
@@ -173,10 +186,10 @@ export function NagumoDilemmaBeat({ host, onComplete, onSkip, onBack, isPreview 
         preModuleVideoConfig?.enabled &&
         preModuleVideoConfig?.videoUrl;
       if (shouldShowPreVideo) {
-        setScreen('pre-video');
+        resetHistory('pre-video');
       }
     }
-  }, [hasLoadedConfig, preModuleVideoConfig, isPreview]);
+  }, [hasLoadedConfig, preModuleVideoConfig, isPreview, resetHistory]);
 
   const nextScreen = useCallback(() => {
     const currentIndex = SCREENS.indexOf(screen);
@@ -186,12 +199,12 @@ export function NagumoDilemmaBeat({ host, onComplete, onSkip, onBack, isPreview 
       if (SCREENS[nextIndex] === 'post-video' && !postModuleVideoConfig) {
         nextIndex++;
       }
-      setScreen(SCREENS[nextIndex]);
+      goToScreen(SCREENS[nextIndex]);
     } else {
       clearCheckpoint();
       onComplete(skipped ? 0 : LESSON_DATA.xpReward);
     }
-  }, [screen, skipped, clearCheckpoint, onComplete, postModuleVideoConfig]);
+  }, [screen, skipped, clearCheckpoint, onComplete, postModuleVideoConfig, goToScreen]);
 
   const handleDecision = (decision: Decision) => {
     setSelectedDecision(decision);
@@ -202,8 +215,8 @@ export function NagumoDilemmaBeat({ host, onComplete, onSkip, onBack, isPreview 
     <div className="fixed inset-0 z-[60] pt-safe bg-black flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
-        <button onClick={onBack} className="p-2 -ml-2 text-white/60 hover:text-white transition-colors">
-          <ArrowLeft size={24} />
+        <button onClick={goToPrevScreen} className="p-2 -ml-2 text-white/60 hover:text-white transition-colors">
+          {isFirstScreen ? <X size={24} /> : <ChevronLeft size={24} />}
         </button>
         <div className="text-center">
           <h1 className="text-white font-bold">Nagumo's Dilemma</h1>
@@ -227,7 +240,7 @@ export function NagumoDilemmaBeat({ host, onComplete, onSkip, onBack, isPreview 
             <PreModuleVideoScreen
               config={preModuleVideoConfig}
               beatTitle="Nagumo's Dilemma"
-              onComplete={() => setScreen('intro')}
+              onComplete={() => goToScreen('intro')}
             />
           )}
 
@@ -513,7 +526,7 @@ export function NagumoDilemmaBeat({ host, onComplete, onSkip, onBack, isPreview 
             <PostModuleVideoScreen
               config={postModuleVideoConfig}
               beatTitle="Nagumo's Dilemma"
-              onComplete={() => setScreen('completion')}
+              onComplete={() => goToScreen('completion')}
             />
           )}
 
