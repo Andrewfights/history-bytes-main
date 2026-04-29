@@ -970,6 +970,14 @@ export function BreakingNewsBeat({ host, onComplete, onSkip, onBack, isPreview =
                     </>
                   )}
                 </button>
+
+                {/* Skip button */}
+                <button
+                  onClick={() => { setSkipped(true); onSkip(); }}
+                  className="w-full py-2 font-mono text-[9.5px] tracking-[0.28em] text-off-white/35 uppercase font-semibold hover:text-off-white/50 transition-colors flex-shrink-0"
+                >
+                  Skip this beat
+                </button>
               </div>
             </motion.div>
           )}

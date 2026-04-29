@@ -816,8 +816,8 @@ export function LettersHomeBeat({ host, onComplete, onSkip, onBack, isPreview = 
               </div>
 
               {/* Continue or progress */}
-              <div className="pt-4 pb-6">
-                {lettersRead.size === LETTERS.length ? (
+              <div className="pt-4 pb-6 flex flex-col gap-3">
+                {lettersRead.size >= 1 ? (
                   <button
                     onClick={() => goToScreen('reflection')}
                     className="w-full py-4 flex items-center justify-center gap-3"
@@ -835,9 +835,17 @@ export function LettersHomeBeat({ host, onComplete, onSkip, onBack, isPreview = 
                   </button>
                 ) : (
                   <p className="text-center font-mono text-[10px] tracking-[0.2em] text-white/40 uppercase">
-                    {lettersRead.size} of {LETTERS.length} letters read
+                    Read at least 1 letter to continue
                   </p>
                 )}
+
+                {/* Skip button */}
+                <button
+                  onClick={() => { setSkipped(true); onSkip(); }}
+                  className="w-full py-2 font-mono text-[9.5px] tracking-[0.28em] text-off-white/35 uppercase font-semibold hover:text-off-white/50 transition-colors"
+                >
+                  Skip this beat
+                </button>
               </div>
             </motion.div>
           )}

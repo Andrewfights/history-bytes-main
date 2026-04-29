@@ -5,15 +5,14 @@
  * Covers:
  * - America's shocking lack of military preparedness in 1941
  * - Side-by-side comparisons: US vs Germany/Japan
- * - The Louisiana Maneuvers training operation
  * - How leaders like Eisenhower and Patton emerged
  *
- * XP: 50 | Duration: 5-6 min
+ * XP: 50 | Duration: 4-5 min
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, X, Sparkles, ChevronRight, ChevronDown, AlertTriangle, Target, Users, Zap, Check, Volume2, VolumeX, Radio } from 'lucide-react';
+import { ChevronLeft, X, ChevronDown, Users, Check, Volume2, VolumeX, Radio } from 'lucide-react';
 import { WW2Host } from '@/types';
 import { PreModuleVideoScreen, PostModuleVideoScreen } from '../shared';
 import {
@@ -25,8 +24,8 @@ import { playXPSound } from '@/lib/xpAudioManager';
 import { usePearlHarborProgress } from '../hooks/usePearlHarborProgress';
 import { useScreenHistory } from '../hooks/useScreenHistory';
 
-type Screen = 'pre-video' | 'intro' | 'comparison' | 'maneuvers' | 'leaders' | 'post-video' | 'completion';
-const SCREENS: Screen[] = ['pre-video', 'intro', 'comparison', 'maneuvers', 'leaders', 'post-video', 'completion'];
+type Screen = 'pre-video' | 'intro' | 'comparison' | 'leaders' | 'post-video' | 'completion';
+const SCREENS: Screen[] = ['pre-video', 'intro', 'comparison', 'leaders', 'post-video', 'completion'];
 
 const LESSON_DATA = {
   id: 'ph-beat-7',
@@ -65,38 +64,6 @@ const COMPARISON_STATS = [
   },
 ];
 
-// Louisiana Maneuvers facts - stat cards with types
-const MANEUVERS_FACTS = [
-  {
-    tag: 'Scale',
-    value: '400,000',
-    label: 'Troops Deployed',
-    description: 'Largest exercise in US history at the time.',
-    type: 'default', // gold accent
-  },
-  {
-    tag: 'Shortage',
-    value: '"TANK"',
-    label: 'Painted on Trucks',
-    description: 'Units improvised for the real thing.',
-    type: 'default',
-  },
-  {
-    tag: 'Findings',
-    value: 'Exposed',
-    label: 'Weak Supply Lines',
-    description: 'Broken radios, shortages at every level.',
-    type: 'warning', // red accent
-  },
-  {
-    tag: 'Emergence',
-    value: 'Eisenhower',
-    label: '· Patton Rise',
-    description: 'Future leaders proven in the field.',
-    type: 'strength', // green accent
-  },
-];
-
 interface EmptyWarChestBeatProps {
   host: WW2Host;
   onComplete: (xp: number) => void;
@@ -120,7 +87,6 @@ export function EmptyWarChestBeat({ host, onComplete, onSkip, onBack, isPreview 
   });
 
   const [viewedStats, setViewedStats] = useState<Set<number>>(new Set());
-  const [viewedFacts, setViewedFacts] = useState<Set<number>>(new Set());
   const [activeCategory, setActiveCategory] = useState<number | null>(null);
   const [skipped, setSkipped] = useState(false);
   const [preModuleVideoConfig, setPreModuleVideoConfig] = useState<PreModuleVideoConfig | null>(null);
@@ -145,9 +111,6 @@ export function EmptyWarChestBeat({ host, onComplete, onSkip, onBack, isPreview 
         if (checkpoint.state?.viewedStats) {
           setViewedStats(new Set(checkpoint.state.viewedStats));
         }
-        if (checkpoint.state?.viewedFacts) {
-          setViewedFacts(new Set(checkpoint.state.viewedFacts));
-        }
       }
     }
   }, [resetHistory]);
@@ -162,11 +125,10 @@ export function EmptyWarChestBeat({ host, onComplete, onSkip, onBack, isPreview 
         timestamp: Date.now(),
         state: {
           viewedStats: Array.from(viewedStats),
-          viewedFacts: Array.from(viewedFacts),
         },
       });
     }
-  }, [hasLoadedConfig, screen, viewedStats, viewedFacts, saveCheckpoint]);
+  }, [hasLoadedConfig, screen, viewedStats, saveCheckpoint]);
 
   // Subscribe to Firestore for pre/post module videos and ambient audio
   useEffect(() => {
@@ -292,12 +254,7 @@ export function EmptyWarChestBeat({ host, onComplete, onSkip, onBack, isPreview 
     setActiveCategory(prev => prev === index ? null : index);
   };
 
-  const handleViewFact = (index: number) => {
-    setViewedFacts(prev => new Set(prev).add(index));
-  };
-
   const allStatsViewed = viewedStats.size >= COMPARISON_STATS.length;
-  const allFactsViewed = viewedFacts.size >= MANEUVERS_FACTS.length;
 
   return (
     <div className="fixed inset-0 z-[60] pt-safe bg-black flex flex-col">
@@ -871,211 +828,6 @@ export function EmptyWarChestBeat({ host, onComplete, onSkip, onBack, isPreview 
                     style={{ background: '#141414', border: '1px solid rgba(230,171,42,0.15)' }}
                   >
                     Reveal All Four Gaps
-                  </button>
-                )}
-              </div>
-            </motion.div>
-          )}
-
-          {/* LOUISIANA MANEUVERS - Field Report Screen */}
-          {screen === 'maneuvers' && (
-            <motion.div
-              key="maneuvers"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex flex-col h-full bg-[#0A0A0A]"
-            >
-              <div className="flex-1 overflow-y-auto px-4 pt-4 pb-3">
-                {/* Report header */}
-                <div className="text-center mb-3.5">
-                  <div className="font-mono text-[8.5px] tracking-[0.4em] text-ha-red font-semibold uppercase mb-1.5">
-                    ◆ Summer 1941 · Field Report
-                  </div>
-                  <div className="relative inline-block">
-                    <h2 className="font-oswald text-[19px] font-bold text-off-white uppercase tracking-tight">
-                      The Louisiana Maneuvers
-                    </h2>
-                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-[26px] h-0.5 bg-ha-red" />
-                  </div>
-                  <p className="font-sans text-[11px] text-off-white/50 mt-3 italic">
-                    America's desperate attempt to prepare
-                  </p>
-                </div>
-
-                {/* Operation banner */}
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="relative flex gap-2.5 p-3 pl-3.5 mb-3"
-                  style={{
-                    background: '#1F1810',
-                    border: '1px solid rgba(178,100,31,0.4)',
-                  }}
-                >
-                  {/* Gold left bar */}
-                  <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-gold-2" />
-                  {/* Icon */}
-                  <div
-                    className="w-[26px] h-[26px] rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
-                    style={{
-                      background: 'rgba(230,171,42,0.15)',
-                      border: '1px solid #B2641F',
-                    }}
-                  >
-                    <Target size={13} className="text-gold-2" />
-                  </div>
-                  {/* Body */}
-                  <div className="flex-1 min-w-0">
-                    <div className="font-mono text-[8px] tracking-[0.25em] text-gold-2 font-semibold uppercase mb-0.5">
-                      Operation
-                    </div>
-                    <div className="font-oswald text-[14px] font-bold text-off-white uppercase tracking-tight leading-none mb-1.5">
-                      Training For Modern War
-                    </div>
-                    <p className="font-sans text-[10.5px] text-off-white/70 leading-relaxed">
-                      The Army launched a massive exercise across Louisiana and East Texas to simulate the fast-moving, mechanized combat unfolding across Europe.
-                    </p>
-                  </div>
-                </motion.div>
-
-                {/* Stat cards grid */}
-                <div className="grid grid-cols-2 gap-[7px] mb-3">
-                  {MANEUVERS_FACTS.map((fact, index) => {
-                    const isViewed = viewedFacts.has(index);
-                    const accentColor = fact.type === 'warning' ? '#CD0E14' : fact.type === 'strength' ? '#3DD67A' : '#E6AB2A';
-
-                    return (
-                      <motion.button
-                        key={fact.label}
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: index * 0.08 }}
-                        onClick={() => handleViewFact(index)}
-                        className="relative text-left p-2.5 min-h-[82px] overflow-hidden"
-                        style={{
-                          background: '#141414',
-                          border: `1px solid ${isViewed ? accentColor + '50' : 'rgba(230,171,42,0.15)'}`,
-                        }}
-                      >
-                        {/* Left accent bar */}
-                        <div
-                          className="absolute left-0 top-0 bottom-0 w-0.5"
-                          style={{ background: accentColor }}
-                        />
-
-                        {/* Top row: icon + tag */}
-                        <div className="flex justify-between items-start mb-1.5">
-                          <div style={{ color: accentColor }}>
-                            {fact.type === 'default' && index === 0 && (
-                              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                                <circle cx="9" cy="7" r="3"/><circle cx="17" cy="9" r="2.5"/>
-                                <path d="M3 19c0-3 3-5 6-5s6 2 6 5M15 19c0-2 2-4 4-4s4 1.5 4 4"/>
-                              </svg>
-                            )}
-                            {fact.type === 'default' && index === 1 && (
-                              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                                <rect x="2" y="9" width="15" height="8" rx="1"/>
-                                <path d="M17 11h3l2 3v3h-5M7 20a2 2 0 100-4 2 2 0 000 4zM18 20a2 2 0 100-4 2 2 0 000 4z"/>
-                              </svg>
-                            )}
-                            {fact.type === 'warning' && (
-                              <AlertTriangle size={16} />
-                            )}
-                            {fact.type === 'strength' && (
-                              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M12 2l3 7 7 .5-5.5 5 2 7-6.5-4-6.5 4 2-7-5.5-5 7-.5z"/>
-                              </svg>
-                            )}
-                          </div>
-                          <span
-                            className="font-mono text-[7px] tracking-[0.15em] text-off-white/35 uppercase font-semibold py-0.5 px-1.5"
-                            style={{ border: '1px solid rgba(230,171,42,0.15)' }}
-                          >
-                            {fact.tag}
-                          </span>
-                        </div>
-
-                        {/* Value */}
-                        <div
-                          className="font-oswald text-[16px] font-bold leading-none uppercase tracking-tight mb-0.5"
-                          style={{ color: accentColor }}
-                        >
-                          {fact.value}
-                        </div>
-
-                        {/* Label */}
-                        <div className="font-oswald text-[10px] font-semibold text-off-white uppercase tracking-wide leading-tight mb-0.5">
-                          {fact.label}
-                        </div>
-
-                        {/* Description (always shown) */}
-                        <AnimatePresence>
-                          {isViewed && (
-                            <motion.p
-                              initial={{ opacity: 0, height: 0 }}
-                              animate={{ opacity: 1, height: 'auto' }}
-                              className="font-sans text-[9.5px] text-off-white/50 leading-snug"
-                            >
-                              {fact.description}
-                            </motion.p>
-                          )}
-                        </AnimatePresence>
-                      </motion.button>
-                    );
-                  })}
-                </div>
-
-                {/* Quote */}
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: allFactsViewed ? 1 : 0.4, y: 0 }}
-                  className="relative p-3 pl-3.5 font-sans text-[11px] text-off-white/70 leading-relaxed italic"
-                  style={{
-                    background: 'rgba(205,14,20,0.06)',
-                    border: '1px solid rgba(205,14,20,0.2)',
-                  }}
-                >
-                  {/* Red left bar */}
-                  <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-ha-red" />
-                  {/* Quote mark */}
-                  <span
-                    className="absolute -top-1 left-2.5 bg-[#0A0A0A] px-1.5 font-oswald text-[16px] text-ha-red font-bold not-italic"
-                  >
-                    "
-                  </span>
-                  The take-away was clear: America still had a long way to go before it was ready to fight a modern, global war. And not a lot of time.
-                </motion.div>
-              </div>
-
-              {/* Footer with progress and CTA */}
-              <div className="px-4 pt-2.5 pb-4 border-t border-off-white/[0.08]" style={{ paddingBottom: 'max(1rem, calc(env(safe-area-inset-bottom) + 0.5rem))' }}>
-                {/* Progress row */}
-                <div className="flex justify-between font-mono text-[8.5px] tracking-[0.2em] text-off-white/50 uppercase font-semibold mb-2 px-0.5">
-                  <span>Pages Surveyed</span>
-                  <span className="text-[#3DD67A]">{viewedFacts.size} / {MANEUVERS_FACTS.length}</span>
-                </div>
-                {/* CTA Button */}
-                {allFactsViewed ? (
-                  <button
-                    onClick={nextScreen}
-                    className="relative w-full py-3.5 bg-ha-red hover:bg-ha-red/90 text-off-white font-oswald text-[12px] font-bold uppercase tracking-[0.15em] transition-colors flex items-center justify-center gap-2"
-                  >
-                    {/* Corner brackets */}
-                    <span className="absolute top-[-1px] left-[-1px] w-2 h-2 border-l-[1.5px] border-t-[1.5px] border-gold-2" />
-                    <span className="absolute bottom-[-1px] right-[-1px] w-2 h-2 border-r-[1.5px] border-b-[1.5px] border-gold-2" />
-                    Continue To The Payoff
-                    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <path d="M5 12h14M13 5l7 7-7 7" />
-                    </svg>
-                  </button>
-                ) : (
-                  <button
-                    disabled
-                    className="w-full py-3.5 font-oswald text-[12px] font-bold uppercase tracking-[0.12em] text-off-white/30"
-                    style={{ background: '#141414', border: '1px solid rgba(230,171,42,0.15)' }}
-                  >
-                    Tap All Four Cards
                   </button>
                 )}
               </div>

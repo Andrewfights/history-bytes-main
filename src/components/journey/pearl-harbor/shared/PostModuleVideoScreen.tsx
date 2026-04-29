@@ -3,7 +3,7 @@
  * Design: Gold bracket corners, Oswald title, cream play button, gold progress bar
  */
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SkipForward, Volume2, VolumeX, Pause, Trophy } from 'lucide-react';
 import type { PostModuleVideoConfig } from '@/lib/firestore';
@@ -24,6 +24,7 @@ export function PostModuleVideoScreen({ config, beatTitle, onComplete }: PostMod
   const [duration, setDuration] = useState(0);
   const [hasStarted, setHasStarted] = useState(false);
   const [showCenterIcon, setShowCenterIcon] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   const handlePlay = useCallback(() => {
     if (videoRef.current) {
@@ -87,16 +88,50 @@ export function PostModuleVideoScreen({ config, beatTitle, onComplete }: PostMod
     }
   }, [hasStarted, handleTogglePlay, handlePlay]);
 
-  const handleScrub = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+  const handleScrub = useCallback((clientX: number) => {
     if (!progressBarRef.current || !videoRef.current) return;
     const rect = progressBarRef.current.getBoundingClientRect();
-    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const percent = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
     const newTime = percent * videoRef.current.duration;
     videoRef.current.currentTime = newTime;
     setProgress(percent * 100);
     setCurrentTime(newTime);
   }, []);
+
+  const handleScrubClick = useCallback((e: React.MouseEvent) => {
+    handleScrub(e.clientX);
+  }, [handleScrub]);
+
+  const handleScrubTouch = useCallback((e: React.TouchEvent) => {
+    handleScrub(e.touches[0].clientX);
+  }, [handleScrub]);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+    handleScrub(e.clientX);
+  }, [handleScrub]);
+
+  // Handle mouse move and mouse up for dragging
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      handleScrub(e.clientX);
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging, handleScrub]);
 
   const formatTime = (seconds: number) => {
     if (!seconds || isNaN(seconds)) return '0:00';
@@ -229,9 +264,11 @@ export function PostModuleVideoScreen({ config, beatTitle, onComplete }: PostMod
         {/* Progress Bar */}
         <div
           ref={progressBarRef}
-          onClick={handleScrub}
-          onTouchMove={handleScrub}
-          className="relative h-6 flex items-center cursor-pointer group mb-2"
+          onClick={handleScrubClick}
+          onMouseDown={handleMouseDown}
+          onTouchStart={handleScrubTouch}
+          onTouchMove={handleScrubTouch}
+          className="relative h-6 flex items-center cursor-pointer group mb-2 select-none"
         >
           {/* Track background */}
           <div className="absolute inset-x-0 h-[3px] bg-off-white/10 rounded-sm" />
